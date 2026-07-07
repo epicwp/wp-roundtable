@@ -27,3 +27,24 @@ composer cs:fix    # phpcbf
 composer stan      # phpstan
 composer test      # phpunit
 ```
+
+## Consuming this SDK
+
+A consuming plugin pulls it in with Composer:
+
+```bash
+composer require epicwp/wp-roundtable
+```
+
+While this repo is **private**, add a VCS `repositories` entry (with auth) in the plugin's
+`composer.json`; once it goes public, install straight from Packagist.
+
+**Design principles that keep it safe to bundle into a distributed plugin:**
+
+- **No runtime dependencies.** The SDK leans on WordPress core (HTTP via `wp_remote_*`, i18n,
+  options) rather than pulling libraries like Guzzle — so there is virtually nothing to collide
+  with another plugin's bundled `vendor/`.
+- **Scoping is the consumer's job.** Isolating the SDK's namespace to avoid "class already
+  declared" across plugins (e.g. via Mozart / jetpack-autoloader) happens in the **consuming
+  plugin's build** — PLLAT already has that pipeline. This SDK stays a plain library.
+
