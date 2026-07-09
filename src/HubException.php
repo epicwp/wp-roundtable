@@ -55,7 +55,7 @@ final class HubException extends \RuntimeException {
     }
 
     /**
-     * Builds the error; use one of the named constructors instead.
+     * Builds the exception; use one of the named constructors instead.
      *
      * @param string $kind    One of the class constants.
      * @param string $message Human-readable message. Never contains the API key.
@@ -65,7 +65,7 @@ final class HubException extends \RuntimeException {
     }
 
     /**
-     * Returns the error's kind.
+     * Returns the exception's kind.
      *
      * @return string One of the class constants.
      */
