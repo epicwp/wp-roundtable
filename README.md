@@ -48,3 +48,18 @@ While this repo is **private**, add a VCS `repositories` entry (with auth) in th
   declared" across plugins (e.g. via Mozart / jetpack-autoloader) happens in the **consuming
   plugin's build** — PLLAT already has that pipeline. This SDK stays a plain library.
 
+## Bootstrapping (consumer)
+
+```php
+use EpicWP\Roundtable\Roundtable;
+use EpicWP\Roundtable\Config;
+
+Roundtable::mount(
+    new Config(
+        projectApiKey: 'pk_...',   // your project key
+        consumer:      $myConsumer, // implements EpicWP\Roundtable\Consumer
+    ),
+    'my-plugin-discussions',        // your admin page slug
+);
+```
+
