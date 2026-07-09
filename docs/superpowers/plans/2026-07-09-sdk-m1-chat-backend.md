@@ -303,16 +303,16 @@ git commit -m "feat(config): add Consumer interface and Config value object"
 
 ---
 
-### Task 3: `HubError`
+### Task 3: `HubException`
 
 **Files:**
-- Create: `src/HubError.php`
-- Create: `tests/HubErrorTest.php`
+- Create: `src/HubException.php`
+- Create: `tests/HubExceptionTest.php`
 
 **Interfaces:**
-- Produces: `HubError extends \RuntimeException` with kind constants `BLOCKED`, `OVER_QUOTA`, `NETWORK`, `SERVER`, `BAD_RESPONSE`; `kind(): string`; static factories `blocked()`, `overQuota()`, `network(string $detail)`, `server(int $status)`, `badResponse(string $detail)`. Messages never contain the API key.
+- Produces: `HubException extends \RuntimeException` with kind constants `BLOCKED`, `OVER_QUOTA`, `NETWORK`, `SERVER`, `BAD_RESPONSE`; `kind(): string`; static factories `blocked()`, `overQuota()`, `network(string $detail)`, `server(int $status)`, `badResponse(string $detail)`. Messages never contain the API key.
 
-- [ ] **Step 1: Write the failing test** `tests/HubErrorTest.php`:
+- [ ] **Step 1: Write the failing test** `tests/HubExceptionTest.php`:
 
 ```php
 <?php
@@ -320,29 +320,29 @@ declare(strict_types=1);
 
 namespace EpicWP\Roundtable\Tests;
 
-use EpicWP\Roundtable\HubError;
+use EpicWP\Roundtable\HubException;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 
-final class HubErrorTest extends PHPUnitTestCase
+final class HubExceptionTest extends PHPUnitTestCase
 {
     public function test_factories_carry_their_kind(): void
     {
-        self::assertSame(HubError::BLOCKED, HubError::blocked()->kind());
-        self::assertSame(HubError::OVER_QUOTA, HubError::overQuota()->kind());
-        self::assertSame(HubError::NETWORK, HubError::network('dns')->kind());
-        self::assertSame(HubError::SERVER, HubError::server(503)->kind());
-        self::assertSame(HubError::BAD_RESPONSE, HubError::badResponse('bad json')->kind());
+        self::assertSame(HubException::BLOCKED, HubException::blocked()->kind());
+        self::assertSame(HubException::OVER_QUOTA, HubException::overQuota()->kind());
+        self::assertSame(HubException::NETWORK, HubException::network('dns')->kind());
+        self::assertSame(HubException::SERVER, HubException::server(503)->kind());
+        self::assertSame(HubException::BAD_RESPONSE, HubException::badResponse('bad json')->kind());
     }
 
     public function test_is_a_runtime_exception(): void
     {
-        self::assertInstanceOf(\RuntimeException::class, HubError::blocked());
+        self::assertInstanceOf(\RuntimeException::class, HubException::blocked());
     }
 }
 ```
 
-- [ ] **Step 2: Run — fails.** `composer test -- --filter HubErrorTest` → FAIL.
-- [ ] **Step 3: Create `src/HubError.php`:**
+- [ ] **Step 2: Run — fails.** `composer test -- --filter HubExceptionTest` → FAIL.
+- [ ] **Step 3: Create `src/HubException.php`:**
 
 ```php
 <?php
@@ -356,7 +356,7 @@ namespace EpicWP\Roundtable;
  * Use the named constructors; `kind()` returns one of the `*` constants so callers can
  * branch (e.g. render "you are over your limit" for OVER_QUOTA).
  */
-final class HubError extends \RuntimeException
+final class HubException extends \RuntimeException
 {
     public const BLOCKED = 'blocked';
     public const OVER_QUOTA = 'over_quota';
@@ -407,13 +407,13 @@ final class HubError extends \RuntimeException
 }
 ```
 
-- [ ] **Step 4: Run — passes.** `composer test -- --filter HubErrorTest` → PASS.
+- [ ] **Step 4: Run — passes.** `composer test -- --filter HubExceptionTest` → PASS.
 - [ ] **Step 5: Gate + commit.**
 
 ```bash
 composer cs && composer stan && composer test
-git add src/HubError.php tests/HubErrorTest.php
-git commit -m "feat(error): add typed HubError with kind + secret-free messages"
+git add src/HubException.php tests/HubExceptionTest.php
+git commit -m "feat(error): add typed HubException with kind + secret-free messages"
 ```
 
 ---
@@ -888,7 +888,7 @@ git commit -m "feat(http): add Transport seam + WpHttpTransport"
 - Create: `tests/Support/FakeTransport.php`
 
 **Interfaces:**
-- Consumes: `Config` (T2), `Consumer` (T2), `Transport`/`TransportResponse`/`TransportException` (T6), `SseParser` (T5), `TurnResult`/`Event` (T4), `HubError` (T3).
+- Consumes: `Config` (T2), `Consumer` (T2), `Transport`/`TransportResponse`/`TransportException` (T6), `SseParser` (T5), `TurnResult`/`Event` (T4), `HubException` (T3).
 - Produces: `HubClient::__construct(Config $config, Transport $transport)`; `HubClient::postMessage(string $chatId, string $message, bool $isFirstTurn): TurnResult`; `HubClient::HUB_URL` constant.
 
 - [ ] **Step 1: Create the fake transport** `tests/Support/FakeTransport.php`:
@@ -941,7 +941,7 @@ namespace EpicWP\Roundtable\Tests;
 use EpicWP\Roundtable\Config;
 use EpicWP\Roundtable\Event;
 use EpicWP\Roundtable\HubClient;
-use EpicWP\Roundtable\HubError;
+use EpicWP\Roundtable\HubException;
 use EpicWP\Roundtable\Http\TransportException;
 use EpicWP\Roundtable\Tests\Support\FakeConsumer;
 use EpicWP\Roundtable\Tests\Support\FakeTransport;
@@ -1006,9 +1006,9 @@ final class HubClientTest extends PHPUnitTestCase
     public static function errorStatuses(): array
     {
         return [
-            'blocked'    => [403, HubError::BLOCKED],
-            'over quota' => [429, HubError::OVER_QUOTA],
-            'server'     => [503, HubError::SERVER],
+            'blocked'    => [403, HubException::BLOCKED],
+            'over quota' => [429, HubException::OVER_QUOTA],
+            'server'     => [503, HubException::SERVER],
         ];
     }
 
@@ -1018,8 +1018,8 @@ final class HubClientTest extends PHPUnitTestCase
         $client = new HubClient($this->config(new FakeConsumer()), new FakeTransport($status, ''));
         try {
             $client->postMessage('c', 'm', false);
-            self::fail('expected HubError');
-        } catch (HubError $e) {
+            self::fail('expected HubException');
+        } catch (HubException $e) {
             self::assertSame($kind, $e->kind());
             self::assertStringNotContainsString('pk_secret', $e->getMessage());
         }
@@ -1031,11 +1031,11 @@ final class HubClientTest extends PHPUnitTestCase
             $this->config(new FakeConsumer()),
             new FakeTransport(0, '', new TransportException('cURL error 6')),
         );
-        $this->expectException(HubError::class);
+        $this->expectException(HubException::class);
         try {
             $client->postMessage('c', 'm', false);
-        } catch (HubError $e) {
-            self::assertSame(HubError::NETWORK, $e->kind());
+        } catch (HubException $e) {
+            self::assertSame(HubException::NETWORK, $e->kind());
             throw $e;
         }
     }
@@ -1060,7 +1060,7 @@ use EpicWP\Roundtable\Http\TransportException;
  *
  * The only unit that performs I/O to the hub. `postMessage` sends one chat turn, reads the
  * buffered SSE response, and returns typed events. HTTP error statuses and transport
- * failures become a typed {@see HubError}; the project key never appears in an error.
+ * failures become a typed {@see HubException}; the project key never appears in an error.
  */
 final class HubClient
 {
@@ -1082,7 +1082,7 @@ final class HubClient
      *
      * @return TurnResult The ordered events.
      *
-     * @throws HubError On a gate refusal (403/429), a server error (5xx), a malformed response,
+     * @throws HubException On a gate refusal (403/429), a server error (5xx), a malformed response,
      *                  or a network failure. The project key is never in the message.
      */
     public function postMessage(string $chatId, string $message, bool $isFirstTurn): TurnResult
@@ -1102,7 +1102,7 @@ final class HubClient
                 $this->config->timeoutSeconds,
             );
         } catch (TransportException $e) {
-            throw HubError::network($e->getMessage());
+            throw HubException::network($e->getMessage());
         }
 
         $this->guardStatus($response->status);
@@ -1110,16 +1110,16 @@ final class HubClient
         return new TurnResult(SseParser::parse($response->body));
     }
 
-    /** @throws HubError When the status is not a success. */
+    /** @throws HubException When the status is not a success. */
     private function guardStatus(int $status): void
     {
         if ($status >= 200 && $status < 300) {
             return;
         }
         throw match ($status) {
-            403 => HubError::blocked(),
-            429 => HubError::overQuota(),
-            default => HubError::server($status),
+            403 => HubException::blocked(),
+            429 => HubException::overQuota(),
+            default => HubException::server($status),
         };
     }
 
@@ -1298,7 +1298,7 @@ git commit -m "feat(session): add per-user chat_id + primed session state"
 - Create: `tests/MessageControllerTest.php`
 
 **Interfaces:**
-- Consumes: `Config` (T2), `HubClient` (T7), `Session` (T8), `HubError` (T3), `TurnResult`/`Event` (T4).
+- Consumes: `Config` (T2), `HubClient` (T7), `Session` (T8), `HubException` (T3), `TurnResult`/`Event` (T4).
 - Produces: `MessageController::__construct(Config $config, HubClient $hubClient)`; `register(): void`; `permission(): bool`; `handle(\WP_REST_Request $request): \WP_REST_Response`. Route: `POST /roundtable/v1/message`.
 
 - [ ] **Step 1: Write the failing test** `tests/MessageControllerTest.php` (Brain Monkey + fakes). Cover: unlicensed → no hub call; a licensed turn → JSON with events; the first turn marks primed. Use a `FakeHubClient` recording `postMessage` and a `WP_REST_Request`/`WP_REST_Response` double.
@@ -1334,7 +1334,7 @@ final class MessageControllerTest extends TestCase
     }
 
     // ... additional tests: valid licence + nonce -> handle() returns a WP_REST_Response whose
-    // data has an `events` array; first turn calls Session::markPrimed(); a HubError becomes a
+    // data has an `events` array; first turn calls Session::markPrimed(); a HubException becomes a
     // structured error response with the `kind`. (Implementer completes using the same doubles.)
 }
 ```
@@ -1343,7 +1343,7 @@ The implementer builds the minimal `WP_REST_Request`/`WP_REST_Response` doubles 
 1. `permission()` returns false when the nonce is invalid, the capability is missing, **or** `Consumer::isUserAllowed()` is false — and in the false cases `HubClient::postMessage` is never called.
 2. `handle()` on a valid request returns a `WP_REST_Response` whose payload is `['events' => [...]]` mirroring the `TurnResult` events (each as `['type' => ..., 'data' => ...]`).
 3. On the first turn (`Session::isPrimed()` false) `handle()` passes `isFirstTurn: true` to `postMessage` and calls `Session::markPrimed()` afterward; on a later turn it passes `false` and does not re-mark.
-4. A `HubError` thrown by `postMessage` is caught and returned as a structured error payload `['error' => ['kind' => $e->kind()]]` with the appropriate status; the key never appears.
+4. A `HubException` thrown by `postMessage` is caught and returned as a structured error payload `['error' => ['kind' => $e->kind()]]` with the appropriate status; the key never appears.
 
 - [ ] **Step 2: Run — fails.**
 - [ ] **Step 3: Create `src/MessageController.php`:**
@@ -1418,7 +1418,7 @@ final class MessageController
             if ($isFirstTurn) {
                 $session->markPrimed();
             }
-        } catch (HubError $e) {
+        } catch (HubException $e) {
             return new \WP_REST_Response(['error' => ['kind' => $e->kind()]], $this->statusFor($e));
         }
 
@@ -1436,11 +1436,11 @@ final class MessageController
         );
     }
 
-    private function statusFor(HubError $error): int
+    private function statusFor(HubException $error): int
     {
         return match ($error->kind()) {
-            HubError::BLOCKED => 403,
-            HubError::OVER_QUOTA => 429,
+            HubException::BLOCKED => 403,
+            HubException::OVER_QUOTA => 429,
             default => 502,
         };
     }
@@ -1578,6 +1578,6 @@ git commit -m "chore(test): drop the scaffolding smoke test"
 ## Notes for the executor
 
 - **Every task's gate is `composer cs && composer stan && composer test`** — all three green before commit. Full docblocks on public API are part of PHPCS (Oblak) passing.
-- Pure units (`Config`, `HubError`, `Event`, `TurnResult`, `SseParser`, `HubClient`) extend `PHPUnit\Framework\TestCase` and use fakes — no WordPress. WP-coupled units (`WpHttpTransport`, `Session`, `MessageController`, `Roundtable`) extend `EpicWP\Roundtable\Tests\TestCase` and mock WP functions with Brain Monkey.
+- Pure units (`Config`, `HubException`, `Event`, `TurnResult`, `SseParser`, `HubClient`) extend `PHPUnit\Framework\TestCase` and use fakes — no WordPress. WP-coupled units (`WpHttpTransport`, `Session`, `MessageController`, `Roundtable`) extend `EpicWP\Roundtable\Tests\TestCase` and mock WP functions with Brain Monkey.
 - The project key must never appear in an error or response — asserted in T7.
 - `HubClient::HUB_URL` is a placeholder production domain; confirm/replace with the real hub URL at deploy (tracked separately — not a code change this milestone needs beyond the constant).

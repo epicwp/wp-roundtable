@@ -3,14 +3,14 @@ declare(strict_types=1);
 
 namespace EpicWP\Roundtable;
 
-// phpcs:disable SlevomatCodingStandard.Classes.SuperfluousErrorNaming.SuperfluousSuffix -- HubError is the SDK's public exception type; the name is a fixed public interface.
+// phpcs:disable SlevomatCodingStandard.Classes.SuperfluousExceptionNaming.SuperfluousSuffix -- the `*Exception` suffix is the conventional, discoverable name external devs expect for a public exception type.
 /**
  * A failure talking to the hub. The API key is never included in the message.
  *
  * Use the named constructors; `kind()` returns one of the `*` constants so callers can
  * branch (e.g. render "you are over your limit" for OVER_QUOTA).
  */
-final class HubError extends \RuntimeException {
+final class HubException extends \RuntimeException {
     public const BLOCKED      = 'blocked';
     public const OVER_QUOTA   = 'over_quota';
     public const NETWORK      = 'network';
