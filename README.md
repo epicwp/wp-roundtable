@@ -63,3 +63,5 @@ Roundtable::mount(
 );
 ```
 
+The SDK's REST gate only requires the `read` capability (any logged-in user); `$myConsumer->isUserAllowed()` is the real authorization boundary, so gate any role/capability restriction (e.g. admins-only) there.
+

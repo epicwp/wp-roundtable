@@ -11,8 +11,10 @@ namespace EpicWP\Roundtable;
  * {@see HubClient}, and returns the events as JSON (or a structured error).
  */
 final class MessageController {
+    /** The REST route namespace. */
     public const ROUTE_NAMESPACE = 'roundtable/v1';
-    public const ROUTE           = '/message';
+    /** The REST route path (under the namespace). */
+    public const ROUTE = '/message';
 
     /**
      * Creates the controller.

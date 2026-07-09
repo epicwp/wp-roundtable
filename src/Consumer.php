@@ -13,7 +13,10 @@ interface Consumer {
     /**
      * Whether the current user may use Roundtable (e.g. holds a valid licence).
      *
-     * The SDK makes NO hub request when this returns false.
+     * The SDK makes NO hub request when this returns false. The SDK's own REST gate only
+     * requires the `read` capability (i.e. any logged-in user); it does NOT restrict by role.
+     * If Roundtable should be limited to a specific role or capability (e.g. admins-only),
+     * that check is the consumer's responsibility to enforce inside this method.
      *
      * @return bool True to allow the request; false to refuse before any hub call.
      */

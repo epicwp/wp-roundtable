@@ -10,13 +10,20 @@ namespace EpicWP\Roundtable;
  * constants below; unknown types are preserved as-is.
  */
 final class Event {
+    /** The assistant's final reply text. */
     public const ASSISTANT_TEXT = 'assistant_text';
-    public const THINKING       = 'thinking';
-    public const TOOL_STEP      = 'tool_step';
-    public const TOOL_RESULT    = 'tool_result';
-    public const PROGRESS       = 'progress';
-    public const RESULT         = 'result';
-    public const ERROR          = 'error';
+    /** The assistant's intermediate reasoning, streamed as it thinks. */
+    public const THINKING = 'thinking';
+    /** The assistant is about to invoke a tool. */
+    public const TOOL_STEP = 'tool_step';
+    /** The result returned by a previously invoked tool. */
+    public const TOOL_RESULT = 'tool_result';
+    /** A progress update on a long-running turn. */
+    public const PROGRESS = 'progress';
+    /** The turn's final outcome. */
+    public const RESULT = 'result';
+    /** The turn failed; `$data` carries the error detail. */
+    public const ERROR = 'error';
 
     /**
      * Creates the event.

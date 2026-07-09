@@ -11,10 +11,15 @@ namespace EpicWP\Roundtable;
  * branch (e.g. render "you are over your limit" for OVER_QUOTA).
  */
 final class HubException extends \RuntimeException {
-    public const BLOCKED      = 'blocked';
-    public const OVER_QUOTA   = 'over_quota';
-    public const NETWORK      = 'network';
-    public const SERVER       = 'server';
+    /** The gate refused the request (HTTP 403). */
+    public const BLOCKED = 'blocked';
+    /** The subject is over its request quota (HTTP 429). */
+    public const OVER_QUOTA = 'over_quota';
+    /** A transport-level failure (no HTTP response). */
+    public const NETWORK = 'network';
+    /** The hub returned a server error. */
+    public const SERVER = 'server';
+    /** The hub response could not be parsed. */
     public const BAD_RESPONSE = 'bad_response';
 
     /** The request was refused by the gate (HTTP 403). */
