@@ -101,7 +101,22 @@ final class HubClientTest extends PHPUnitTestCase
             $client->postMessage('c', 'm', false);
         } catch (HubException $e) {
             self::assertSame(HubException::NETWORK, $e->kind());
+            self::assertStringNotContainsString('pk_secret', $e->getMessage());
             throw $e;
         }
+    }
+
+    public function test_first_turn_with_null_context_omits_metadata_and_client_version(): void
+    {
+        $transport = new FakeTransport(200, '');
+        $client    = new HubClient($this->config(new FakeConsumer(true, 'subj', null, null)), $transport);
+
+        $client->postMessage('chat-1', 'hello', true);
+
+        $body = \json_decode((string) $transport->lastBody, true);
+        self::assertSame('subj', $body['subject_id']);
+        self::assertSame('hello', $body['message']);
+        self::assertArrayNotHasKey('metadata', $body);
+        self::assertArrayNotHasKey('client_version', $body);
     }
 }

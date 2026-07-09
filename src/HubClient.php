@@ -5,7 +5,6 @@ namespace EpicWP\Roundtable;
 
 use EpicWP\Roundtable\Chat\SseParser;
 use EpicWP\Roundtable\Http\Transport;
-use EpicWP\Roundtable\Http\TransportException;
 
 /**
  * Talks to the Roundtable hub over an injected {@see Transport}.
