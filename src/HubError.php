@@ -1,0 +1,75 @@
+<?php
+declare(strict_types=1);
+
+namespace EpicWP\Roundtable;
+
+// phpcs:disable SlevomatCodingStandard.Classes.SuperfluousErrorNaming.SuperfluousSuffix -- HubError is the SDK's public exception type; the name is a fixed public interface.
+/**
+ * A failure talking to the hub. The API key is never included in the message.
+ *
+ * Use the named constructors; `kind()` returns one of the `*` constants so callers can
+ * branch (e.g. render "you are over your limit" for OVER_QUOTA).
+ */
+final class HubError extends \RuntimeException {
+    public const BLOCKED      = 'blocked';
+    public const OVER_QUOTA   = 'over_quota';
+    public const NETWORK      = 'network';
+    public const SERVER       = 'server';
+    public const BAD_RESPONSE = 'bad_response';
+
+    /** The request was refused by the gate (HTTP 403). */
+    public static function blocked(): self {
+        return new self( self::BLOCKED, 'The request was refused (blocked).' );
+    }
+
+    /** The subject is over its request quota (HTTP 429). */
+    public static function overQuota(): self {
+        return new self( self::OVER_QUOTA, 'The request was refused (over quota).' );
+    }
+
+    /**
+     * A transport-level failure (no HTTP response). `$detail` must not contain secrets.
+     *
+     * @param string $detail Non-secret detail (e.g. the transport's error string).
+     */
+    public static function network( string $detail ): self {
+        return new self( self::NETWORK, "Network error contacting the hub: {$detail}" );
+    }
+
+    /**
+     * The hub returned a server error.
+     *
+     * @param int $status The HTTP status code the hub responded with.
+     */
+    public static function server( int $status ): self {
+        return new self( self::SERVER, "The hub returned a server error (HTTP {$status})." );
+    }
+
+    /**
+     * The hub response could not be parsed. `$detail` must not contain secrets.
+     *
+     * @param string $detail Non-secret detail (e.g. the JSON decode error).
+     */
+    public static function badResponse( string $detail ): self {
+        return new self( self::BAD_RESPONSE, "Malformed hub response: {$detail}" );
+    }
+
+    /**
+     * Builds the error; use one of the named constructors instead.
+     *
+     * @param string $kind    One of the class constants.
+     * @param string $message Human-readable message. Never contains the API key.
+     */
+    private function __construct( private string $kind, string $message ) {
+        parent::__construct( $message );
+    }
+
+    /**
+     * Returns the error's kind.
+     *
+     * @return string One of the class constants.
+     */
+    public function kind(): string {
+        return $this->kind;
+    }
+}
