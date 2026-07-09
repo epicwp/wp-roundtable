@@ -7,6 +7,21 @@
   <rule ref="Oblak"/>
   <rule ref="Oblak-Advanced"/>
 
+  <!-- This is a Composer-installed PSR-4 SDK (camelCase methods/properties), not a WP
+       hook-style plugin — the WordPress snake_case naming sniffs don't apply here. -->
+  <rule ref="WordPress.NamingConventions.ValidFunctionName">
+    <severity>0</severity>
+  </rule>
+  <rule ref="WordPress.NamingConventions.ValidVariableName">
+    <severity>0</severity>
+  </rule>
+
+  <!-- Every class already carries its own docblock; a redundant file-level docblock
+       adds no value for these single-class PSR-4 files. -->
+  <rule ref="Squiz.Commenting.FileComment.Missing">
+    <severity>0</severity>
+  </rule>
+
   <rule ref="WordPress.WP.I18n">
     <properties>
       <property name="text_domain" type="array" extend="true">
