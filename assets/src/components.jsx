@@ -1,5 +1,5 @@
 /** @jsx h */
-import { h, Fragment } from 'preact';
+import { h } from 'preact';
 import { useState } from 'preact/hooks';
 import { renderMarkdown } from './markdown.js';
 import { eventsToTurn } from './events.js';
@@ -57,7 +57,7 @@ export function ChatPanel() {
         <button class="rt-newtopic" type="button" onClick={newTopic}>+ New topic</button>
       </div>
       <Thread turns={turns} />
-      {busy && <div class="rt-working"><span class="rt-dots" /> Working…</div>}
+      {busy && <div class="rt-working">Working…</div>}
       <div class="rt-composer">
         <textarea rows="2" placeholder="Message…" value={draft}
           onInput={(e) => setDraft(e.currentTarget.value)}
