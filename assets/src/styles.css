@@ -1,0 +1,2 @@
+#roundtable-app { --rt-accent:#3858e9; --rt-line:#e5e7eb; --rt-ink:#1c2430; --rt-ink-soft:#54617a; font-size:14px; color:var(--rt-ink); }
+#roundtable-app .rt-panel { max-width:760px; background:#fff; border:1px solid var(--rt-line); border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.04); overflow:hidden; display:flex; flex-direction:column; }

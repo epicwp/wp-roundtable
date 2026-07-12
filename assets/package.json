@@ -1,0 +1,18 @@
+{
+  "name": "@epicwp/wp-roundtable-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "highlight.js": "^11.9.0",
+    "markdown-it": "^14.0.0",
+    "preact": "^10.19.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "preact-render-to-string": "^6.3.0"
+  }
+}
