@@ -39,7 +39,7 @@
   "scripts": {
     "cs": "phpcs",
     "cs:fix": "phpcbf",
-    "stan": "phpstan analyse --no-progress",
+    "stan": "phpstan analyse --no-progress --memory-limit=1G",
     "test": "phpunit"
   }
 }

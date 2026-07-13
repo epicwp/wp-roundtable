@@ -10,7 +10,10 @@ declare(strict_types=1);
 // classes ship with WordPress itself in a live install.
 
 if (! class_exists('WP_REST_Request')) {
-    final class WP_REST_Request
+    // Not final: the real WordPress WP_REST_Request isn't final either (see
+    // php-stubs/wordpress-stubs), and Mockery must be able to mock it in unit tests
+    // (e.g. Rest\GateTest) without booting a real WP_REST_Request instance.
+    class WP_REST_Request
     {
         /** @var array<string, string> */
         private array $headers = [];

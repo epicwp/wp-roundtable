@@ -51,14 +51,7 @@ final class MessageController {
     public function permission( // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- `\WP_REST_Request<array<string, mixed>>` is a PHPStan generic; the native param type stays `\WP_REST_Request`.
         \WP_REST_Request $request,
     ): bool {
-        $nonce = (string) $request->get_header( 'X-WP-Nonce' );
-        if ( false === \wp_verify_nonce( $nonce, 'wp_rest' ) ) {
-            return false;
-        }
-        if ( ! \current_user_can( 'read' ) ) {
-            return false;
-        }
-        return $this->config->consumer->isUserAllowed();
+        return \EpicWP\Roundtable\Rest\Gate::permits( $this->config, $request );
     }
 
     /**
