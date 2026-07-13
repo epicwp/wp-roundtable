@@ -4,6 +4,7 @@ import { useState } from 'preact/hooks';
 import { ChatPanel } from './components.jsx';
 import { TopicList } from './topic-list.jsx';
 import { StartedList } from './started-list.jsx';
+import { RoadmapList } from './roadmap-list.jsx';
 import { TopicDetail } from './topic-detail.jsx';
 import { PublishDialog } from './publish-dialog.jsx';
 import { publishCase } from './api.js';
@@ -12,7 +13,7 @@ const TABS = [
   { id: 'all', label: 'All', enabled: true },
   { id: 'participating', label: 'Participating', enabled: false, hint: 'Coming in a later update' },
   { id: 'started', label: 'Started', enabled: true },
-  { id: 'roadmap', label: 'Roadmap', enabled: false, hint: 'Coming in a later update' },
+  { id: 'roadmap', label: 'Roadmap', enabled: true },
 ];
 
 export function CommunityApp() {
@@ -48,7 +49,9 @@ export function CommunityApp() {
 
   const subCopy = activeTab === 'started'
     ? 'Your drafts and published topics — or ask Sage on the right.'
-    : 'Browse public topics — or ask Sage on the right.';
+    : activeTab === 'roadmap'
+      ? 'Follow what is planned, in progress, and shipped — or ask Sage on the right.'
+      : 'Browse public topics — or ask Sage on the right.';
 
   return (
     <div class="rt-layout">
@@ -91,6 +94,9 @@ export function CommunityApp() {
                 onSelectTopic={openTopic}
                 onReviewDraft={(topic) => setPublishDraft(topic)}
               />
+            )}
+            {activeTab === 'roadmap' && (
+              <RoadmapList refreshNonce={listRefresh} onSelectTopic={openTopic} />
             )}
           </div>
         )}
