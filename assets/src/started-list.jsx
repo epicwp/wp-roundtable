@@ -1,7 +1,9 @@
 /** @jsx h */
 import { h } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { fetchMyCases } from './api.js';
+import { filterTopics } from './list-filters.js';
+import { ListToolbar } from './list-toolbar.jsx';
 import { mapCaseToTopic } from './topics.js';
 import { TopicRow } from './topic-list.jsx';
 
@@ -40,6 +42,8 @@ export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft }) 
   const [published, setPublished] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [q, setQ] = useState('');
+  const [type, setType] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -62,27 +66,41 @@ export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft }) 
     return () => { cancelled = true; };
   }, [refreshNonce]);
 
-  if (loading) return <div class="rt-list-msg">Loading your topics…</div>;
-  if (error) return <div class="rt-list-msg rt-list-error">Could not load your topics. Try again.</div>;
-  if (drafts.length === 0 && published.length === 0) {
-    return <div class="rt-list-msg">No topics started yet. Use Sage on the right to draft one.</div>;
-  }
+  const filteredDrafts = useMemo(() => filterTopics(drafts, q, type), [drafts, q, type]);
+  const filteredPublished = useMemo(() => filterTopics(published, q, type), [published, q, type]);
+  const total = drafts.length + published.length;
+  const filteredTotal = filteredDrafts.length + filteredPublished.length;
 
   return (
-    <div class="rt-started-area">
-      {drafts.length > 0 && (
+    <div class="rt-list-area rt-started-area">
+      <ListToolbar
+        placeholder="Search your topics…"
+        q={q}
+        onQChange={setQ}
+        type={type}
+        onTypeChange={setType}
+      />
+      {loading && <div class="rt-list-msg">Loading your topics…</div>}
+      {!loading && error && <div class="rt-list-msg rt-list-error">Could not load your topics. Try again.</div>}
+      {!loading && !error && total === 0 && (
+        <div class="rt-list-msg">No topics started yet. Use Sage on the right to draft one.</div>
+      )}
+      {!loading && !error && total > 0 && filteredTotal === 0 && (
+        <div class="rt-list-msg">No matching topics in your started list.</div>
+      )}
+      {!loading && !error && filteredDrafts.length > 0 && (
         <div class="rt-started-block">
-          <SectionHead title="Drafts" hint={`${drafts.length} · only you can see these`} />
+          <SectionHead title="Drafts" hint={`${filteredDrafts.length} · only you can see these`} />
           <div class="rt-list">
-            {drafts.map((t) => <DraftRow key={t.id} topic={t} onReview={onReviewDraft} />)}
+            {filteredDrafts.map((t) => <DraftRow key={t.id} topic={t} onReview={onReviewDraft} />)}
           </div>
         </div>
       )}
-      {published.length > 0 && (
+      {!loading && !error && filteredPublished.length > 0 && (
         <div class="rt-started-block">
-          <SectionHead title="Started by me" hint={`${published.length} published`} />
+          <SectionHead title="Started by me" hint={`${filteredPublished.length} published`} />
           <div class="rt-list">
-            {published.map((t) => <TopicRow key={t.id} topic={t} onSelect={onSelectTopic} />)}
+            {filteredPublished.map((t) => <TopicRow key={t.id} topic={t} onSelect={onSelectTopic} />)}
           </div>
         </div>
       )}

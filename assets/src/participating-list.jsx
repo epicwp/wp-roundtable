@@ -2,21 +2,10 @@
 import { h } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { fetchParticipatingCases } from './api.js';
+import { filterTopics } from './list-filters.js';
+import { ListToolbar } from './list-toolbar.jsx';
 import { mapCaseToTopic } from './topics.js';
 import { TopicRow } from './topic-list.jsx';
-
-const TYPE_SEGS = [
-  { id: '', label: 'All' },
-  { id: 'question', label: 'Questions' },
-  { id: 'bug', label: 'Bugs' },
-  { id: 'feature_request', label: 'Features' },
-];
-
-const TYPE_CLASS_TO_ID = {
-  'rt-b-q': 'question',
-  'rt-b-bug': 'bug',
-  'rt-b-feat': 'feature_request',
-};
 
 export function ParticipatingList({ refreshNonce = 0, onSelectTopic }) {
   const [topics, setTopics] = useState([]);
@@ -43,38 +32,17 @@ export function ParticipatingList({ refreshNonce = 0, onSelectTopic }) {
     return () => { cancelled = true; };
   }, [refreshNonce]);
 
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return topics.filter((topic) => {
-      if (type && TYPE_CLASS_TO_ID[topic.typeClass] !== type) return false;
-      if (!needle) return true;
-      const haystack = `${topic.title} ${topic.snippet}`.toLowerCase();
-      return haystack.includes(needle);
-    });
-  }, [topics, q, type]);
+  const filtered = useMemo(() => filterTopics(topics, q, type), [topics, q, type]);
 
   return (
     <div class="rt-list-area">
-      <div class="rt-toolbar">
-        <div class="rt-search">
-          <input
-            type="search"
-            placeholder="Search topics you joined…"
-            value={q}
-            onInput={(e) => setQ(e.currentTarget.value)}
-          />
-        </div>
-        <div class="rt-segs">
-          {TYPE_SEGS.map((s) => (
-            <button
-              key={s.id || 'all'}
-              type="button"
-              class={type === s.id ? 'on' : ''}
-              onClick={() => setType(s.id)}
-            >{s.label}</button>
-          ))}
-        </div>
-      </div>
+      <ListToolbar
+        placeholder="Search topics you joined…"
+        q={q}
+        onQChange={setQ}
+        type={type}
+        onTypeChange={setType}
+      />
       <div class="rt-list">
         {loading && <div class="rt-list-msg">Loading your topics…</div>}
         {!loading && error && <div class="rt-list-msg rt-list-error">Could not load your topics. Try again.</div>}
