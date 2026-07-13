@@ -76,7 +76,7 @@ export function TopicList() {
   }, [type, sort, debouncedQ]);
 
   return (
-    <>
+    <div class="rt-list-area">
       <div class="rt-toolbar">
         <div class="rt-search">
           <input
@@ -110,6 +110,6 @@ export function TopicList() {
         {!loading && !error && topics.length === 0 && <div class="rt-list-msg">No topics yet.</div>}
         {!loading && !error && topics.map((t) => <TopicRow key={t.id} topic={t} />)}
       </div>
-    </>
+    </div>
   );
 }
