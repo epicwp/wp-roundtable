@@ -144,15 +144,43 @@ const TOMBSTONE_LABELS = {
  * @param {object} row hub comment
  * @returns {object}
  */
-export function mapCommentToView(row) {
+/**
+ * Resolve a hub author_role (or legacy subject hints) to a UI role.
+ * @param {object} row
+ * @returns {'community'|'assistant'|'maintainer'}
+ */
+export function resolveCommentRole(row) {
+  const role = row.author_role;
+  if (role === 'assistant' || role === 'maintainer' || role === 'community') return role;
+  if (row.subject_id === 'system') return 'maintainer';
+  if (typeof row.subject_id === 'string' && row.subject_id.startsWith('agent:')) return 'assistant';
+  return 'community';
+}
+
+/**
+ * @param {'community'|'assistant'|'maintainer'} role
+ * @param {string} agentName
+ * @returns {string|null}
+ */
+export function commentRoleBadge(role, agentName) {
+  if (role === 'assistant') return agentName + ' · Assistant';
+  if (role === 'maintainer') return 'Maintainer';
+  return null;
+}
+
+export function mapCommentToView(row, agentName = 'Sage') {
   const handle = row.author_handle || '';
   const status = row.status || 'active';
   const isTombstone = status !== 'active' || row.body == null || row.body === '';
+  const role = resolveCommentRole(row);
   return {
     id: row.id,
     handle,
     initials: handleInitials(handle),
     age: formatAge(row.created_at),
+    role,
+    isAgent: role === 'assistant',
+    roleBadge: commentRoleBadge(role, agentName),
     isTombstone,
     tombstoneLabel: TOMBSTONE_LABELS[status] || 'This comment is unavailable.',
     html: isTombstone ? '' : renderMarkdown(row.body),

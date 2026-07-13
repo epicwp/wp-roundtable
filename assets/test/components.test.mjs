@@ -20,7 +20,15 @@ test('ChatPanel renders Sage header and composer', async () => {
   const html = renderToString(h(ChatPanel, {}));
   assert.match(html, /Sage/);
   assert.match(html, /Community assistant/);
+  assert.match(html, /rt-robot-icon/);
   assert.match(html, /rt-cbox/);
+});
+
+test('Thread renders agent turn with robot avatar', () => {
+  const turns = [{ role: 'agent', reply: 'hello', steps: [], error: false }];
+  const html = renderToString(h(Thread, { turns }));
+  assert.match(html, /rt-agent-turn/);
+  assert.match(html, /rt-robot-icon/);
 });
 
 test('Thread renders a user message as text', () => {

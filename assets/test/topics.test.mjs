@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mapCaseToTopic, formatAge, handleInitials, mapCommentToView } from '../src/topics.js';
+import { mapCaseToTopic, formatAge, handleInitials, mapCommentToView, resolveCommentRole, commentRoleBadge } from '../src/topics.js';
 
 test('formatAge returns short relative labels', () => {
   const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
@@ -69,4 +69,18 @@ test('mapCommentToView marks tombstones and renders active comments', () => {
   });
   assert.equal(deleted.isTombstone, true);
   assert.equal(deleted.tombstoneLabel, 'This comment was deleted.');
+});
+
+test('resolveCommentRole maps hub roles and legacy subjects', () => {
+  assert.equal(resolveCommentRole({ author_role: 'assistant' }), 'assistant');
+  assert.equal(resolveCommentRole({ subject_id: 'system' }), 'maintainer');
+  assert.equal(resolveCommentRole({ subject_id: 'agent:sage' }), 'assistant');
+  assert.equal(resolveCommentRole({}), 'community');
+});
+
+test('mapCommentToView exposes agent badge and avatar hint', () => {
+  const view = mapCommentToView({ id: 'c', author_handle: 'sage', author_role: 'assistant', body: 'Hi', status: 'active', created_at: '2026-07-01T12:00:00' }, 'Sage');
+  assert.equal(view.isAgent, true);
+  assert.equal(view.roleBadge, 'Sage · Assistant');
+  assert.equal(commentRoleBadge('maintainer', 'Sage'), 'Maintainer');
 });

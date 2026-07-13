@@ -25,5 +25,8 @@ test('TopicDetail renders title and back link', () => {
   assert.match(html, /All topics/);
   assert.match(html, /Comments/);
   assert.match(html, /Add a comment/);
-  assert.match(html, /Post/);
+  assert.match(html, /Write/);
+  assert.match(html, /Preview/);
+  assert.match(html, /Newest first/);
+  assert.match(html, /Comment/);
 });
