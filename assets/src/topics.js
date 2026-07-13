@@ -65,9 +65,24 @@ export function handleInitials(handle) {
 
 /** Hub statuses shown on the Roadmap tab, in display order. */
 export const ROADMAP_SECTIONS = [
-  { status: 'escalated', label: 'Planned', hintSuffix: ' · accepted onto the roadmap' },
-  { status: 'in_progress', label: 'In progress', hintSuffix: '' },
-  { status: 'shipped', label: 'Shipped', hintSuffix: '' },
+  {
+    status: 'escalated',
+    label: 'Planned',
+    hintSuffix: ' · accepted onto the roadmap',
+    emptyLabel: 'No topics planned yet. Accepted topics will appear here.',
+  },
+  {
+    status: 'in_progress',
+    label: 'In progress',
+    hintSuffix: '',
+    emptyLabel: 'No topics in progress right now.',
+  },
+  {
+    status: 'shipped',
+    label: 'Shipped',
+    hintSuffix: '',
+    emptyLabel: 'No shipped topics yet.',
+  },
 ];
 
 const ROADMAP_STATUS_SET = new Set(ROADMAP_SECTIONS.map((s) => s.status));
@@ -93,7 +108,7 @@ export function groupRoadmapCases(cases) {
     cases: filtered
       .filter((row) => row.status === section.status)
       .sort((a, b) => (b.net || 0) - (a.net || 0)),
-  })).filter((section) => section.cases.length > 0);
+  }));
 }
 
 export function mapCaseToTopic(row) {

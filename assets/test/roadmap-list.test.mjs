@@ -18,7 +18,7 @@ test('filterRoadmapCases drops non-roadmap statuses', () => {
   assert.deepEqual(filtered.map((c) => c.id), ['2', '3', '4', '5']);
 });
 
-test('groupRoadmapCases orders sections and sorts by net', () => {
+test('groupRoadmapCases always returns three sections', () => {
   const grouped = groupRoadmapCases(SAMPLE);
   assert.equal(grouped.length, 3);
   assert.equal(grouped[0].status, 'escalated');
@@ -27,6 +27,16 @@ test('groupRoadmapCases orders sections and sorts by net', () => {
   assert.equal(grouped[1].status, 'in_progress');
   assert.deepEqual(grouped[1].cases.map((c) => c.id), ['4']);
   assert.equal(grouped[2].status, 'shipped');
+  assert.deepEqual(grouped[2].cases.map((c) => c.id), ['5']);
+});
+
+test('groupRoadmapCases keeps empty sections', () => {
+  const grouped = groupRoadmapCases([{ id: '4', status: 'in_progress', title: 'Doing', net: 96 }]);
+  assert.equal(grouped.length, 3);
+  assert.equal(grouped[0].cases.length, 0);
+  assert.equal(grouped[1].cases.length, 1);
+  assert.equal(grouped[2].cases.length, 0);
+  assert.match(grouped[0].emptyLabel, /planned/i);
 });
 
 test('RoadmapList renders loading state', () => {

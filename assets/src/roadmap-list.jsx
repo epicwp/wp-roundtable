@@ -64,8 +64,6 @@ export function RoadmapList({ refreshNonce = 0, onSelectTopic }) {
     return () => { cancelled = true; };
   }, [type, debouncedQ, refreshNonce]);
 
-  const total = sections.reduce((n, section) => n + section.cases.length, 0);
-
   return (
     <div class="rt-list-area rt-roadmap-area">
       <div class="rt-toolbar">
@@ -90,14 +88,13 @@ export function RoadmapList({ refreshNonce = 0, onSelectTopic }) {
       </div>
       {loading && <div class="rt-list-msg">Loading roadmap…</div>}
       {!loading && error && <div class="rt-list-msg rt-list-error">Could not load the roadmap. Try again.</div>}
-      {!loading && !error && total === 0 && (
-        <div class="rt-list-msg">No roadmap topics yet. Public topics move here once they are planned, in progress, or shipped.</div>
-      )}
       {!loading && !error && sections.map((section) => (
         <div class="rt-roadmap-block" key={section.status}>
           <RoadmapSectionHead section={section} />
           <div class="rt-list">
-            {section.cases.map((row) => {
+            {section.cases.length === 0 ? (
+              <div class="rt-list-empty">{section.emptyLabel}</div>
+            ) : section.cases.map((row) => {
               const topic = mapCaseToTopic(row);
               return <TopicRow key={topic.id} topic={topic} hideStatus onSelect={onSelectTopic} />;
             })}

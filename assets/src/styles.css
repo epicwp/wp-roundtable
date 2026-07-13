@@ -29,6 +29,7 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-sortsel select { font:inherit; border:none!important; background:transparent!important; box-shadow:none!important; color:var(--rt-ink); font-weight:600; min-height:0; padding:0; margin:0; }
 #roundtable-app .rt-list { background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.04); overflow:hidden; }
 #roundtable-app .rt-list-msg { padding:24px 18px; color:var(--rt-ink-soft); text-align:center; }
+#roundtable-app .rt-list-empty { padding:18px 17px; color:var(--rt-ink-faint); font-size:13px; text-align:center; }
 #roundtable-app .rt-list-error { color:#c23a26; }
 #roundtable-app .rt-case { display:grid; grid-template-columns:50px 1fr; gap:13px; padding:15px 17px; border-bottom:1px solid #eef1f5; align-items:start; }
 #roundtable-app .rt-case:last-child { border-bottom:none; }
