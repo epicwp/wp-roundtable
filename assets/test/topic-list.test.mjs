@@ -4,6 +4,15 @@ import { h } from 'preact';
 import { renderToString } from 'preact-render-to-string';
 import { TopicRow } from '../src/topic-list.jsx';
 
+test('TopicRow is clickable when onSelect is provided', () => {
+  const html = renderToString(h(TopicRow, {
+    topic: { id: 'c1', title: 'T', snippet: 's', typeLabel: 'Q', typeClass: 'rt-b-q', statusLabel: 'Open', statusClass: 'rt-s-open', handle: 'h', net: 0, age: '' },
+    onSelect: () => {},
+  }));
+  assert.match(html, /rt-case-click/);
+  assert.match(html, /role="button"/);
+});
+
 test('TopicRow renders title and read-only vote count', () => {
   const html = renderToString(h(TopicRow, {
     topic: {

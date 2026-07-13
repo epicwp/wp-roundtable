@@ -3,6 +3,7 @@ import { h } from 'preact';
 import { useState } from 'preact/hooks';
 import { ChatPanel } from './components.jsx';
 import { TopicList } from './topic-list.jsx';
+import { TopicDetail } from './topic-detail.jsx';
 
 const TABS = [
   { id: 'all', label: 'All', enabled: true },
@@ -14,7 +15,17 @@ const TABS = [
 export function CommunityApp() {
   const [resetNonce, setResetNonce] = useState(0);
   const [listRefresh, setListRefresh] = useState(0);
+  const [view, setView] = useState('list');
+  const [selectedTopic, setSelectedTopic] = useState(null);
   const requestNewTopic = () => setResetNonce((n) => n + 1);
+  const openTopic = (topic) => {
+    setSelectedTopic(topic);
+    setView('detail');
+  };
+  const backToList = () => {
+    setView('list');
+    setSelectedTopic(null);
+  };
 
   return (
     <div class="rt-layout">
@@ -41,7 +52,9 @@ export function CommunityApp() {
         <div class="rt-banner">
           <b>Public &amp; anonymous.</b> Only community handles are shown, never real names.
         </div>
-        <TopicList refreshNonce={listRefresh} />
+        {view === 'detail' && selectedTopic
+          ? <TopicDetail topic={selectedTopic} onBack={backToList} />
+          : <TopicList refreshNonce={listRefresh} onSelectTopic={openTopic} />}
       </main>
       <aside class="rt-aside">
         <ChatPanel resetNonce={resetNonce} onTopicPublished={() => setListRefresh((n) => n + 1)} />

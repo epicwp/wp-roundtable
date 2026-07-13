@@ -1,3 +1,5 @@
+import { renderMarkdown } from './markdown.js';
+
 /** UI labels for hub case types. */
 const TYPE_LABELS = {
   question: 'Question',
@@ -52,19 +54,59 @@ export function formatAge(iso) {
  * @param {object} row hub case list item
  * @returns {object} topic view model
  */
+/**
+ * Two-letter initials from a community handle.
+ * @param {string} handle
+ * @returns {string}
+ */
+export function handleInitials(handle) {
+  const parts = String(handle || '').split(/[-_]/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  const h = String(handle || '?');
+  return h.slice(0, 2).toUpperCase();
+}
+
 export function mapCaseToTopic(row) {
   const type = row.type || 'question';
   const status = row.status || 'open';
+  const handle = row.author_handle || '';
+  const summary = row.summary || '';
   return {
     id: row.id,
     title: row.title || '',
-    snippet: row.summary || '',
+    snippet: summary,
     typeLabel: TYPE_LABELS[type] || type,
     typeClass: TYPE_CLASS[type] || 'rt-b-q',
     statusLabel: STATUS_LABELS[status] || status,
     statusClass: STATUS_CLASS[status] || 'rt-s-open',
-    handle: row.author_handle || '',
+    handle,
+    initials: handleInitials(handle),
     net: typeof row.net === 'number' ? row.net : 0,
     age: formatAge(row.created_at),
+  };
+}
+
+const TOMBSTONE_LABELS = {
+  deleted: 'This comment was deleted.',
+  removed: 'This comment was removed.',
+};
+
+/**
+ * Map a hub CommentResponse to the UI comment view model.
+ * @param {object} row hub comment
+ * @returns {object}
+ */
+export function mapCommentToView(row) {
+  const handle = row.author_handle || '';
+  const status = row.status || 'active';
+  const isTombstone = status !== 'active' || row.body == null || row.body === '';
+  return {
+    id: row.id,
+    handle,
+    initials: handleInitials(handle),
+    age: formatAge(row.created_at),
+    isTombstone,
+    tombstoneLabel: TOMBSTONE_LABELS[status] || 'This comment is unavailable.',
+    html: isTombstone ? '' : renderMarkdown(row.body),
   };
 }

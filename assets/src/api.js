@@ -74,3 +74,12 @@ export function createDraft(body) {
 export function publishCase(body) {
   return post('/publish', body);
 }
+
+/**
+ * List comments on a public topic.
+ * @param {string} caseId
+ * @returns {Promise<{comments:Array}|{error:{kind:string}}>}
+ */
+export function fetchComments(caseId) {
+  return get('/cases/' + encodeURIComponent(caseId) + '/comments');
+}

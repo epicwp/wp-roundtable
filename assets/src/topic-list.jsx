@@ -4,9 +4,21 @@ import { useEffect, useState } from 'preact/hooks';
 import { fetchCases } from './api.js';
 import { mapCaseToTopic } from './topics.js';
 
-export function TopicRow({ topic }) {
+export function TopicRow({ topic, onSelect }) {
   return (
-    <div class="rt-case">
+    <div
+      class="rt-case rt-case-click"
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect && onSelect(topic)}
+      onKeyDown={(e) => {
+        if (!onSelect) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(topic);
+        }
+      }}
+    >
       <div class="rt-vote">
         <button type="button" class="rt-vote-btn" disabled aria-label="Upvote (read-only)">▲</button>
         <span class="rt-vote-n">{topic.net}</span>
@@ -40,7 +52,7 @@ const TYPE_SEGS = [
   { id: 'feature_request', label: 'Features' },
 ];
 
-export function TopicList({ refreshNonce = 0 }) {
+export function TopicList({ refreshNonce = 0, onSelectTopic }) {
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -108,7 +120,7 @@ export function TopicList({ refreshNonce = 0 }) {
         {loading && <div class="rt-list-msg">Loading topics…</div>}
         {!loading && error && <div class="rt-list-msg rt-list-error">Could not load topics. Try again.</div>}
         {!loading && !error && topics.length === 0 && <div class="rt-list-msg">No topics yet.</div>}
-        {!loading && !error && topics.map((t) => <TopicRow key={t.id} topic={t} />)}
+        {!loading && !error && topics.map((t) => <TopicRow key={t.id} topic={t} onSelect={onSelectTopic} />)}
       </div>
     </div>
   );

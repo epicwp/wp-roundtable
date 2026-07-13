@@ -33,6 +33,34 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-case { display:grid; grid-template-columns:50px 1fr; gap:13px; padding:15px 17px; border-bottom:1px solid #eef1f5; align-items:start; }
 #roundtable-app .rt-case:last-child { border-bottom:none; }
 #roundtable-app .rt-case:hover { background:#fafbfd; }
+#roundtable-app .rt-case-click { cursor:pointer; }
+#roundtable-app .rt-case-click:focus-visible { outline:2px solid var(--rt-accent); outline-offset:-2px; }
+#roundtable-app .rt-detail-area { max-width:760px; }
+#roundtable-app .rt-back { font:inherit; font-size:13px; color:var(--rt-ink-soft); background:none; border:none; padding:0; margin:0 0 16px; cursor:pointer; box-shadow:none; min-height:0; }
+#roundtable-app .rt-back:hover { color:var(--rt-accent-ink); }
+#roundtable-app .rt-detail-card { background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.04); padding:20px; }
+#roundtable-app .rt-th { display:grid; grid-template-columns:56px 1fr; gap:16px; }
+#roundtable-app .rt-dtitle { font-size:22px; font-weight:660; margin:2px 0 0; line-height:1.25; letter-spacing:-.01em; }
+#roundtable-app .rt-post { margin-top:18px; display:grid; grid-template-columns:32px 1fr; gap:12px; }
+#roundtable-app .rt-post-ava, #roundtable-app .rt-cm-ava { width:32px; height:32px; border-radius:9px; background:linear-gradient(160deg,#6b7a99,#455370); color:#fff; display:grid; place-items:center; font-size:11px; font-weight:700; flex:none; }
+#roundtable-app .rt-post-who { font-size:13px; margin-bottom:6px; }
+#roundtable-app .rt-post-who b { color:var(--rt-ink); font-weight:600; }
+#roundtable-app .rt-post-who span { color:var(--rt-ink-faint); }
+#roundtable-app .rt-prose p { margin:0 0 10px; font-size:14.5px; line-height:1.6; }
+#roundtable-app .rt-prose p:last-child { margin-bottom:0; }
+#roundtable-app .rt-prose ul { margin:4px 0 10px; padding-left:18px; font-size:14.5px; }
+#roundtable-app .rt-prose li { margin:3px 0; }
+#roundtable-app .rt-csec { margin-top:22px; background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.04); padding:20px; }
+#roundtable-app .rt-csec-title { font-size:14px; font-weight:650; margin:0 0 4px; }
+#roundtable-app .rt-csec-cnt { font-size:12.5px; color:var(--rt-ink-faint); margin:0 0 16px; }
+#roundtable-app .rt-csec-empty { font-size:13px; color:var(--rt-ink-soft); margin:0; }
+#roundtable-app .rt-thread { display:flex; flex-direction:column; gap:18px; }
+#roundtable-app .rt-cm { display:grid; grid-template-columns:32px 1fr; gap:12px; }
+#roundtable-app .rt-cm-who { font-size:13px; margin-bottom:5px; }
+#roundtable-app .rt-cm-who b { color:var(--rt-ink); font-weight:600; }
+#roundtable-app .rt-cm-time { color:var(--rt-ink-faint); margin-left:6px; }
+#roundtable-app .rt-cm-txt { font-size:14px; line-height:1.55; color:var(--rt-ink); }
+#roundtable-app .rt-cm-tomb { font-size:13px; color:var(--rt-ink-faint); font-style:italic; margin:0; }
 #roundtable-app .rt-vote { display:flex; flex-direction:column; align-items:center; gap:1px; padding-top:1px; }
 #roundtable-app .rt-vote-btn { border:1px solid var(--rt-line); background:var(--rt-panel); border-radius:7px; width:32px; height:22px; font-size:10px; color:var(--rt-ink-faint); cursor:default; opacity:.85; box-shadow:none; min-height:0; padding:0; }
 #roundtable-app .rt-vote-n { font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; margin:1px 0; }

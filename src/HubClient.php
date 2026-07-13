@@ -91,15 +91,33 @@ final class HubClient {
             throw \EpicWP\Roundtable\HubException::network( $e->getMessage() );
         }
 
-        $this->guardStatus( $response->status );
+        return $this->decodeJsonArray( $response, 'cases list was not a JSON array' );
+    }
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.json_decode_json_decode -- pure-PHP core class, no WordPress dependency by design.
-        $decoded = \json_decode( $response->body, true );
-        if ( ! \is_array( $decoded ) ) {
-            throw \EpicWP\Roundtable\HubException::badResponse( 'cases list was not a JSON array' );
+    /**
+     * List comments on a public case.
+     *
+     * @param string $caseId The Case id.
+     *
+     * @return list<array<string, mixed>> The hub's CommentResponse array.
+     *
+     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     */
+    public function listComments( string $caseId ): array {
+        $url = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/cases/' . $caseId . '/comments';
+
+        try {
+            $response = $this->transport->get(
+                $url,
+                array( 'Authorization' => 'Bearer ' . $this->config->projectApiKey ),
+                $this->config->timeoutSeconds,
+            );
+        } catch ( \EpicWP\Roundtable\Http\TransportException $e ) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal RuntimeException message (transport error string), never rendered as HTML.
+            throw \EpicWP\Roundtable\HubException::network( $e->getMessage() );
         }
 
-        return $decoded;
+        return $this->decodeJsonArray( $response, 'comments list was not a JSON array' );
     }
 
     /**
@@ -150,6 +168,29 @@ final class HubClient {
         );
 
         return $this->postJsonObject( $url, $body );
+    }
+
+    /**
+     * Decode a hub GET response body as a JSON array.
+     *
+     * @param \EpicWP\Roundtable\Http\TransportResponse $response  The transport response.
+     * @param string                                    $errorHint The bad-response hint.
+     *
+     * @return list<array<string, mixed>> The decoded array.
+     *
+     * @throws \EpicWP\Roundtable\HubException When the body is not a JSON array.
+     */
+    private function decodeJsonArray( \EpicWP\Roundtable\Http\TransportResponse $response, string $errorHint ): array {
+        $this->guardStatus( $response->status );
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.json_decode_json_decode -- pure-PHP core class, no WordPress dependency by design.
+        $decoded = \json_decode( $response->body, true );
+        if ( ! \is_array( $decoded ) ) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal exception hint, never rendered as HTML.
+            throw \EpicWP\Roundtable\HubException::badResponse( $errorHint );
+        }
+
+        return $decoded;
     }
 
     /**
