@@ -1,17 +1,19 @@
 /** @jsx h */
 import { h } from 'preact';
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { ChatPanel } from './components.jsx';
 import { TopicList } from './topic-list.jsx';
 import { StartedList } from './started-list.jsx';
 import { RoadmapList } from './roadmap-list.jsx';
+import { ParticipatingList } from './participating-list.jsx';
 import { TopicDetail } from './topic-detail.jsx';
 import { PublishDialog } from './publish-dialog.jsx';
 import { publishCase } from './api.js';
+import { fetchTabCounts } from './tab-counts.js';
 
 const TABS = [
   { id: 'all', label: 'All', enabled: true },
-  { id: 'participating', label: 'Participating', enabled: false, hint: 'Coming in a later update' },
+  { id: 'participating', label: 'Participating', enabled: true },
   { id: 'started', label: 'Started', enabled: true },
   { id: 'roadmap', label: 'Roadmap', enabled: true },
 ];
@@ -24,6 +26,16 @@ export function CommunityApp() {
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [publishDraft, setPublishDraft] = useState(null);
   const [publishBusy, setPublishBusy] = useState(false);
+  const [tabCounts, setTabCounts] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const counts = await fetchTabCounts();
+      if (!cancelled) setTabCounts(counts);
+    })();
+    return () => { cancelled = true; };
+  }, [listRefresh]);
 
   const requestNewTopic = () => setResetNonce((n) => n + 1);
   const openTopic = (topic) => {
@@ -49,9 +61,11 @@ export function CommunityApp() {
 
   const subCopy = activeTab === 'started'
     ? 'Your drafts and published topics — or ask Sage on the right.'
-    : activeTab === 'roadmap'
-      ? 'Follow what is planned, in progress, and shipped — or ask Sage on the right.'
-      : 'Browse public topics — or ask Sage on the right.';
+    : activeTab === 'participating'
+      ? 'Topics you have commented on or voted on — or ask Sage on the right.'
+      : activeTab === 'roadmap'
+        ? 'Follow what is planned, in progress, and shipped — or ask Sage on the right.'
+        : 'Browse public topics — or ask Sage on the right.';
 
   return (
     <div class="rt-layout">
@@ -77,7 +91,12 @@ export function CommunityApp() {
                   title={tab.hint || undefined}
                   aria-disabled={!tab.enabled}
                   onClick={() => tab.enabled && setActiveTab(tab.id)}
-                >{tab.label}</button>
+                >
+                  {tab.label}
+                  {tabCounts && tabCounts[tab.id] != null && (
+                    <span class="rt-tab-n">{tabCounts[tab.id]}</span>
+                  )}
+                </button>
               ))}
             </nav>
             {activeTab === 'all' && (
@@ -87,6 +106,9 @@ export function CommunityApp() {
             )}
             {activeTab === 'all' && (
               <TopicList refreshNonce={listRefresh} onSelectTopic={openTopic} />
+            )}
+            {activeTab === 'participating' && (
+              <ParticipatingList refreshNonce={listRefresh} onSelectTopic={openTopic} />
             )}
             {activeTab === 'started' && (
               <StartedList

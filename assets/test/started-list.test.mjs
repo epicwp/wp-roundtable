@@ -28,4 +28,5 @@ test('StartedList renders empty state', () => {
     onReviewDraft: () => {},
   }));
   assert.match(html, /Loading your topics/);
+  assert.match(html, /Search your topics/);
 });
