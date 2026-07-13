@@ -54,7 +54,19 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-csec-title { font-size:14px; font-weight:650; margin:0 0 4px; }
 #roundtable-app .rt-csec-cnt { font-size:12.5px; color:var(--rt-ink-faint); margin:0 0 16px; }
 #roundtable-app .rt-csec-empty { font-size:13px; color:var(--rt-ink-soft); margin:0; }
-#roundtable-app .rt-thread { display:flex; flex-direction:column; gap:18px; }
+#roundtable-app .rt-cm-thread { display:flex; flex-direction:column; gap:18px; margin-bottom:22px; }
+#roundtable-app .rt-addwrap { margin-top:4px; display:grid; grid-template-columns:32px 1fr; gap:12px; }
+#roundtable-app .rt-you-ava { background:linear-gradient(160deg,#5a6b86,#3a4761); }
+#roundtable-app .rt-editor { background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:10px; overflow:hidden; min-width:0; }
+#roundtable-app .rt-editor:focus-within { border-color:var(--rt-accent); box-shadow:0 0 0 3px #eceffe; }
+#roundtable-app .rt-ed-input { display:block; width:100%; border:none!important; background:transparent!important; resize:vertical; font:inherit; font-size:14px; line-height:1.55; color:var(--rt-ink); outline:none; padding:14px 16px; min-height:72px; box-shadow:none!important; margin:0; }
+#roundtable-app .rt-ed-input::placeholder { color:var(--rt-ink-faint); }
+#roundtable-app .rt-ed-foot { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border-top:1px solid #eef1f5; background:#fafbfd; }
+#roundtable-app .rt-ed-hint { font-size:11px; color:var(--rt-ink-faint); }
+#roundtable-app .rt-ed-error { font-size:12px; color:#c23a26; }
+#roundtable-app .rt-post-btn { font:inherit; font-size:13px; font-weight:600; color:#fff; background:var(--rt-accent); border:none; border-radius:9px; padding:9px 18px; cursor:pointer; box-shadow:none; min-height:0; margin-left:auto; }
+#roundtable-app .rt-post-btn:hover { background:var(--rt-accent-ink); }
+#roundtable-app .rt-post-btn[disabled] { opacity:.6; cursor:default; }
 #roundtable-app .rt-cm { display:grid; grid-template-columns:32px 1fr; gap:12px; }
 #roundtable-app .rt-cm-who { font-size:13px; margin-bottom:5px; }
 #roundtable-app .rt-cm-who b { color:var(--rt-ink); font-weight:600; }

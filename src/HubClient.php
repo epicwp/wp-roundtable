@@ -121,6 +121,28 @@ final class HubClient {
     }
 
     /**
+     * Post a new comment on a public case.
+     *
+     * @param string $caseId The Case id.
+     * @param string $body   The comment body (markdown).
+     *
+     * @return array<string, mixed> The hub CommentResponse object.
+     *
+     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     */
+    public function createComment( string $caseId, string $body ): array {
+        $url     = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/cases/' . $caseId . '/comments';
+        $payload = $this->encodeJson(
+            array(
+                'body'       => $body,
+                'subject_id' => $this->config->consumer->subjectId(),
+            ),
+        );
+
+        return $this->postJsonObject( $url, $payload );
+    }
+
+    /**
      * Distill a chat conversation into a private Case draft.
      *
      * @param string               $chatId       The chat/session id.

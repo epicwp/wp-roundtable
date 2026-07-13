@@ -83,3 +83,13 @@ export function publishCase(body) {
 export function fetchComments(caseId) {
   return get('/cases/' + encodeURIComponent(caseId) + '/comments');
 }
+
+/**
+ * Post a comment on a public topic.
+ * @param {string} caseId
+ * @param {string} body markdown comment body
+ * @returns {Promise<{comment:object}|{error:{kind:string}}>}
+ */
+export function postComment(caseId, body) {
+  return post('/cases/' + encodeURIComponent(caseId) + '/comments', { body });
+}

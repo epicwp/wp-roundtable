@@ -1,7 +1,7 @@
 /** @jsx h */
 import { h } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
-import { fetchComments } from './api.js';
+import { useCallback, useEffect, useState } from 'preact/hooks';
+import { fetchComments, postComment } from './api.js';
 import { renderMarkdown } from './markdown.js';
 import { mapCommentToView } from './topics.js';
 
@@ -22,28 +22,74 @@ function CommentRow({ comment }) {
   );
 }
 
+function CommentComposer({ caseId, onPosted }) {
+  const [text, setText] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [error, setError] = useState(false);
+
+  const submit = async () => {
+    const body = text.trim();
+    if (!body || posting) return;
+    setPosting(true);
+    setError(false);
+    const res = await postComment(caseId, body);
+    setPosting(false);
+    if (res.error) {
+      setError(true);
+      return;
+    }
+    setText('');
+    onPosted();
+  };
+
+  return (
+    <div class="rt-addwrap">
+      <div class="rt-post-ava rt-you-ava" aria-hidden="true">Y</div>
+      <div class="rt-editor">
+        <textarea
+          class="rt-ed-input"
+          placeholder="Add a comment…"
+          rows="3"
+          value={text}
+          disabled={posting}
+          onInput={(e) => setText(e.currentTarget.value)}
+        />
+        <div class="rt-ed-foot">
+          {error ? <span class="rt-ed-error">Could not post. Try again.</span> : <span class="rt-ed-hint">Markdown supported</span>}
+          <button type="button" class="rt-post-btn" disabled={posting || !text.trim()} onClick={submit}>
+            {posting ? 'Posting…' : 'Post'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TopicDetail({ topic, onBack }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+
+  const loadComments = useCallback(async (cancelledRef) => {
+    setLoading(true);
+    setError(false);
+    const res = await fetchComments(topic.id);
+    if (cancelledRef.cancelled) return;
+    setLoading(false);
+    if (res.error) {
+      setError(true);
+      setComments([]);
+      return;
+    }
+    setComments((res.comments || []).map(mapCommentToView));
+  }, [topic.id]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(false);
-      const res = await fetchComments(topic.id);
-      if (cancelled) return;
-      setLoading(false);
-      if (res.error) {
-        setError(true);
-        setComments([]);
-        return;
-      }
-      setComments((res.comments || []).map(mapCommentToView));
-    })();
-    return () => { cancelled = true; };
-  }, [topic.id]);
+    const cancelledRef = { cancelled: false };
+    loadComments(cancelledRef);
+    return () => { cancelledRef.cancelled = true; };
+  }, [loadComments, refreshNonce]);
 
   return (
     <div class="rt-detail-area">
@@ -81,10 +127,11 @@ export function TopicDetail({ topic, onBack }) {
         </p>
         {!loading && !error && comments.length === 0 && <p class="rt-csec-empty">No comments yet.</p>}
         {!loading && !error && comments.length > 0 && (
-          <div class="rt-thread">
+          <div class="rt-cm-thread">
             {comments.map((c) => <CommentRow key={c.id} comment={c} />)}
           </div>
         )}
+        <CommentComposer caseId={topic.id} onPosted={() => setRefreshNonce((n) => n + 1)} />
       </div>
     </div>
   );

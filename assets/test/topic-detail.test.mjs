@@ -24,4 +24,6 @@ test('TopicDetail renders title and back link', () => {
   assert.match(html, /Batch translate/);
   assert.match(html, /All topics/);
   assert.match(html, /Comments/);
+  assert.match(html, /Add a comment/);
+  assert.match(html, /Post/);
 });

@@ -5,7 +5,7 @@ namespace EpicWP\Roundtable;
 
 use EpicWP\Roundtable\Rest\Gate;
 
-/** REST proxy for case comments: `GET /roundtable/v1/cases/{case_id}/comments`. */
+/** REST proxy for case comments: `GET|POST /roundtable/v1/cases/{case_id}/comments`. */
 final class CommentsController {
     /** The REST route namespace. */
     public const ROUTE_NAMESPACE = 'roundtable/v1';
@@ -30,8 +30,17 @@ final class CommentsController {
             self::ROUTE_NAMESPACE,
             self::ROUTE,
             array(
-                'callback'            => array( $this, 'handle' ),
+                'callback'            => array( $this, 'handleList' ),
                 'methods'             => 'GET',
+                'permission_callback' => array( $this, 'permission' ),
+            ),
+        );
+        \register_rest_route(
+            self::ROUTE_NAMESPACE,
+            self::ROUTE,
+            array(
+                'callback'            => array( $this, 'handleCreate' ),
+                'methods'             => 'POST',
                 'permission_callback' => array( $this, 'permission' ),
             ),
         );
@@ -57,7 +66,7 @@ final class CommentsController {
      *
      * @return \WP_REST_Response The comments array, or a structured error.
      */
-    public function handle( // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- `\WP_REST_Request<array<string, mixed>>` is a PHPStan generic; the native param type stays `\WP_REST_Request`.
+    public function handleList( // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- `\WP_REST_Request<array<string, mixed>>` is a PHPStan generic; the native param type stays `\WP_REST_Request`.
         \WP_REST_Request $request,
     ): \WP_REST_Response {
         $caseId = (string) $request->get_param( 'case_id' );
@@ -75,6 +84,34 @@ final class CommentsController {
         }
 
         return new \WP_REST_Response( array( 'comments' => $comments ), 200 );
+    }
+
+    /**
+     * Post a new comment on a public case.
+     *
+     * @param \WP_REST_Request<array<string, mixed>> $request The incoming request.
+     *
+     * @return \WP_REST_Response The created comment, or a structured error.
+     */
+    public function handleCreate( // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- `\WP_REST_Request<array<string, mixed>>` is a PHPStan generic; the native param type stays `\WP_REST_Request`.
+        \WP_REST_Request $request,
+    ): \WP_REST_Response {
+        $caseId = (string) $request->get_param( 'case_id' );
+        $body   = \trim( (string) $request->get_param( 'body' ) );
+        if ( '' === $caseId || '' === $body ) {
+            return new \WP_REST_Response( array( 'error' => array( 'kind' => 'invalid_request' ) ), 400 );
+        }
+
+        try {
+            $comment = $this->hubClient->createComment( $caseId, $body );
+        } catch ( \EpicWP\Roundtable\HubException $e ) {
+            return new \WP_REST_Response(
+                array( 'error' => array( 'kind' => $e->kind() ) ),
+                $this->statusFor( $e ),
+            );
+        }
+
+        return new \WP_REST_Response( array( 'comment' => $comment ), 200 );
     }
 
     /**
