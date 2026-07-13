@@ -45,7 +45,10 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-detail-card { background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.04); padding:20px; }
 #roundtable-app .rt-th { display:grid; grid-template-columns:56px 1fr; gap:16px; }
 #roundtable-app .rt-dtitle { font-size:22px; font-weight:660; margin:2px 0 0; line-height:1.25; letter-spacing:-.01em; }
+#roundtable-app .rt-detail-card .rt-thd .rt-cmeta { margin-top:12px; }
+#roundtable-app .rt-detail-card .rt-th { padding-bottom:20px; margin-bottom:20px; border-bottom:1px solid #eef1f5; }
 #roundtable-app .rt-post { margin-top:18px; display:grid; grid-template-columns:32px 1fr; gap:12px; }
+#roundtable-app .rt-detail-card .rt-post { margin-top:0; }
 #roundtable-app .rt-ava { border-radius:9px; display:grid; place-items:center; flex:none; overflow:hidden; }
 #roundtable-app .rt-ava-sm { width:32px; height:32px; }
 #roundtable-app .rt-ava-md { width:34px; height:34px; }
