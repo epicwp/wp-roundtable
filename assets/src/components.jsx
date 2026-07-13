@@ -53,20 +53,29 @@ export function ChatPanel({ resetNonce = 0 }) {
     setTurns([{ role: 'agent', reply: "Let's start a new topic. What's going on?", steps: [], error: false }]);
   }
 
+  const agentName = window.RoundtableConfig?.agentName || 'Sage';
+
   return (
     <div class="rt-panel">
       <div class="rt-head">
         <div class="rt-avatar">S</div>
-        <b>{window.RoundtableConfig?.agentName || 'Sage'}</b>
-        <button class="rt-newtopic" type="button" onClick={newTopic}>+ New topic</button>
+        <div class="rt-head-text">
+          <b>{agentName}</b>
+          <span>Community assistant</span>
+        </div>
+        <span class="rt-head-grow" />
+        <button class="rt-iconbtn" type="button" onClick={newTopic} title="New conversation" aria-label="New conversation">+</button>
       </div>
       <Thread turns={turns} />
       {busy && <div class="rt-working">Working…</div>}
       <div class="rt-composer">
-        <textarea rows="2" placeholder="Message…" value={draft}
-          onInput={(e) => setDraft(e.currentTarget.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
-        <button class="rt-send" type="button" disabled={busy} onClick={send}>Send</button>
+        <div class="rt-cbox">
+          <textarea rows="1" placeholder="Message Sage…" value={draft}
+            onInput={(e) => setDraft(e.currentTarget.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
+          <button class="rt-send-icon" type="button" disabled={busy} onClick={send} aria-label="Send">➤</button>
+        </div>
+        <div class="rt-chint">Enter to send · Shift+Enter for a new line</div>
       </div>
     </div>
   );
