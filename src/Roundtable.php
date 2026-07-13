@@ -31,6 +31,7 @@ final class Roundtable {
         $myCases       = new MyCasesController( $config, $hub );
         $participating = new ParticipatingCasesController( $config, $hub );
         $comments      = new CommentsController( $config, $hub );
+        $votes         = new VotesController( $config, $hub );
         $draft         = new CaseDraftController( $config, $hub );
         $publish       = new PublishController( $config, $hub );
         \add_action( 'rest_api_init', array( $message, 'register' ) );
@@ -39,6 +40,7 @@ final class Roundtable {
         \add_action( 'rest_api_init', array( $myCases, 'register' ) );
         \add_action( 'rest_api_init', array( $participating, 'register' ) );
         \add_action( 'rest_api_init', array( $comments, 'register' ) );
+        \add_action( 'rest_api_init', array( $votes, 'register' ) );
         \add_action( 'rest_api_init', array( $draft, 'register' ) );
         \add_action( 'rest_api_init', array( $publish, 'register' ) );
     }

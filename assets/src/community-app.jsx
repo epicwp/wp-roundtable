@@ -1,6 +1,6 @@
 /** @jsx h */
 import { h } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useCallback, useEffect, useState } from 'preact/hooks';
 import { ChatPanel } from './components.jsx';
 import { TopicList } from './topic-list.jsx';
 import { StartedList } from './started-list.jsx';
@@ -47,6 +47,10 @@ export function CommunityApp() {
     setSelectedTopic(null);
   };
   const bumpLists = () => setListRefresh((n) => n + 1);
+  const refreshTabCountsOnly = useCallback(async () => {
+    const counts = await fetchTabCounts();
+    setTabCounts(counts);
+  }, []);
 
   async function confirmPublish({ title, summary }) {
     if (!publishDraft?.id || publishBusy) return;
@@ -71,7 +75,7 @@ export function CommunityApp() {
     <div class="rt-layout">
       <main class="rt-main">
         {view === 'detail' && selectedTopic ? (
-          <TopicDetail topic={selectedTopic} onBack={backToList} />
+          <TopicDetail topic={selectedTopic} onBack={backToList} onVoteChange={refreshTabCountsOnly} />
         ) : (
           <div class="rt-list-shell">
             <div class="rt-pagehead">
@@ -105,20 +109,21 @@ export function CommunityApp() {
               </div>
             )}
             {activeTab === 'all' && (
-              <TopicList refreshNonce={listRefresh} onSelectTopic={openTopic} />
+              <TopicList refreshNonce={listRefresh} onSelectTopic={openTopic} onVoteChange={refreshTabCountsOnly} />
             )}
             {activeTab === 'participating' && (
-              <ParticipatingList refreshNonce={listRefresh} onSelectTopic={openTopic} />
+              <ParticipatingList refreshNonce={listRefresh} onSelectTopic={openTopic} onVoteChange={refreshTabCountsOnly} />
             )}
             {activeTab === 'started' && (
               <StartedList
                 refreshNonce={listRefresh}
                 onSelectTopic={openTopic}
                 onReviewDraft={(topic) => setPublishDraft(topic)}
+                onVoteChange={refreshTabCountsOnly}
               />
             )}
             {activeTab === 'roadmap' && (
-              <RoadmapList refreshNonce={listRefresh} onSelectTopic={openTopic} />
+              <RoadmapList refreshNonce={listRefresh} onSelectTopic={openTopic} onVoteChange={refreshTabCountsOnly} />
             )}
           </div>
         )}

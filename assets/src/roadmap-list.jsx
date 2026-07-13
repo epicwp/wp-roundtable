@@ -30,7 +30,7 @@ function RoadmapSectionHead({ section }) {
   );
 }
 
-export function RoadmapList({ refreshNonce = 0, onSelectTopic }) {
+export function RoadmapList({ refreshNonce = 0, onSelectTopic, onVoteChange }) {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -96,7 +96,15 @@ export function RoadmapList({ refreshNonce = 0, onSelectTopic }) {
               <div class="rt-list-empty">{section.emptyLabel}</div>
             ) : section.cases.map((row) => {
               const topic = mapCaseToTopic(row);
-              return <TopicRow key={topic.id} topic={topic} hideStatus onSelect={onSelectTopic} />;
+              return (
+                <TopicRow
+                  key={topic.id}
+                  topic={topic}
+                  hideStatus
+                  onSelect={onSelectTopic}
+                  onVoteChange={onVoteChange}
+                />
+              );
             })}
           </div>
         </div>

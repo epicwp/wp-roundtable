@@ -3,28 +3,26 @@ import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { fetchCases } from './api.js';
 import { mapCaseToTopic } from './topics.js';
+import { VoteControl } from './vote-control.jsx';
 
-export function TopicRow({ topic, onSelect, hideStatus = false }) {
+export function TopicRow({ topic, onSelect, hideStatus = false, onVoteChange }) {
+  const open = () => onSelect && onSelect(topic);
   return (
-    <div
-      class="rt-case rt-case-click"
-      role="button"
-      tabIndex={0}
-      onClick={() => onSelect && onSelect(topic)}
-      onKeyDown={(e) => {
-        if (!onSelect) return;
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect(topic);
-        }
-      }}
-    >
-      <div class="rt-vote">
-        <button type="button" class="rt-vote-btn" disabled aria-label="Upvote (read-only)">▲</button>
-        <span class="rt-vote-n">{topic.net}</span>
-        <button type="button" class="rt-vote-btn" disabled aria-label="Downvote (read-only)">▼</button>
-      </div>
-      <div class="rt-cmain">
+    <div class="rt-case">
+      <VoteControl caseId={topic.id} net={topic.net} onChange={onVoteChange} />
+      <div
+        class="rt-cmain rt-case-click"
+        role="button"
+        tabIndex={0}
+        onClick={open}
+        onKeyDown={(e) => {
+          if (!onSelect) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            open();
+          }
+        }}
+      >
         <span class="rt-ctitle">{topic.title}</span>
         <div class="rt-csnip">{topic.snippet}</div>
         <div class="rt-cmeta">
@@ -52,7 +50,7 @@ const TYPE_SEGS = [
   { id: 'feature_request', label: 'Features' },
 ];
 
-export function TopicList({ refreshNonce = 0, onSelectTopic }) {
+export function TopicList({ refreshNonce = 0, onSelectTopic, onVoteChange }) {
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -120,7 +118,9 @@ export function TopicList({ refreshNonce = 0, onSelectTopic }) {
         {loading && <div class="rt-list-msg">Loading topics…</div>}
         {!loading && error && <div class="rt-list-msg rt-list-error">Could not load topics. Try again.</div>}
         {!loading && !error && topics.length === 0 && <div class="rt-list-msg">No topics yet.</div>}
-        {!loading && !error && topics.map((t) => <TopicRow key={t.id} topic={t} onSelect={onSelectTopic} />)}
+        {!loading && !error && topics.map((t) => (
+          <TopicRow key={t.id} topic={t} onSelect={onSelectTopic} onVoteChange={onVoteChange} />
+        ))}
       </div>
     </div>
   );

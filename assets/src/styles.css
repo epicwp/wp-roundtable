@@ -77,7 +77,11 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-cm-txt { font-size:14px; line-height:1.55; color:var(--rt-ink); }
 #roundtable-app .rt-cm-tomb { font-size:13px; color:var(--rt-ink-faint); font-style:italic; margin:0; }
 #roundtable-app .rt-vote { display:flex; flex-direction:column; align-items:center; gap:1px; padding-top:1px; }
-#roundtable-app .rt-vote-btn { border:1px solid var(--rt-line); background:var(--rt-panel); border-radius:7px; width:32px; height:22px; font-size:10px; color:var(--rt-ink-faint); cursor:default; opacity:.85; box-shadow:none; min-height:0; padding:0; }
+#roundtable-app .rt-vote-btn { border:1px solid var(--rt-line); background:var(--rt-panel); border-radius:7px; width:32px; height:22px; font-size:10px; color:var(--rt-ink-faint); cursor:pointer; box-shadow:none; min-height:0; padding:0; }
+#roundtable-app .rt-vote-btn:hover:not(:disabled) { border-color:var(--rt-accent); color:var(--rt-accent); }
+#roundtable-app .rt-vote-btn:disabled { opacity:.55; cursor:wait; }
+#roundtable-app .rt-vote-btn.on-up { color:var(--rt-accent-ink); border-color:rgba(56,88,233,.35); background:#eceffe; }
+#roundtable-app .rt-vote-btn.on-dn { color:#8a6410; border-color:rgba(138,100,16,.35); background:#f5eede; }
 #roundtable-app .rt-vote-n { font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; margin:1px 0; }
 #roundtable-app .rt-ctitle { font-size:15px; font-weight:600; color:var(--rt-ink); line-height:1.35; display:block; letter-spacing:-.005em; }
 #roundtable-app .rt-csnip { font-size:13px; color:var(--rt-ink-soft); margin:4px 0 8px; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }

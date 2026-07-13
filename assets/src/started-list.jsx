@@ -37,7 +37,7 @@ function SectionHead({ title, hint }) {
   );
 }
 
-export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft }) {
+export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft, onVoteChange }) {
   const [drafts, setDrafts] = useState([]);
   const [published, setPublished] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -100,7 +100,9 @@ export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft }) 
         <div class="rt-started-block">
           <SectionHead title="Started by me" hint={`${filteredPublished.length} published`} />
           <div class="rt-list">
-            {filteredPublished.map((t) => <TopicRow key={t.id} topic={t} onSelect={onSelectTopic} />)}
+            {filteredPublished.map((t) => (
+              <TopicRow key={t.id} topic={t} onSelect={onSelectTopic} onVoteChange={onVoteChange} />
+            ))}
           </div>
         </div>
       )}
