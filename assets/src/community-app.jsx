@@ -1,6 +1,6 @@
 /** @jsx h */
 import { h } from 'preact';
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { ChatPanel } from './components.jsx';
 import { TopicList } from './topic-list.jsx';
 import { StartedList } from './started-list.jsx';
@@ -9,6 +9,7 @@ import { ParticipatingList } from './participating-list.jsx';
 import { TopicDetail } from './topic-detail.jsx';
 import { PublishDialog } from './publish-dialog.jsx';
 import { publishCase } from './api.js';
+import { fetchTabCounts } from './tab-counts.js';
 
 const TABS = [
   { id: 'all', label: 'All', enabled: true },
@@ -25,6 +26,16 @@ export function CommunityApp() {
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [publishDraft, setPublishDraft] = useState(null);
   const [publishBusy, setPublishBusy] = useState(false);
+  const [tabCounts, setTabCounts] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const counts = await fetchTabCounts();
+      if (!cancelled) setTabCounts(counts);
+    })();
+    return () => { cancelled = true; };
+  }, [listRefresh]);
 
   const requestNewTopic = () => setResetNonce((n) => n + 1);
   const openTopic = (topic) => {
@@ -80,7 +91,12 @@ export function CommunityApp() {
                   title={tab.hint || undefined}
                   aria-disabled={!tab.enabled}
                   onClick={() => tab.enabled && setActiveTab(tab.id)}
-                >{tab.label}</button>
+                >
+                  {tab.label}
+                  {tabCounts && tabCounts[tab.id] != null && (
+                    <span class="rt-tab-n">{tabCounts[tab.id]}</span>
+                  )}
+                </button>
               ))}
             </nav>
             {activeTab === 'all' && (
