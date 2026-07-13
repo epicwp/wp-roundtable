@@ -60,6 +60,14 @@ export function fetchCases(params) {
 }
 
 /**
+ * List topics started by the current user (drafts + published).
+ * @returns {Promise<{cases:Array}|{error:{kind:string}}>}
+ */
+export function fetchMyCases() {
+  return get('/cases/mine');
+}
+
+/**
  * Draft a Case from the chat transcript.
  * @param {{conversation:string, title?:string, summary?:string, type?:string}} body
  */

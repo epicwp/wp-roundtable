@@ -28,12 +28,14 @@ final class Roundtable {
         $message  = new MessageController( $config, $hub );
         $session  = new SessionController( $config );
         $cases    = new CasesController( $config, $hub );
+        $myCases  = new MyCasesController( $config, $hub );
         $comments = new CommentsController( $config, $hub );
         $draft    = new CaseDraftController( $config, $hub );
         $publish  = new PublishController( $config, $hub );
         \add_action( 'rest_api_init', array( $message, 'register' ) );
         \add_action( 'rest_api_init', array( $session, 'register' ) );
         \add_action( 'rest_api_init', array( $cases, 'register' ) );
+        \add_action( 'rest_api_init', array( $myCases, 'register' ) );
         \add_action( 'rest_api_init', array( $comments, 'register' ) );
         \add_action( 'rest_api_init', array( $draft, 'register' ) );
         \add_action( 'rest_api_init', array( $publish, 'register' ) );
