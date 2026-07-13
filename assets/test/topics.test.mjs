@@ -28,6 +28,22 @@ test('mapCaseToTopic maps hub fields to UI labels', () => {
   assert.equal(topic.initials, 'TO');
 });
 
+test('mapCaseToTopic treats private visibility as draft', () => {
+  const topic = mapCaseToTopic({
+    id: 'c2',
+    title: 'Private',
+    summary: 's',
+    type: 'question',
+    status: 'open',
+    visibility: 'private',
+    author_handle: 'h',
+    net: 0,
+    created_at: '2026-07-01T12:00:00',
+  });
+  assert.equal(topic.isDraft, true);
+  assert.equal(topic.statusLabel, 'Draft');
+});
+
 test('handleInitials derives two letters from handle', () => {
   assert.equal(handleInitials('slate-meadow'), 'SM');
   assert.equal(handleInitials('solo'), 'SO');
