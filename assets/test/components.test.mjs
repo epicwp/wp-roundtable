@@ -14,7 +14,7 @@ test('Thread renders an agent reply as markdown', () => {
   assert.match(html, /<strong>hi<\/strong>/);
 });
 
-test('ChatPanel renders Sage header and composer', async () => {
+test('ChatPanel renders Sage header, composer, and intro chips', async () => {
   const { ChatPanel } = await import('../src/components.jsx');
   globalThis.window = { RoundtableConfig: { agentName: 'Sage' } };
   const html = renderToString(h(ChatPanel, {}));
@@ -22,6 +22,8 @@ test('ChatPanel renders Sage header and composer', async () => {
   assert.match(html, /Community assistant/);
   assert.match(html, /rt-agent-icon/);
   assert.match(html, /rt-cbox/);
+  assert.match(html, /rt-chips/);
+  assert.match(html, /Report a bug/);
 });
 
 test('Thread renders agent turn with agent avatar', () => {

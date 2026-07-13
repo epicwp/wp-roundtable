@@ -31,7 +31,7 @@ function TopicChips({ onSend, disabled }) {
   );
 }
 
-function Bubble({ turn }) {
+function Bubble({ turn, onChipSend, chipDisabled }) {
   if (turn.role === 'user') return <div class="rt-user">{turn.reply}</div>;
   const agentName = agentDisplayName();
   return (
@@ -42,6 +42,7 @@ function Bubble({ turn }) {
         <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
              // eslint-disable-next-line react/no-danger
              dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(turn.reply) }} />
+        {turn.introChips && <TopicChips disabled={chipDisabled} onSend={onChipSend} />}
         {!turn.error && <StepLog steps={turn.steps} />}
       </div>
     </div>
@@ -76,10 +77,10 @@ function DraftPrompt({ busy, drafting, onDraft }) {
   );
 }
 
-export function Thread({ turns }) {
+export function Thread({ turns, onChipSend, chipDisabled }) {
   return (
     <div class="rt-thread">
-      {turns.map((t, i) => <Bubble key={i} turn={t} />)}
+      {turns.map((t, i) => <Bubble key={i} turn={t} onChipSend={onChipSend} chipDisabled={chipDisabled} />)}
     </div>
   );
 }
@@ -87,7 +88,7 @@ export function Thread({ turns }) {
 export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [newTopicMode, setNewTopicMode] = useState(false);
   const [turns, setTurns] = useState([{
-    role: 'agent', reply: CHAT_GREETING, steps: [], error: false,
+    role: 'agent', reply: CHAT_GREETING, steps: [], error: false, introChips: true,
   }]);
   const [composer, setComposer] = useState('');
   const [busy, setBusy] = useState(false);
@@ -126,7 +127,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     setNewTopicMode(true);
     setTopicDraft(null);
     setShowPublish(false);
-    setTurns([{ role: 'agent', reply: NEW_TOPIC_INTRO, steps: [], error: false }]);
+    setTurns([{ role: 'agent', reply: NEW_TOPIC_INTRO, steps: [], error: false, introChips: true }]);
   }
 
   async function turnIntoTopic() {
@@ -171,7 +172,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
         <span class="rt-head-grow" />
         <button class="rt-iconbtn" type="button" onClick={newTopic} title="New conversation" aria-label="New conversation">+</button>
       </div>
-      <Thread turns={turns} />
+      <Thread turns={turns} chipDisabled={busy || draftBusy} onChipSend={(msg) => send(msg)} />
       {topicDraft && (
         <div class="rt-thread-extras">
           <OutcomeCard
@@ -187,7 +188,6 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
       )}
       {busy && <div class="rt-working"><span class="rt-dots"><i /><i /><i /></span> Working…</div>}
       <div class="rt-composer">
-        <TopicChips disabled={busy || draftBusy} onSend={(msg) => send(msg)} />
         <div class="rt-cbox">
           <textarea rows="1" placeholder={composerPlaceholder} value={composer}
             onInput={(e) => setComposer(e.currentTarget.value)}
