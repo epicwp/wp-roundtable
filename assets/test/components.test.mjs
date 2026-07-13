@@ -31,6 +31,18 @@ test('Thread renders agent turn with agent avatar', () => {
   assert.match(html, /rt-agent-icon/);
 });
 
+test('Thread renders step log under agent reply', () => {
+  const turns = [{
+    role: 'agent',
+    reply: 'done',
+    steps: [{ type: 'progress', data: { summary: 'Looking into it' } }],
+    error: false,
+  }];
+  const html = renderToString(h(Thread, { turns }));
+  assert.match(html, /rt-step-log/);
+  assert.match(html, /Looking into it/);
+});
+
 test('Thread renders a user message as text', () => {
   const turns = [{ role: 'user', reply: 'hello', steps: [], error: false }];
   const html = renderToString(h(Thread, { turns }));

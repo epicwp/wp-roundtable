@@ -13,13 +13,15 @@ test('concatenates assistant_text into reply', () => {
   assert.equal(turn.error, false);
 });
 
-test('collects step events and outcome', () => {
+test('collects tool_step and progress only (matches backend)', () => {
   const turn = eventsToTurn([
     { type: 'thinking', data: { text: 'hmm' } },
     { type: 'tool_step', data: { name: 'read' } },
+    { type: 'progress', data: { summary: 'Searching docs' } },
     { type: 'assistant_text', data: { text: 'done' } },
   ]);
   assert.equal(turn.steps.length, 2);
+  assert.equal(turn.steps[0].type, 'tool_step');
   assert.equal(turn.reply, 'done');
 });
 

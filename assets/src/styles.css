@@ -7,6 +7,22 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-layout { display:flex; min-height:calc(100vh - 32px); align-items:stretch; }
 #roundtable-app .rt-main { flex:1; min-width:0; padding:20px 24px 48px; }
 #roundtable-app .rt-aside { width:400px; flex:none; border-left:1px solid var(--rt-line); background:var(--rt-panel); display:flex; flex-direction:column; position:sticky; top:32px; height:calc(100vh - 32px); min-height:calc(100vh - 32px); }
+#roundtable-app .rt-chat-launch { display:none; position:fixed; right:22px; bottom:22px; z-index:100001; width:52px; height:52px; border:none; border-radius:999px; padding:0; cursor:pointer; background:var(--rt-accent); color:#fff; box-shadow:0 4px 18px rgba(56,88,233,.35); align-items:center; justify-content:center; }
+#roundtable-app .rt-chat-launch .rt-ava { width:36px; height:36px; }
+#roundtable-app .rt-chat-launch:hover { background:var(--rt-accent-ink); }
+#roundtable-app .rt-chat-backdrop { display:none; position:fixed; inset:32px 0 0 0; z-index:100001; border:none; padding:0; margin:0; cursor:pointer; background:rgba(15,18,24,.35); }
+#roundtable-app .rt-chat-close { display:none; position:absolute; top:10px; right:10px; z-index:2; width:30px; height:30px; border-radius:8px; border:1px solid var(--rt-line); background:var(--rt-panel); color:var(--rt-ink-soft); font-size:20px; line-height:1; padding:0; cursor:pointer; box-shadow:none; min-height:0; }
+#roundtable-app .rt-chat-close:hover { color:var(--rt-ink); border-color:var(--rt-ink-faint); }
+#roundtable-app .rt-step-log { list-style:none; margin:8px 0 0; padding:0; font-size:11.5px; color:var(--rt-ink-faint); }
+#roundtable-app .rt-step-log li { margin:2px 0; padding-left:14px; position:relative; }
+#roundtable-app .rt-step-log li::before { content:""; position:absolute; left:0; top:.55em; width:5px; height:5px; border-radius:50%; background:var(--rt-accent); opacity:.55; }
+@media (max-width:1100px) {
+  #roundtable-app .rt-aside { position:fixed; right:0; top:32px; z-index:100002; transform:translateX(100%); transition:transform .2s ease; box-shadow:-10px 0 34px -14px rgba(0,0,0,.22); }
+  #roundtable-app .rt-aside.is-open { transform:translateX(0); }
+  #roundtable-app .rt-chat-launch { display:flex; }
+  #roundtable-app .rt-layout.rt-chat-open .rt-chat-backdrop { display:block; }
+  #roundtable-app .rt-layout.rt-chat-open .rt-chat-close { display:grid; place-items:center; }
+}
 #roundtable-app .rt-pagehead { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:4px; }
 #roundtable-app .rt-title { font-size:21px; font-weight:650; margin:0; letter-spacing:-.01em; }
 #roundtable-app .rt-sub { margin:3px 0 0; color:var(--rt-ink-soft); font-size:13.5px; }

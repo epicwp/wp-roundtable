@@ -7,6 +7,16 @@ import { sendMessage, resetChat, createDraft, publishCase } from './api.js';
 import { canDraftTopic, turnsToConversation } from './conversation.js';
 import { PublishDialog } from './publish-dialog.jsx';
 import { AgentAvatar, agentDisplayName } from './avatars.jsx';
+import { labelStep } from './steps.js';
+
+function StepLog({ steps }) {
+  if (!steps?.length) return null;
+  return (
+    <ul class="rt-step-log">
+      {steps.map((s, i) => <li key={i}>{labelStep(s)}</li>)}
+    </ul>
+  );
+}
 
 function Bubble({ turn }) {
   if (turn.role === 'user') return <div class="rt-user">{turn.reply}</div>;
@@ -19,6 +29,7 @@ function Bubble({ turn }) {
         <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
              // eslint-disable-next-line react/no-danger
              dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(turn.reply) }} />
+        {!turn.error && <StepLog steps={turn.steps} />}
       </div>
     </div>
   );
@@ -76,7 +87,13 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
 
   async function newTopic() {
     if (busy || draftBusy) return;
-    await resetChat();
+    setBusy(true);
+    const res = await resetChat();
+    setBusy(false);
+    if (res.error) {
+      setTurns((t) => [...t, { role: 'agent', reply: '', steps: [], error: true }]);
+      return;
+    }
     setTopicDraft(null);
     setShowPublish(false);
     setTurns([{ role: 'agent', reply: "Let's start a new topic. What's going on?", steps: [], error: false }]);
