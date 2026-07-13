@@ -33,6 +33,19 @@ final class HubClientVoteTest extends PHPUnitTestCase
         self::assertSame( 1, $tally['net'] );
     }
 
+    public function test_get_vote_tally_gets_with_subject_query(): void
+    {
+        $body      = '{"up":1,"down":0,"net":1,"my_vote":1}';
+        $transport = new FakeTransport( 200, $body );
+        $client    = new HubClient( $this->config(), $transport );
+
+        $tally = $client->getVoteTally( 'c1' );
+
+        self::assertSame( 'GET', $transport->lastMethod );
+        self::assertSame( HubClient::HUB_URL . '/cases/c1/votes?subject_id=subject-1', $transport->lastUrl );
+        self::assertSame( 1, $tally['my_vote'] );
+    }
+
     public function test_retract_vote_deletes_with_subject_query(): void
     {
         $body      = '{"up":0,"down":0,"net":0,"my_vote":null}';

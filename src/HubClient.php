@@ -238,6 +238,23 @@ final class HubClient {
     }
 
     /**
+     * Fetch a public case's vote tally, including the current subject's vote.
+     *
+     * @param string $caseId The Case id.
+     *
+     * @return array<string, mixed> The hub TallyResponse object.
+     *
+     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     */
+    public function getVoteTally( string $caseId ): array {
+        $subjectId = $this->config->consumer->subjectId();
+        $url       = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/cases/' . \rawurlencode( $caseId )
+            . '/votes?subject_id=' . \rawurlencode( $subjectId );
+
+        return $this->getJsonObject( $url );
+    }
+
+    /**
      * Distill a chat conversation into a private Case draft.
      *
      * @param string               $chatId       The chat/session id.
@@ -381,6 +398,38 @@ final class HubClient {
                     'Content-Type'  => 'application/json',
                 ),
                 $body,
+                $this->config->timeoutSeconds,
+            );
+        } catch ( \EpicWP\Roundtable\Http\TransportException $e ) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal RuntimeException message (transport error string), never rendered as HTML.
+            throw \EpicWP\Roundtable\HubException::network( $e->getMessage() );
+        }
+
+        $this->guardStatus( $response->status );
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.json_decode_json_decode -- pure-PHP core class, no WordPress dependency by design.
+        $decoded = \json_decode( $response->body, true );
+        if ( ! \is_array( $decoded ) || \array_is_list( $decoded ) ) {
+            throw \EpicWP\Roundtable\HubException::badResponse( 'hub response was not a JSON object' );
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * GET a hub resource and decode a single object response.
+     *
+     * @param string $url The absolute URL.
+     *
+     * @return array<string, mixed> The decoded object.
+     *
+     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     */
+    private function getJsonObject( string $url ): array {
+        try {
+            $response = $this->transport->get(
+                $url,
+                array( 'Authorization' => 'Bearer ' . $this->config->projectApiKey ),
                 $this->config->timeoutSeconds,
             );
         } catch ( \EpicWP\Roundtable\Http\TransportException $e ) {

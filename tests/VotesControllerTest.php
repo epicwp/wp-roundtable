@@ -14,6 +14,21 @@ use Mockery;
 
 final class VotesControllerTest extends TestCase
 {
+    public function test_handle_get_returns_tally_on_success(): void
+    {
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $body       = '{"up":0,"down":0,"net":0,"my_vote":null}';
+        $controller = $this->controller( new FakeTransport( 200, $body ) );
+        $request    = $this->request( array( 'case_id' => 'c1' ) );
+
+        $response = $controller->handleGet( $request );
+
+        self::assertSame( 200, $response->get_status() );
+        self::assertNull( $response->get_data()['tally']['my_vote'] );
+    }
+
     public function test_handle_cast_returns_tally_on_success(): void
     {
         Functions\when( 'wp_verify_nonce' )->justReturn( 1 );

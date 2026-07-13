@@ -84,6 +84,15 @@ export function fetchParticipatingCases() {
 }
 
 /**
+ * Fetch the vote tally for a public topic, including the current user's vote.
+ * @param {string} caseId
+ * @returns {Promise<{tally:object}|{error:{kind:string}}>}
+ */
+export function fetchVoteTally(caseId) {
+  return get('/cases/' + encodeURIComponent(caseId) + '/votes');
+}
+
+/**
  * Cast or change a vote on a public topic.
  * @param {string} caseId
  * @param {1|-1} value

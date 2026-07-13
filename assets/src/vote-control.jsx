@@ -1,7 +1,7 @@
 /** @jsx h */
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { castVote, retractVote } from './api.js';
+import { castVote, fetchVoteTally, retractVote } from './api.js';
 
 /**
  * Interactive up/down vote control for a public topic.
@@ -14,10 +14,21 @@ export function VoteControl({ caseId, net: initialNet, onChange }) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     setNet(initialNet);
-    setMyVote(null);
     setError(false);
-  }, [initialNet, caseId]);
+    (async () => {
+      const res = await fetchVoteTally(caseId);
+      if (cancelled) return;
+      if (res.tally) {
+        setNet(res.tally.net);
+        setMyVote(res.tally.my_vote ?? null);
+        return;
+      }
+      setMyVote(null);
+    })();
+    return () => { cancelled = true; };
+  }, [caseId, initialNet]);
 
   async function apply(value) {
     if (busy) return;
