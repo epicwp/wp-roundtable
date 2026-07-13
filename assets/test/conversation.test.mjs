@@ -11,10 +11,15 @@ test('turnsToConversation formats transcript', () => {
   assert.match(text, /User: Shortcodes break/);
 });
 
-test('canDraftTopic requires user and agent messages', () => {
-  assert.equal(canDraftTopic([{ role: 'agent', reply: 'hi' }]), false);
+test('canDraftTopic requires an agent reply after the user message', () => {
+  assert.equal(canDraftTopic([{ role: 'agent', reply: 'welcome' }]), false);
   assert.equal(canDraftTopic([
-    { role: 'agent', reply: 'hi' },
+    { role: 'agent', reply: 'welcome' },
     { role: 'user', reply: 'bug' },
+  ]), false);
+  assert.equal(canDraftTopic([
+    { role: 'agent', reply: 'welcome' },
+    { role: 'user', reply: 'bug' },
+    { role: 'agent', reply: 'tell me more' },
   ]), true);
 });
