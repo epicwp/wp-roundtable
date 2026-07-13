@@ -19,11 +19,11 @@ function StepLog({ steps }) {
   );
 }
 
-function TopicChips({ onPick, disabled }) {
+function TopicChips({ onSend, disabled }) {
   return (
     <div class="rt-chips">
       {TOPIC_CHIPS.map((c) => (
-        <button key={c.id} type="button" class="rt-chip" disabled={disabled} onClick={() => onPick(c.starter)}>
+        <button key={c.id} type="button" class="rt-chip" disabled={disabled} onClick={() => onSend(c.message)}>
           {c.label}
         </button>
       ))}
@@ -31,7 +31,7 @@ function TopicChips({ onPick, disabled }) {
   );
 }
 
-function Bubble({ turn, onChipPick, busy }) {
+function Bubble({ turn }) {
   if (turn.role === 'user') return <div class="rt-user">{turn.reply}</div>;
   const agentName = agentDisplayName();
   return (
@@ -42,7 +42,6 @@ function Bubble({ turn, onChipPick, busy }) {
         <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
              // eslint-disable-next-line react/no-danger
              dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(turn.reply) }} />
-        {turn.introChips && <TopicChips disabled={busy} onPick={onChipPick} />}
         {!turn.error && <StepLog steps={turn.steps} />}
       </div>
     </div>
@@ -77,10 +76,10 @@ function DraftPrompt({ busy, drafting, onDraft }) {
   );
 }
 
-export function Thread({ turns, onChipPick, busy }) {
+export function Thread({ turns }) {
   return (
     <div class="rt-thread">
-      {turns.map((t, i) => <Bubble key={i} turn={t} onChipPick={onChipPick} busy={busy} />)}
+      {turns.map((t, i) => <Bubble key={i} turn={t} />)}
     </div>
   );
 }
@@ -88,7 +87,7 @@ export function Thread({ turns, onChipPick, busy }) {
 export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [newTopicMode, setNewTopicMode] = useState(false);
   const [turns, setTurns] = useState([{
-    role: 'agent', reply: CHAT_GREETING, steps: [], error: false, introChips: false,
+    role: 'agent', reply: CHAT_GREETING, steps: [], error: false,
   }]);
   const [composer, setComposer] = useState('');
   const [busy, setBusy] = useState(false);
@@ -127,7 +126,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     setNewTopicMode(true);
     setTopicDraft(null);
     setShowPublish(false);
-    setTurns([{ role: 'agent', reply: NEW_TOPIC_INTRO, steps: [], error: false, introChips: true }]);
+    setTurns([{ role: 'agent', reply: NEW_TOPIC_INTRO, steps: [], error: false }]);
   }
 
   async function turnIntoTopic() {
@@ -172,7 +171,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
         <span class="rt-head-grow" />
         <button class="rt-iconbtn" type="button" onClick={newTopic} title="New conversation" aria-label="New conversation">+</button>
       </div>
-      <Thread turns={turns} busy={busy} onChipPick={(starter) => { setComposer(starter); }} />
+      <Thread turns={turns} />
       {topicDraft && (
         <div class="rt-thread-extras">
           <OutcomeCard
@@ -188,6 +187,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
       )}
       {busy && <div class="rt-working"><span class="rt-dots"><i /><i /><i /></span> Working…</div>}
       <div class="rt-composer">
+        <TopicChips disabled={busy || draftBusy} onSend={(msg) => send(msg)} />
         <div class="rt-cbox">
           <textarea rows="1" placeholder={composerPlaceholder} value={composer}
             onInput={(e) => setComposer(e.currentTarget.value)}

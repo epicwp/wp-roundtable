@@ -215,7 +215,8 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-send-icon:hover { background:var(--rt-accent-ink); }
 #roundtable-app .rt-send-icon[disabled] { opacity:.6; cursor:default; }
 #roundtable-app .rt-chint { margin-top:6px; padding:0 3px; font-size:11px; color:var(--rt-ink-faint); text-align:right; }
-#roundtable-app .rt-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+#roundtable-app .rt-chips { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px; }
+#roundtable-app .rt-composer .rt-chips { padding:0 1px; }
 #roundtable-app .rt-chip { font:inherit; font-size:12px; font-weight:600; color:var(--rt-accent-ink); background:#eceffe; border:1px solid rgba(56,88,233,.2); border-radius:999px; padding:5px 11px; cursor:pointer; box-shadow:none; min-height:0; }
 #roundtable-app .rt-chip:hover:not(:disabled) { background:#e0e6fd; border-color:rgba(56,88,233,.35); }
 #roundtable-app .rt-chip:disabled { opacity:.55; cursor:default; }
