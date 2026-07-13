@@ -2,6 +2,7 @@
 import { h } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { ChatPanel } from './components.jsx';
+import { AgentAvatar } from './avatars.jsx';
 import { TopicList } from './topic-list.jsx';
 import { StartedList } from './started-list.jsx';
 import { RoadmapList } from './roadmap-list.jsx';
@@ -27,6 +28,7 @@ export function CommunityApp() {
   const [publishDraft, setPublishDraft] = useState(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [tabCounts, setTabCounts] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,7 +39,10 @@ export function CommunityApp() {
     return () => { cancelled = true; };
   }, [listRefresh]);
 
-  const requestNewTopic = () => setResetNonce((n) => n + 1);
+  const requestNewTopic = () => {
+    setResetNonce((n) => n + 1);
+    setChatOpen(true);
+  };
   const openTopic = (topic) => {
     setSelectedTopic(topic);
     setView('detail');
@@ -72,7 +77,7 @@ export function CommunityApp() {
         : 'Browse public topics — or ask Sage on the right.';
 
   return (
-    <div class="rt-layout">
+    <div class={'rt-layout' + (chatOpen ? ' rt-chat-open' : '')}>
       <main class="rt-main">
         {view === 'detail' && selectedTopic ? (
           <TopicDetail topic={selectedTopic} onBack={backToList} onVoteChange={refreshTabCountsOnly} />
@@ -128,7 +133,31 @@ export function CommunityApp() {
           </div>
         )}
       </main>
-      <aside class="rt-aside">
+      {!chatOpen && (
+        <button
+          type="button"
+          class="rt-chat-launch"
+          aria-label="Open Sage chat"
+          onClick={() => setChatOpen(true)}
+        >
+          <AgentAvatar size="sm" />
+        </button>
+      )}
+      {chatOpen && (
+        <button
+          type="button"
+          class="rt-chat-backdrop"
+          aria-label="Close chat"
+          onClick={() => setChatOpen(false)}
+        />
+      )}
+      <aside class={'rt-aside' + (chatOpen ? ' is-open' : '')}>
+        <button
+          type="button"
+          class="rt-chat-close"
+          aria-label="Close chat"
+          onClick={() => setChatOpen(false)}
+        >×</button>
         <ChatPanel resetNonce={resetNonce} onTopicPublished={bumpLists} />
       </aside>
       {publishDraft && (
