@@ -58,3 +58,19 @@ export function resetChat() {
 export function fetchCases(params) {
   return get('/cases', params);
 }
+
+/**
+ * Draft a Case from the chat transcript.
+ * @param {{conversation:string, title?:string, summary?:string, type?:string}} body
+ */
+export function createDraft(body) {
+  return post('/case', body);
+}
+
+/**
+ * Publish a drafted Case.
+ * @param {{case_id:string, title?:string, summary?:string}} body
+ */
+export function publishCase(body) {
+  return post('/publish', body);
+}

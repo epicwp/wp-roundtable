@@ -23,6 +23,11 @@ test('collects step events and outcome', () => {
   assert.equal(turn.reply, 'done');
 });
 
+test('flags result.is_error as error turn', () => {
+  const turn = eventsToTurn([{ type: 'result', data: { is_error: true } }]);
+  assert.equal(turn.error, true);
+});
+
 test('flags an error turn', () => {
   const turn = eventsToTurn([{ type: 'error', data: { message: 'boom' } }]);
   assert.equal(turn.error, true);

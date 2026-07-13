@@ -103,6 +103,56 @@ final class HubClient {
     }
 
     /**
+     * Distill a chat conversation into a private Case draft.
+     *
+     * @param string               $chatId       The chat/session id.
+     * @param string               $conversation The transcript to summarize.
+     * @param array<string, mixed> $overrides    Optional `title`, `summary`, `type`, `make_public`.
+     *
+     * @return array<string, mixed> The hub CaseResponse object.
+     *
+     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     */
+    public function createCase( string $chatId, string $conversation, array $overrides = array() ): array {
+        $url  = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/chats/' . $chatId . '/case';
+        $body = $this->encodeJson(
+            \array_merge(
+                array(
+                    'conversation' => $conversation,
+                    'make_public'  => false,
+                    'subject_id'   => $this->config->consumer->subjectId(),
+                ),
+                $this->clientVersionField(),
+                $this->pickOverrides( $overrides, array( 'title', 'summary', 'type', 'make_public' ) ),
+            ),
+        );
+
+        return $this->postJsonObject( $url, $body );
+    }
+
+    /**
+     * Publish a private Case, with optional last-minute edits.
+     *
+     * @param string               $caseId    The Case id.
+     * @param array<string, mixed> $overrides Optional `title`, `summary`.
+     *
+     * @return array<string, mixed> The hub CaseResponse object.
+     *
+     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     */
+    public function publishCase( string $caseId, array $overrides = array() ): array {
+        $url  = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/cases/' . $caseId . '/publish';
+        $body = $this->encodeJson(
+            \array_merge(
+                array( 'subject_id' => $this->config->consumer->subjectId() ),
+                $this->pickOverrides( $overrides, array( 'title', 'summary' ) ),
+            ),
+        );
+
+        return $this->postJsonObject( $url, $body );
+    }
+
+    /**
      * Build the hub browse URL for `GET /cases`.
      *
      * @param array<string, int|string> $query Optional hub query params.
@@ -152,6 +202,87 @@ final class HubClient {
             429 => \EpicWP\Roundtable\HubException::overQuota(),
             default => \EpicWP\Roundtable\HubException::server( $status ),
         };
+    }
+
+    /**
+     * POST JSON to the hub and decode a single object response.
+     *
+     * @param string $url  The absolute URL.
+     * @param string $body The JSON-encoded request body.
+     *
+     * @return array<string, mixed> The decoded object.
+     *
+     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     */
+    private function postJsonObject( string $url, string $body ): array {
+        try {
+            $response = $this->transport->post(
+                $url,
+                array(
+                    'Authorization' => 'Bearer ' . $this->config->projectApiKey,
+                    'Content-Type'  => 'application/json',
+                ),
+                $body,
+                $this->config->timeoutSeconds,
+            );
+        } catch ( \EpicWP\Roundtable\Http\TransportException $e ) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal RuntimeException message (transport error string), never rendered as HTML.
+            throw \EpicWP\Roundtable\HubException::network( $e->getMessage() );
+        }
+
+        $this->guardStatus( $response->status );
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.json_decode_json_decode -- pure-PHP core class, no WordPress dependency by design.
+        $decoded = \json_decode( $response->body, true );
+        if ( ! \is_array( $decoded ) || \array_is_list( $decoded ) ) {
+            throw \EpicWP\Roundtable\HubException::badResponse( 'hub response was not a JSON object' );
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * Optional `client_version` field from the consumer, when set.
+     *
+     * @return array<string, string> Zero or one keyed entry.
+     */
+    private function clientVersionField(): array {
+        $clientVersion = $this->config->consumer->clientVersion();
+        if ( null === $clientVersion ) {
+            return array();
+        }
+        return array( 'client_version' => $clientVersion );
+    }
+
+    /**
+     * Pick allowed override keys from a params array.
+     *
+     * @param array<string, mixed> $source  The incoming overrides.
+     * @param array<int, string>   $allowed The permitted keys.
+     *
+     * @return array<string, mixed> The filtered overrides.
+     */
+    private function pickOverrides( array $source, array $allowed ): array {
+        $picked = array();
+        foreach ( $allowed as $key ) {
+            if ( ! \array_key_exists( $key, $source ) || null === $source[ $key ] || '' === $source[ $key ] ) {
+                continue;
+            }
+            $picked[ $key ] = $source[ $key ];
+        }
+        return $picked;
+    }
+
+    /**
+     * JSON-encode a payload for hub POST bodies.
+     *
+     * @param array<string, mixed> $payload The body array.
+     *
+     * @return string The encoded JSON.
+     */
+    private function encodeJson( array $payload ): string {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- pure-PHP core class, no WordPress dependency by design.
+        return (string) \json_encode( $payload );
     }
 
     /**

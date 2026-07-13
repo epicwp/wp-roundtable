@@ -13,6 +13,7 @@ const TABS = [
 
 export function CommunityApp() {
   const [resetNonce, setResetNonce] = useState(0);
+  const [listRefresh, setListRefresh] = useState(0);
   const requestNewTopic = () => setResetNonce((n) => n + 1);
 
   return (
@@ -40,10 +41,10 @@ export function CommunityApp() {
         <div class="rt-banner">
           <b>Public &amp; anonymous.</b> Only community handles are shown, never real names.
         </div>
-        <TopicList />
+        <TopicList refreshNonce={listRefresh} />
       </main>
       <aside class="rt-aside">
-        <ChatPanel resetNonce={resetNonce} />
+        <ChatPanel resetNonce={resetNonce} onTopicPublished={() => setListRefresh((n) => n + 1)} />
       </aside>
     </div>
   );

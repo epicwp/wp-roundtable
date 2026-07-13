@@ -40,7 +40,7 @@ const TYPE_SEGS = [
   { id: 'feature_request', label: 'Features' },
 ];
 
-export function TopicList() {
+export function TopicList({ refreshNonce = 0 }) {
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -73,7 +73,7 @@ export function TopicList() {
       setTopics((res.cases || []).map(mapCaseToTopic));
     })();
     return () => { cancelled = true; };
-  }, [type, sort, debouncedQ]);
+  }, [type, sort, debouncedQ, refreshNonce]);
 
   return (
     <div class="rt-list-area">

@@ -75,3 +75,23 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-send-icon:hover { background:var(--rt-accent-ink); }
 #roundtable-app .rt-send-icon[disabled] { opacity:.6; cursor:default; }
 #roundtable-app .rt-chint { margin-top:6px; padding:0 3px; font-size:11px; color:var(--rt-ink-faint); text-align:right; }
+#roundtable-app .rt-draft-cta { padding:0 16px 10px; }
+#roundtable-app .rt-thread-extras { padding:0 16px 8px; }
+#roundtable-app .rt-btn-primary { font:inherit; font-size:13px; font-weight:600; color:#fff; background:var(--rt-accent); border:1px solid var(--rt-accent); border-radius:8px; padding:8px 14px; cursor:pointer; box-shadow:none; min-height:0; }
+#roundtable-app .rt-btn-primary:hover { background:var(--rt-accent-ink); border-color:var(--rt-accent-ink); }
+#roundtable-app .rt-btn-primary[disabled] { opacity:.6; cursor:default; }
+#roundtable-app .rt-btn-secondary { font:inherit; font-size:13px; font-weight:600; color:var(--rt-ink-soft); background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:8px; padding:8px 14px; cursor:pointer; box-shadow:none; min-height:0; }
+#roundtable-app .rt-outcome { display:flex; gap:9px; background:#e6f4ec; border:1px solid rgba(26,125,84,.26); border-radius:10px; padding:10px 12px; }
+#roundtable-app .rt-outcome-icon { width:20px; height:20px; border-radius:6px; background:#1a7d54; color:#fff; display:grid; place-items:center; font-size:12px; flex:none; }
+#roundtable-app .rt-outcome-body b { font-size:11.5px; color:#1a7d54; display:block; }
+#roundtable-app .rt-outcome-title { font-size:13px; font-weight:600; margin:2px 0; color:var(--rt-ink); }
+#roundtable-app .rt-outcome-sub { font-size:11.8px; color:var(--rt-ink-soft); }
+#roundtable-app .rt-outcome-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+#roundtable-app .rt-modal-backdrop { position:fixed; inset:0; background:rgba(15,18,24,.45); display:grid; place-items:center; z-index:100000; padding:20px; }
+#roundtable-app .rt-modal { width:min(480px,100%); background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:12px; padding:20px; box-shadow:0 10px 34px -14px rgba(0,0,0,.35); }
+#roundtable-app .rt-modal-title { margin:0 0 4px; font-size:18px; font-weight:650; }
+#roundtable-app .rt-modal-sub { margin:0 0 16px; color:var(--rt-ink-soft); font-size:13px; }
+#roundtable-app .rt-field { display:block; margin-bottom:12px; }
+#roundtable-app .rt-field span { display:block; font-size:12px; font-weight:600; color:var(--rt-ink-soft); margin-bottom:6px; }
+#roundtable-app .rt-field input, #roundtable-app .rt-field textarea { width:100%; font:inherit; font-size:13.5px; border:1px solid var(--rt-line)!important; border-radius:8px; padding:8px 10px; box-shadow:none!important; background:#fff!important; }
+#roundtable-app .rt-modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
