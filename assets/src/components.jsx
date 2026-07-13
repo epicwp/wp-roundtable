@@ -6,15 +6,20 @@ import { eventsToTurn } from './events.js';
 import { sendMessage, resetChat, createDraft, publishCase } from './api.js';
 import { canDraftTopic, turnsToConversation } from './conversation.js';
 import { PublishDialog } from './publish-dialog.jsx';
+import { AgentAvatar, agentDisplayName } from './avatars.jsx';
 
 function Bubble({ turn }) {
   if (turn.role === 'user') return <div class="rt-user">{turn.reply}</div>;
+  const agentName = agentDisplayName();
   return (
-    <div class="rt-turn">
-      <span class="rt-name">{window.RoundtableConfig?.agentName || 'Sage'}</span>
-      <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
-           // eslint-disable-next-line react/no-danger
-           dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(turn.reply) }} />
+    <div class="rt-agent-turn">
+      <AgentAvatar size="sm" class="rt-agent-ava" />
+      <div class="rt-agent-body">
+        <span class="rt-name">{agentName}</span>
+        <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
+             // eslint-disable-next-line react/no-danger
+             dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(turn.reply) }} />
+      </div>
     </div>
   );
 }
@@ -105,12 +110,12 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     onTopicPublished?.();
   }
 
-  const agentName = window.RoundtableConfig?.agentName || 'Sage';
+  const agentName = agentDisplayName();
 
   return (
     <div class="rt-panel">
       <div class="rt-head">
-        <div class="rt-avatar">S</div>
+        <AgentAvatar class="rt-avatar" />
         <div class="rt-head-text">
           <b>{agentName}</b>
           <span>Community assistant</span>

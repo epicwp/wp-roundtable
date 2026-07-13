@@ -17,19 +17,32 @@ hljs.registerLanguage('html', xml);
 hljs.registerLanguage('xml', xml);
 
 const md = new MarkdownIt({
-  html: false, // raw HTML in input is escaped, never emitted
+  html: false,
   linkify: true,
   breaks: false,
   highlight(code, lang) {
-    if (lang && hljs.getLanguage(lang)) {
+    const language = lang && hljs.getLanguage(lang) ? lang : '';
+    const label = (language || 'text').toUpperCase();
+    let inner;
+    if (language) {
       try {
-        return '<pre class="rt-code"><code class="hljs">' +
-          hljs.highlight(code, { language: lang }).value + '</code></pre>';
+        inner = hljs.highlight(code, { language }).value;
       } catch {
-        /* fall through */
+        inner = md.utils.escapeHtml(code);
       }
+    } else {
+      inner = md.utils.escapeHtml(code);
     }
-    return '<pre class="rt-code"><code class="hljs">' + md.utils.escapeHtml(code) + '</code></pre>';
+    const langClass = language ? ' language-' + language : '';
+    return (
+      '<div class="rt-ccode">' +
+      '<div class="rt-ccode-head">' +
+      '<span class="rt-ccode-lang">' + label + '</span>' +
+      '<button type="button" class="rt-ccode-copy" aria-label="Copy code">Copy</button>' +
+      '</div>' +
+      '<pre class="rt-ccode-pre"><code class="hljs' + langClass + '">' + inner + '</code></pre>' +
+      '</div>'
+    );
   },
 });
 

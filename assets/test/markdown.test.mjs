@@ -16,7 +16,8 @@ test('escapes raw HTML in input (no live script)', () => {
 
 test('highlights fenced code', () => {
   const html = renderMarkdown('```js\nconst x = 1;\n```');
-  assert.match(html, /<pre/);
+  assert.match(html, /rt-ccode/);
+  assert.match(html, /rt-ccode-copy/);
   assert.match(html, /hljs/);
 });
 

@@ -3,24 +3,38 @@ import { h } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { fetchComments, postComment } from './api.js';
 import { renderMarkdown } from './markdown.js';
+import { agentDisplayName, AgentAvatar, PersonAvatar } from './avatars.jsx';
 import { mapCommentToView } from './topics.js';
 import { VoteControl } from './vote-control.jsx';
+import { CommentEditor } from './comment-editor.jsx';
+import { CommentActions } from './comment-actions.jsx';
 
 function CommentRow({ comment }) {
+  const Ava = comment.isAgent ? AgentAvatar : PersonAvatar;
+  const avaProps = comment.isAgent ? { size: 'sm' } : { initials: comment.initials, size: 'sm' };
   return (
     <div class="rt-cm">
-      <div class="rt-cm-ava" aria-hidden="true">{comment.initials}</div>
+      <Ava {...avaProps} class="rt-cm-ava" />
       <div class="rt-cm-body">
         <div class="rt-cm-who">
           <b>{comment.handle}</b>
+          {comment.roleBadge ? <span class="rt-role-badge">{comment.roleBadge}</span> : null}
           {comment.age ? <span class="rt-cm-time">{comment.age}</span> : null}
         </div>
         {comment.isTombstone
           ? <p class="rt-cm-tomb">{comment.tombstoneLabel}</p>
           : <div class="rt-cm-txt rt-prose" dangerouslySetInnerHTML={{ __html: comment.html }} />}
+        {!comment.isTombstone && <CommentActions />}
       </div>
     </div>
   );
+}
+
+function repliesTitle(count, loading, error) {
+  if (loading) return 'Comments';
+  if (error) return 'Comments';
+  if (count === 1) return '1 reply';
+  return count + ' replies';
 }
 
 function CommentComposer({ caseId, onPosted }) {
@@ -44,25 +58,13 @@ function CommentComposer({ caseId, onPosted }) {
   };
 
   return (
-    <div class="rt-addwrap">
-      <div class="rt-post-ava rt-you-ava" aria-hidden="true">Y</div>
-      <div class="rt-editor">
-        <textarea
-          class="rt-ed-input"
-          placeholder="Add a comment…"
-          rows="3"
-          value={text}
-          disabled={posting}
-          onInput={(e) => setText(e.currentTarget.value)}
-        />
-        <div class="rt-ed-foot">
-          {error ? <span class="rt-ed-error">Could not post. Try again.</span> : <span class="rt-ed-hint">Markdown supported</span>}
-          <button type="button" class="rt-post-btn" disabled={posting || !text.trim()} onClick={submit}>
-            {posting ? 'Posting…' : 'Post'}
-          </button>
-        </div>
-      </div>
-    </div>
+    <CommentEditor
+      value={text}
+      onInput={setText}
+      onSubmit={submit}
+      posting={posting}
+      error={error}
+    />
   );
 }
 
@@ -71,6 +73,7 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const agentName = agentDisplayName();
 
   const loadComments = useCallback(async (cancelledRef) => {
     setLoading(true);
@@ -83,8 +86,9 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
       setComments([]);
       return;
     }
-    setComments((res.comments || []).map(mapCommentToView));
-  }, [topic.id]);
+    const rows = (res.comments || []).map((row) => mapCommentToView(row, agentName));
+    setComments(rows.reverse());
+  }, [topic.id, agentName]);
 
   useEffect(() => {
     const cancelledRef = { cancelled: false };
@@ -95,7 +99,7 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
   return (
     <div class="rt-detail-area">
       <button type="button" class="rt-back" onClick={onBack}>← All topics</button>
-      <div class="rt-detail-card">
+      <div class="rt-detail-card rt-card">
         <div class="rt-th">
           <VoteControl caseId={topic.id} net={topic.net} onChange={onVoteChange} />
           <div class="rt-thd">
@@ -110,18 +114,22 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
           </div>
         </div>
         <div class="rt-post">
-          <div class="rt-post-ava" aria-hidden="true">{topic.initials}</div>
+          <PersonAvatar initials={topic.initials} size="sm" class="rt-post-ava" />
           <div class="rt-post-body">
             <div class="rt-post-who"><b>{topic.handle}</b>{topic.age ? <span> · {topic.age}</span> : null}</div>
             <div class="rt-prose" dangerouslySetInnerHTML={{ __html: renderMarkdown(topic.snippet) }} />
           </div>
         </div>
       </div>
-      <div class="rt-csec">
-        <h2 class="rt-csec-title">Comments</h2>
-        <p class="rt-csec-cnt">
-          {loading ? 'Loading…' : error ? 'Could not load comments.' : `${comments.length} comment${comments.length === 1 ? '' : 's'}`}
-        </p>
+      <div class="rt-csec rt-card">
+        <div class="rt-csec-head">
+          <h2 class="rt-csec-title">{repliesTitle(comments.length, loading, error)}</h2>
+          {!loading && !error && comments.length > 0
+            ? <span class="rt-csec-sort">Newest first</span>
+            : null}
+        </div>
+        {loading && <p class="rt-csec-cnt">Loading…</p>}
+        {error && <p class="rt-csec-cnt rt-list-error">Could not load comments.</p>}
         {!loading && !error && comments.length === 0 && <p class="rt-csec-empty">No comments yet.</p>}
         {!loading && !error && comments.length > 0 && (
           <div class="rt-cm-thread">
