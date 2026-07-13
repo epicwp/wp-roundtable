@@ -4,7 +4,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { fetchCases } from './api.js';
 import { mapCaseToTopic } from './topics.js';
 
-export function TopicRow({ topic, onSelect }) {
+export function TopicRow({ topic, onSelect, hideStatus = false }) {
   return (
     <div
       class="rt-case rt-case-click"
@@ -29,7 +29,7 @@ export function TopicRow({ topic, onSelect }) {
         <div class="rt-csnip">{topic.snippet}</div>
         <div class="rt-cmeta">
           <span class={'rt-badge ' + topic.typeClass}>{topic.typeLabel}</span>
-          <span class={'rt-status ' + topic.statusClass}>{topic.statusLabel}</span>
+          {!hideStatus && <span class={'rt-status ' + topic.statusClass}>{topic.statusLabel}</span>}
           <span class="rt-dot">·</span>
           <span class="rt-handle">{topic.handle}</span>
           {topic.age ? <span class="rt-age-wrap"><span class="rt-dot">·</span><span>{topic.age}</span></span> : null}

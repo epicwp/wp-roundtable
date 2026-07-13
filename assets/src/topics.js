@@ -63,6 +63,54 @@ export function handleInitials(handle) {
   return h.slice(0, 2).toUpperCase();
 }
 
+/** Hub statuses shown on the Roadmap tab, in display order. */
+export const ROADMAP_SECTIONS = [
+  {
+    status: 'escalated',
+    label: 'Planned',
+    hintSuffix: ' · accepted onto the roadmap',
+    emptyLabel: 'No topics planned yet. Accepted topics will appear here.',
+  },
+  {
+    status: 'in_progress',
+    label: 'In progress',
+    hintSuffix: '',
+    emptyLabel: 'No topics in progress right now.',
+  },
+  {
+    status: 'shipped',
+    label: 'Shipped',
+    hintSuffix: '',
+    emptyLabel: 'No shipped topics yet.',
+  },
+];
+
+const ROADMAP_STATUS_SET = new Set(ROADMAP_SECTIONS.map((s) => s.status));
+
+/**
+ * Keep only public cases that belong on the roadmap.
+ * @param {Array<{status?:string}>} cases
+ * @returns {Array}
+ */
+export function filterRoadmapCases(cases) {
+  return (cases || []).filter((row) => ROADMAP_STATUS_SET.has(row.status));
+}
+
+/**
+ * Group roadmap cases into Planned / In progress / Shipped sections.
+ * @param {Array<{status?:string, net?:number}>} cases
+ * @returns {Array<{status:string, label:string, hintSuffix:string, cases:Array}>}
+ */
+export function groupRoadmapCases(cases) {
+  const filtered = filterRoadmapCases(cases);
+  return ROADMAP_SECTIONS.map((section) => ({
+    ...section,
+    cases: filtered
+      .filter((row) => row.status === section.status)
+      .sort((a, b) => (b.net || 0) - (a.net || 0)),
+  }));
+}
+
 export function mapCaseToTopic(row) {
   const type = row.type || 'question';
   const status = row.status || 'open';
