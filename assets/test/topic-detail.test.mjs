@@ -27,6 +27,8 @@ test('TopicDetail renders title and back link', () => {
   assert.match(html, /Add a comment/);
   assert.match(html, /Write/);
   assert.match(html, /Preview/);
-  assert.match(html, /Newest first/);
   assert.match(html, /Comment/);
+  assert.match(html, /rt-cm-composer/);
+  assert.match(html, /rt-ed-top/);
+  assert.match(html, /rt-ed-tools/);
 });

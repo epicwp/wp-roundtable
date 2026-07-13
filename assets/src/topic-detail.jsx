@@ -7,6 +7,7 @@ import { agentDisplayName, AgentAvatar, PersonAvatar } from './avatars.jsx';
 import { mapCommentToView } from './topics.js';
 import { VoteControl } from './vote-control.jsx';
 import { CommentEditor } from './comment-editor.jsx';
+import { CommentActions } from './comment-actions.jsx';
 
 function CommentRow({ comment }) {
   const Ava = comment.isAgent ? AgentAvatar : PersonAvatar;
@@ -23,9 +24,17 @@ function CommentRow({ comment }) {
         {comment.isTombstone
           ? <p class="rt-cm-tomb">{comment.tombstoneLabel}</p>
           : <div class="rt-cm-txt rt-prose" dangerouslySetInnerHTML={{ __html: comment.html }} />}
+        {!comment.isTombstone && <CommentActions />}
       </div>
     </div>
   );
+}
+
+function repliesTitle(count, loading, error) {
+  if (loading) return 'Comments';
+  if (error) return 'Comments';
+  if (count === 1) return '1 reply';
+  return count + ' replies';
 }
 
 function CommentComposer({ caseId, onPosted }) {
@@ -114,12 +123,13 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
       </div>
       <div class="rt-csec rt-card">
         <div class="rt-csec-head">
-          <h2 class="rt-csec-title">Comments</h2>
-          <span class="rt-csec-sort">Newest first</span>
+          <h2 class="rt-csec-title">{repliesTitle(comments.length, loading, error)}</h2>
+          {!loading && !error && comments.length > 0
+            ? <span class="rt-csec-sort">Newest first</span>
+            : null}
         </div>
-        <p class="rt-csec-cnt">
-          {loading ? 'Loading…' : error ? 'Could not load comments.' : `${comments.length} comment${comments.length === 1 ? '' : 's'}`}
-        </p>
+        {loading && <p class="rt-csec-cnt">Loading…</p>}
+        {error && <p class="rt-csec-cnt rt-list-error">Could not load comments.</p>}
         {!loading && !error && comments.length === 0 && <p class="rt-csec-empty">No comments yet.</p>}
         {!loading && !error && comments.length > 0 && (
           <div class="rt-cm-thread">
