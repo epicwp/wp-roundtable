@@ -68,6 +68,14 @@ export function fetchMyCases() {
 }
 
 /**
+ * List topics the current user commented on or voted on.
+ * @returns {Promise<{cases:Array}|{error:{kind:string}}>}
+ */
+export function fetchParticipatingCases() {
+  return get('/cases/participating');
+}
+
+/**
  * Draft a Case from the chat transcript.
  * @param {{conversation:string, title?:string, summary?:string, type?:string}} body
  */

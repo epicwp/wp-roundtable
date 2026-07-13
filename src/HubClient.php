@@ -122,6 +122,33 @@ final class HubClient {
     }
 
     /**
+     * List public cases the current subject voted on or commented on.
+     *
+     * @return list<array<string, mixed>> The hub's CaseListItem array.
+     *
+     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     */
+    public function listParticipatingCases(): array {
+        $subjectId = $this->config->consumer->subjectId();
+        $url       = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/subjects/' . \rawurlencode(
+            $subjectId,
+        ) . '/participating';
+
+        try {
+            $response = $this->transport->get(
+                $url,
+                array( 'Authorization' => 'Bearer ' . $this->config->projectApiKey ),
+                $this->config->timeoutSeconds,
+            );
+        } catch ( \EpicWP\Roundtable\Http\TransportException $e ) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal RuntimeException message (transport error string), never rendered as HTML.
+            throw \EpicWP\Roundtable\HubException::network( $e->getMessage() );
+        }
+
+        return $this->decodeJsonArray( $response, 'participating cases list was not a JSON array' );
+    }
+
+    /**
      * List comments on a public case.
      *
      * @param string $caseId The Case id.
