@@ -1,13 +1,26 @@
 /** @jsx h */
 import { h } from 'preact';
 
-function RobotIcon() {
+/** Outline bot (Lucide-style) — clear at 16–18px in avatar circles. */
+function AgentIcon() {
   return (
-    <svg class="rt-robot-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        fill="currentColor"
-        d="M12 3a2.2 2.2 0 0 1 2.15 1.75h2.9A2.95 2.95 0 0 1 20 7.7v2.55a4.8 4.8 0 0 1 2 3.75V19a1 1 0 0 1-1 1h-1v1.5a1.5 1.5 0 0 1-3 0V20H7v1.5a1.5 1.5 0 0 1-3 0V20H3a1 1 0 0 1-1-1v-5a4.8 4.8 0 0 1 2-3.75V7.7a2.95 2.95 0 0 1 2.95-2.95h2.9A2.2 2.2 0 0 1 12 3zm-4.6 9.1a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8zm9.2 0a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8zM8.5 18.5h7V21h-7v-2.5z"
-      />
+    <svg
+      class="rt-agent-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M12 8V4H8" />
+      <rect x="4" y="8" width="16" height="12" rx="2" />
+      <path d="M2 14h2" />
+      <path d="M20 14h2" />
+      <path d="M15 13v2" />
+      <path d="M9 13v2" />
     </svg>
   );
 }
@@ -19,7 +32,7 @@ function RobotIcon() {
 export function AgentAvatar({ class: className = '', size = 'md' }) {
   return (
     <div class={'rt-ava rt-ava-agent rt-ava-' + size + (className ? ' ' + className : '')} aria-hidden="true">
-      <RobotIcon />
+      <AgentIcon />
     </div>
   );
 }

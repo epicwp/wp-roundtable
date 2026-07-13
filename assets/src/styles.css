@@ -52,9 +52,9 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-ava-lg { width:40px; height:40px; }
 #roundtable-app .rt-ava-person { background:linear-gradient(160deg,#6b7a99,#455370); color:#fff; font-size:11px; font-weight:700; }
 #roundtable-app .rt-ava-agent { background:linear-gradient(160deg,var(--rt-accent),var(--rt-accent-ink)); color:#fff; }
-#roundtable-app .rt-robot-icon { width:18px; height:18px; display:block; }
-#roundtable-app .rt-ava-sm .rt-robot-icon { width:16px; height:16px; }
-#roundtable-app .rt-ava-md .rt-robot-icon, #roundtable-app .rt-avatar .rt-robot-icon { width:18px; height:18px; }
+#roundtable-app .rt-agent-icon { width:19px; height:19px; display:block; }
+#roundtable-app .rt-ava-sm .rt-agent-icon { width:17px; height:17px; stroke-width:1.75; }
+#roundtable-app .rt-ava-md .rt-agent-icon, #roundtable-app .rt-avatar .rt-agent-icon { width:19px; height:19px; }
 #roundtable-app .rt-post-ava, #roundtable-app .rt-cm-ava { flex:none; }
 #roundtable-app .rt-post-who { font-size:13px; margin-bottom:6px; }
 #roundtable-app .rt-post-who b { color:var(--rt-ink); font-weight:600; }
