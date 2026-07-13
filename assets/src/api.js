@@ -22,6 +22,14 @@ async function post(path, body) {
   return parseJson(res);
 }
 
+async function del(path) {
+  const res = await fetch(restBase() + path, {
+    method: 'DELETE',
+    headers: { 'X-WP-Nonce': cfg().nonce },
+  });
+  return parseJson(res);
+}
+
 async function get(path, query) {
   const qs = new URLSearchParams();
   if (query) {
@@ -73,6 +81,25 @@ export function fetchMyCases() {
  */
 export function fetchParticipatingCases() {
   return get('/cases/participating');
+}
+
+/**
+ * Cast or change a vote on a public topic.
+ * @param {string} caseId
+ * @param {1|-1} value
+ * @returns {Promise<{tally:object}|{error:{kind:string}}>}
+ */
+export function castVote(caseId, value) {
+  return post('/cases/' + encodeURIComponent(caseId) + '/votes', { value });
+}
+
+/**
+ * Retract the current user's vote on a public topic.
+ * @param {string} caseId
+ * @returns {Promise<{tally:object}|{error:{kind:string}}>}
+ */
+export function retractVote(caseId) {
+  return del('/cases/' + encodeURIComponent(caseId) + '/votes');
 }
 
 /**

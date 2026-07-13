@@ -13,7 +13,7 @@ test('TopicRow is clickable when onSelect is provided', () => {
   assert.match(html, /role="button"/);
 });
 
-test('TopicRow renders title and read-only vote count', () => {
+test('TopicRow renders title and interactive vote control', () => {
   const html = renderToString(h(TopicRow, {
     topic: {
       id: 'c1',
@@ -29,7 +29,6 @@ test('TopicRow renders title and read-only vote count', () => {
     },
   }));
   assert.match(html, /Batch translate/);
-  assert.match(html, /rt-vote-n/);
-  assert.match(html, /disabled/);
+  assert.match(html, /Upvote/);
   assert.match(html, /27/);
 });

@@ -45,4 +45,16 @@ final class FakeTransport implements Transport
         }
         return new TransportResponse($this->status, $this->responseBody);
     }
+
+    public function delete(string $url, array $headers, int $timeoutSeconds): TransportResponse
+    {
+        $this->lastMethod = 'DELETE';
+        $this->lastUrl = $url;
+        $this->lastHeaders = $headers;
+        $this->lastBody = null;
+        if ($this->throw !== null) {
+            throw $this->throw;
+        }
+        return new TransportResponse($this->status, $this->responseBody);
+    }
 }

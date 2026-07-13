@@ -71,7 +71,7 @@ export function CommunityApp() {
     <div class="rt-layout">
       <main class="rt-main">
         {view === 'detail' && selectedTopic ? (
-          <TopicDetail topic={selectedTopic} onBack={backToList} />
+          <TopicDetail topic={selectedTopic} onBack={backToList} onVoteChange={bumpLists} />
         ) : (
           <div class="rt-list-shell">
             <div class="rt-pagehead">
@@ -105,20 +105,21 @@ export function CommunityApp() {
               </div>
             )}
             {activeTab === 'all' && (
-              <TopicList refreshNonce={listRefresh} onSelectTopic={openTopic} />
+              <TopicList refreshNonce={listRefresh} onSelectTopic={openTopic} onVoteChange={bumpLists} />
             )}
             {activeTab === 'participating' && (
-              <ParticipatingList refreshNonce={listRefresh} onSelectTopic={openTopic} />
+              <ParticipatingList refreshNonce={listRefresh} onSelectTopic={openTopic} onVoteChange={bumpLists} />
             )}
             {activeTab === 'started' && (
               <StartedList
                 refreshNonce={listRefresh}
                 onSelectTopic={openTopic}
                 onReviewDraft={(topic) => setPublishDraft(topic)}
+                onVoteChange={bumpLists}
               />
             )}
             {activeTab === 'roadmap' && (
-              <RoadmapList refreshNonce={listRefresh} onSelectTopic={openTopic} />
+              <RoadmapList refreshNonce={listRefresh} onSelectTopic={openTopic} onVoteChange={bumpLists} />
             )}
           </div>
         )}

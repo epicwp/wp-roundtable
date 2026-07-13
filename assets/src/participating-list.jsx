@@ -7,7 +7,7 @@ import { ListToolbar } from './list-toolbar.jsx';
 import { mapCaseToTopic } from './topics.js';
 import { TopicRow } from './topic-list.jsx';
 
-export function ParticipatingList({ refreshNonce = 0, onSelectTopic }) {
+export function ParticipatingList({ refreshNonce = 0, onSelectTopic, onVoteChange }) {
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -54,7 +54,7 @@ export function ParticipatingList({ refreshNonce = 0, onSelectTopic }) {
           </div>
         )}
         {!loading && !error && filtered.map((t) => (
-          <TopicRow key={t.id} topic={t} onSelect={onSelectTopic} />
+          <TopicRow key={t.id} topic={t} onSelect={onSelectTopic} onVoteChange={onVoteChange} />
         ))}
       </div>
     </div>

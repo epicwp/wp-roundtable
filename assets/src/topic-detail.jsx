@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'preact/hooks';
 import { fetchComments, postComment } from './api.js';
 import { renderMarkdown } from './markdown.js';
 import { mapCommentToView } from './topics.js';
+import { VoteControl } from './vote-control.jsx';
 
 function CommentRow({ comment }) {
   return (
@@ -65,7 +66,7 @@ function CommentComposer({ caseId, onPosted }) {
   );
 }
 
-export function TopicDetail({ topic, onBack }) {
+export function TopicDetail({ topic, onBack, onVoteChange }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -96,11 +97,7 @@ export function TopicDetail({ topic, onBack }) {
       <button type="button" class="rt-back" onClick={onBack}>← All topics</button>
       <div class="rt-detail-card">
         <div class="rt-th">
-          <div class="rt-vote">
-            <button type="button" class="rt-vote-btn" disabled aria-label="Upvote (read-only)">▲</button>
-            <span class="rt-vote-n">{topic.net}</span>
-            <button type="button" class="rt-vote-btn" disabled aria-label="Downvote (read-only)">▼</button>
-          </div>
+          <VoteControl caseId={topic.id} net={topic.net} onChange={onVoteChange} />
           <div class="rt-thd">
             <h2 class="rt-dtitle">{topic.title}</h2>
             <div class="rt-cmeta">
@@ -131,7 +128,13 @@ export function TopicDetail({ topic, onBack }) {
             {comments.map((c) => <CommentRow key={c.id} comment={c} />)}
           </div>
         )}
-        <CommentComposer caseId={topic.id} onPosted={() => setRefreshNonce((n) => n + 1)} />
+        <CommentComposer
+          caseId={topic.id}
+          onPosted={() => {
+            setRefreshNonce((n) => n + 1);
+            onVoteChange && onVoteChange();
+          }}
+        />
       </div>
     </div>
   );
