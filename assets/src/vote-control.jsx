@@ -11,19 +11,26 @@ export function VoteControl({ caseId, net: initialNet, onChange }) {
   const [net, setNet] = useState(initialNet);
   const [myVote, setMyVote] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     setNet(initialNet);
+    setMyVote(null);
+    setError(false);
   }, [initialNet, caseId]);
 
   async function apply(value) {
     if (busy) return;
     setBusy(true);
+    setError(false);
     const res = myVote === value
       ? await retractVote(caseId)
       : await castVote(caseId, value);
     setBusy(false);
-    if (res.error || !res.tally) return;
+    if (res.error || !res.tally) {
+      setError(true);
+      return;
+    }
     setNet(res.tally.net);
     setMyVote(res.tally.my_vote ?? null);
     onChange && onChange(res.tally);
@@ -43,7 +50,7 @@ export function VoteControl({ caseId, net: initialNet, onChange }) {
         aria-pressed={myVote === 1}
         onClick={() => apply(1)}
       >▲</button>
-      <span class="rt-vote-n">{net}</span>
+      <span class="rt-vote-n" title={error ? 'Vote failed' : undefined}>{net}</span>
       <button
         type="button"
         class={'rt-vote-btn' + (myVote === -1 ? ' on-dn' : '')}

@@ -6,22 +6,23 @@ import { mapCaseToTopic } from './topics.js';
 import { VoteControl } from './vote-control.jsx';
 
 export function TopicRow({ topic, onSelect, hideStatus = false, onVoteChange }) {
+  const open = () => onSelect && onSelect(topic);
   return (
-    <div
-      class="rt-case rt-case-click"
-      role="button"
-      tabIndex={0}
-      onClick={() => onSelect && onSelect(topic)}
-      onKeyDown={(e) => {
-        if (!onSelect) return;
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect(topic);
-        }
-      }}
-    >
+    <div class="rt-case">
       <VoteControl caseId={topic.id} net={topic.net} onChange={onVoteChange} />
-      <div class="rt-cmain">
+      <div
+        class="rt-cmain rt-case-click"
+        role="button"
+        tabIndex={0}
+        onClick={open}
+        onKeyDown={(e) => {
+          if (!onSelect) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            open();
+          }
+        }}
+      >
         <span class="rt-ctitle">{topic.title}</span>
         <div class="rt-csnip">{topic.snippet}</div>
         <div class="rt-cmeta">
