@@ -60,7 +60,7 @@ final class Page {
 
     /** Render the admin page: a wrapper and the Preact root container. */
     public function render(): void {
-        echo '<div class="wrap"><div id="roundtable-app" data-loading="'
+        echo '<div class="wrap rt-community-wrap"><div id="roundtable-app" data-loading="'
             . \esc_attr__( 'Loading…', 'wp-roundtable' ) . '"></div></div>';
     }
 

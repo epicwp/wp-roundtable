@@ -24,9 +24,12 @@ final class Roundtable {
         \add_action( 'admin_menu', array( $page, 'registerMenu' ) );
         \add_action( 'admin_enqueue_scripts', array( $page, 'enqueue' ) );
 
-        $message = new MessageController( $config, new HubClient( $config, new WpHttpTransport() ) );
+        $hub     = new HubClient( $config, new WpHttpTransport() );
+        $message = new MessageController( $config, $hub );
         $session = new SessionController( $config );
+        $cases   = new CasesController( $config, $hub );
         \add_action( 'rest_api_init', array( $message, 'register' ) );
         \add_action( 'rest_api_init', array( $session, 'register' ) );
+        \add_action( 'rest_api_init', array( $cases, 'register' ) );
     }
 }

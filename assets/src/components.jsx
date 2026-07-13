@@ -1,6 +1,6 @@
 /** @jsx h */
 import { h } from 'preact';
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { renderMarkdown } from './markdown.js';
 import { eventsToTurn } from './events.js';
 import { sendMessage, resetChat } from './api.js';
@@ -21,12 +21,16 @@ export function Thread({ turns }) {
   return <div class="rt-thread">{turns.map((t, i) => <Bubble key={i} turn={t} />)}</div>;
 }
 
-export function ChatPanel() {
+export function ChatPanel({ resetNonce = 0 }) {
   const [turns, setTurns] = useState([{
     role: 'agent', reply: "Hi — I'm here to help. Ask a question, report something off, or suggest an improvement.", steps: [], error: false,
   }]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (resetNonce > 0) newTopic();
+  }, [resetNonce]);
 
   async function send() {
     const text = draft.trim();

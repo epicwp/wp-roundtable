@@ -68,6 +68,75 @@ final class HubClient {
     }
 
     /**
+     * List public cases from the hub browse API.
+     *
+     * @param array<string, int|string> $query Optional hub query params: `type`, `q`, `sort`, `limit`, `offset`.
+     *
+     * @return list<array<string, mixed>> The hub's CaseListItem array.
+     *
+     * @throws \EpicWP\Roundtable\HubException On a gate refusal (403/429), a server error (5xx), a
+     *                  malformed response, or a network failure. The project key is never in the message.
+     */
+    public function listCases( array $query = array() ): array {
+        $url = $this->casesUrl( $query );
+
+        try {
+            $response = $this->transport->get(
+                $url,
+                array( 'Authorization' => 'Bearer ' . $this->config->projectApiKey ),
+                $this->config->timeoutSeconds,
+            );
+        } catch ( \EpicWP\Roundtable\Http\TransportException $e ) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal RuntimeException message (transport error string), never rendered as HTML.
+            throw \EpicWP\Roundtable\HubException::network( $e->getMessage() );
+        }
+
+        $this->guardStatus( $response->status );
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.json_decode_json_decode -- pure-PHP core class, no WordPress dependency by design.
+        $decoded = \json_decode( $response->body, true );
+        if ( ! \is_array( $decoded ) ) {
+            throw \EpicWP\Roundtable\HubException::badResponse( 'cases list was not a JSON array' );
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * Build the hub browse URL for `GET /cases`.
+     *
+     * @param array<string, int|string> $query Optional hub query params.
+     *
+     * @return string The absolute URL (with query string when params are present).
+     */
+    private function casesUrl( array $query ): string {
+        $base   = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/cases';
+        $params = $this->casesQueryParams( $query );
+        if ( array() === $params ) {
+            return $base;
+        }
+        return $base . '?' . \http_build_query( $params );
+    }
+
+    /**
+     * Keep only the hub-allowed, non-empty browse query params.
+     *
+     * @param array<string, int|string> $query The raw query params.
+     *
+     * @return array<string, int|string> The filtered params.
+     */
+    private function casesQueryParams( array $query ): array {
+        $params = array();
+        foreach ( array( 'type', 'q', 'sort', 'limit', 'offset' ) as $key ) {
+            if ( ! isset( $query[ $key ] ) || '' === (string) $query[ $key ] ) {
+                continue;
+            }
+            $params[ $key ] = $query[ $key ];
+        }
+        return $params;
+    }
+
+    /**
      * Guards the response status, throwing on any non-2xx result.
      *
      * @param int $status The HTTP status code returned by the transport.
