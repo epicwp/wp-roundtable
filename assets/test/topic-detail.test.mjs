@@ -22,6 +22,6 @@ test('TopicDetail renders title and back link', () => {
     onBack: () => {},
   }));
   assert.match(html, /Batch translate/);
-  assert.match(html, /Back to topics/);
+  assert.match(html, /All topics/);
   assert.match(html, /Comments/);
 });

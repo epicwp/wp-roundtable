@@ -30,31 +30,35 @@ export function CommunityApp() {
   return (
     <div class="rt-layout">
       <main class="rt-main">
-        <div class="rt-pagehead">
-          <div>
-            <h1 class="rt-title">Community</h1>
-            <p class="rt-sub">Browse public topics — or ask Sage on the right.</p>
+        {view === 'detail' && selectedTopic ? (
+          <TopicDetail topic={selectedTopic} onBack={backToList} />
+        ) : (
+          <div class="rt-list-shell">
+            <div class="rt-pagehead">
+              <div>
+                <h1 class="rt-title">Community</h1>
+                <p class="rt-sub">Browse public topics — or ask Sage on the right.</p>
+              </div>
+              <button class="rt-newtopic-head" type="button" onClick={requestNewTopic}>+ New topic</button>
+            </div>
+            <nav class="rt-tabs" aria-label="Community views">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  class={tab.id === 'all' ? 'on' : ''}
+                  disabled={!tab.enabled}
+                  title={tab.hint || undefined}
+                  aria-disabled={!tab.enabled}
+                >{tab.label}</button>
+              ))}
+            </nav>
+            <div class="rt-banner">
+              <b>Public &amp; anonymous.</b> Only community handles are shown, never real names.
+            </div>
+            <TopicList refreshNonce={listRefresh} onSelectTopic={openTopic} />
           </div>
-          <button class="rt-newtopic-head" type="button" onClick={requestNewTopic}>+ New topic</button>
-        </div>
-        <nav class="rt-tabs" aria-label="Community views">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              class={tab.id === 'all' ? 'on' : ''}
-              disabled={!tab.enabled}
-              title={tab.hint || undefined}
-              aria-disabled={!tab.enabled}
-            >{tab.label}</button>
-          ))}
-        </nav>
-        <div class="rt-banner">
-          <b>Public &amp; anonymous.</b> Only community handles are shown, never real names.
-        </div>
-        {view === 'detail' && selectedTopic
-          ? <TopicDetail topic={selectedTopic} onBack={backToList} />
-          : <TopicList refreshNonce={listRefresh} onSelectTopic={openTopic} />}
+        )}
       </main>
       <aside class="rt-aside">
         <ChatPanel resetNonce={resetNonce} onTopicPublished={() => setListRefresh((n) => n + 1)} />

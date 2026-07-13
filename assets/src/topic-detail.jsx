@@ -47,7 +47,7 @@ export function TopicDetail({ topic, onBack }) {
 
   return (
     <div class="rt-detail-area">
-      <button type="button" class="rt-back" onClick={onBack}>← Back to topics</button>
+      <button type="button" class="rt-back" onClick={onBack}>← All topics</button>
       <div class="rt-detail-card">
         <div class="rt-th">
           <div class="rt-vote">

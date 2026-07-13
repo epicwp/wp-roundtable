@@ -35,7 +35,7 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-case:hover { background:#fafbfd; }
 #roundtable-app .rt-case-click { cursor:pointer; }
 #roundtable-app .rt-case-click:focus-visible { outline:2px solid var(--rt-accent); outline-offset:-2px; }
-#roundtable-app .rt-detail-area { max-width:760px; }
+#roundtable-app .rt-detail-area { max-width:760px; width:100%; margin-inline:auto; }
 #roundtable-app .rt-back { font:inherit; font-size:13px; color:var(--rt-ink-soft); background:none; border:none; padding:0; margin:0 0 16px; cursor:pointer; box-shadow:none; min-height:0; }
 #roundtable-app .rt-back:hover { color:var(--rt-accent-ink); }
 #roundtable-app .rt-detail-card { background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.04); padding:20px; }
