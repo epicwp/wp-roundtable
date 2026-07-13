@@ -14,6 +14,15 @@ test('Thread renders an agent reply as markdown', () => {
   assert.match(html, /<strong>hi<\/strong>/);
 });
 
+test('ChatPanel renders Sage header and composer', async () => {
+  const { ChatPanel } = await import('../src/components.jsx');
+  globalThis.window = { RoundtableConfig: { agentName: 'Sage' } };
+  const html = renderToString(h(ChatPanel, {}));
+  assert.match(html, /Sage/);
+  assert.match(html, /Community assistant/);
+  assert.match(html, /rt-cbox/);
+});
+
 test('Thread renders a user message as text', () => {
   const turns = [{ role: 'user', reply: 'hello', steps: [], error: false }];
   const html = renderToString(h(Thread, { turns }));

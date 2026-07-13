@@ -1,7 +1,7 @@
 /** @jsx h */
 import { h, render } from 'preact';
-import { ChatPanel } from './components.jsx';
+import { CommunityApp } from './community-app.jsx';
 import './styles.css';
 
 const root = document.getElementById('roundtable-app');
-if (root) render(h(ChatPanel, {}), root);
+if (root) render(h(CommunityApp, {}), root);

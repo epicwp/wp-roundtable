@@ -14,6 +14,7 @@ final class FakeTransport implements Transport
     /** @var array<string, string>|null */
     public ?array $lastHeaders = null;
     public ?string $lastBody = null;
+    public ?string $lastMethod = null;
 
     public function __construct(
         private int $status = 200,
@@ -23,9 +24,22 @@ final class FakeTransport implements Transport
 
     public function post(string $url, array $headers, string $body, int $timeoutSeconds): TransportResponse
     {
+        $this->lastMethod = 'POST';
         $this->lastUrl = $url;
         $this->lastHeaders = $headers;
         $this->lastBody = $body;
+        if ($this->throw !== null) {
+            throw $this->throw;
+        }
+        return new TransportResponse($this->status, $this->responseBody);
+    }
+
+    public function get(string $url, array $headers, int $timeoutSeconds): TransportResponse
+    {
+        $this->lastMethod = 'GET';
+        $this->lastUrl = $url;
+        $this->lastHeaders = $headers;
+        $this->lastBody = null;
         if ($this->throw !== null) {
             throw $this->throw;
         }

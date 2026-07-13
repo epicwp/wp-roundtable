@@ -1,0 +1,56 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mapCaseToTopic, formatAge, handleInitials, mapCommentToView } from '../src/topics.js';
+
+test('formatAge returns short relative labels', () => {
+  const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
+  assert.equal(formatAge(twoDaysAgo), '2d');
+  assert.equal(formatAge('not-a-date'), '');
+});
+
+test('mapCaseToTopic maps hub fields to UI labels', () => {
+  const topic = mapCaseToTopic({
+    id: 'c1',
+    title: 'Fix shortcodes',
+    summary: 'Shortcodes break',
+    type: 'bug',
+    status: 'escalated',
+    author_handle: 'teal-owl',
+    net: 12,
+    created_at: '2026-07-01T12:00:00',
+  });
+  assert.equal(topic.typeLabel, 'Bug');
+  assert.equal(topic.statusLabel, 'Planned');
+  assert.equal(topic.typeClass, 'rt-b-bug');
+  assert.equal(topic.statusClass, 'rt-s-plan');
+  assert.equal(topic.net, 12);
+  assert.equal(topic.handle, 'teal-owl');
+  assert.equal(topic.initials, 'TO');
+});
+
+test('handleInitials derives two letters from handle', () => {
+  assert.equal(handleInitials('slate-meadow'), 'SM');
+  assert.equal(handleInitials('solo'), 'SO');
+});
+
+test('mapCommentToView marks tombstones and renders active comments', () => {
+  const active = mapCommentToView({
+    id: 'cm1',
+    author_handle: 'slate-meadow',
+    body: '**Bold** take',
+    status: 'active',
+    created_at: '2026-07-01T12:00:00',
+  });
+  assert.equal(active.isTombstone, false);
+  assert.match(active.html, /<strong>Bold<\/strong>/);
+
+  const deleted = mapCommentToView({
+    id: 'cm2',
+    author_handle: 'solo',
+    body: null,
+    status: 'deleted',
+    created_at: '2026-07-01T12:00:00',
+  });
+  assert.equal(deleted.isTombstone, true);
+  assert.equal(deleted.tombstoneLabel, 'This comment was deleted.');
+});

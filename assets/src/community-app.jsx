@@ -1,0 +1,68 @@
+/** @jsx h */
+import { h } from 'preact';
+import { useState } from 'preact/hooks';
+import { ChatPanel } from './components.jsx';
+import { TopicList } from './topic-list.jsx';
+import { TopicDetail } from './topic-detail.jsx';
+
+const TABS = [
+  { id: 'all', label: 'All', enabled: true },
+  { id: 'participating', label: 'Participating', enabled: false, hint: 'Coming in a later update' },
+  { id: 'started', label: 'Started', enabled: false, hint: 'Coming in a later update' },
+  { id: 'roadmap', label: 'Roadmap', enabled: false, hint: 'Coming in a later update' },
+];
+
+export function CommunityApp() {
+  const [resetNonce, setResetNonce] = useState(0);
+  const [listRefresh, setListRefresh] = useState(0);
+  const [view, setView] = useState('list');
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  const requestNewTopic = () => setResetNonce((n) => n + 1);
+  const openTopic = (topic) => {
+    setSelectedTopic(topic);
+    setView('detail');
+  };
+  const backToList = () => {
+    setView('list');
+    setSelectedTopic(null);
+  };
+
+  return (
+    <div class="rt-layout">
+      <main class="rt-main">
+        {view === 'detail' && selectedTopic ? (
+          <TopicDetail topic={selectedTopic} onBack={backToList} />
+        ) : (
+          <div class="rt-list-shell">
+            <div class="rt-pagehead">
+              <div>
+                <h1 class="rt-title">Community</h1>
+                <p class="rt-sub">Browse public topics — or ask Sage on the right.</p>
+              </div>
+              <button class="rt-newtopic-head" type="button" onClick={requestNewTopic}>+ New topic</button>
+            </div>
+            <nav class="rt-tabs" aria-label="Community views">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  class={tab.id === 'all' ? 'on' : ''}
+                  disabled={!tab.enabled}
+                  title={tab.hint || undefined}
+                  aria-disabled={!tab.enabled}
+                >{tab.label}</button>
+              ))}
+            </nav>
+            <div class="rt-banner">
+              <b>Public &amp; anonymous.</b> Only community handles are shown, never real names.
+            </div>
+            <TopicList refreshNonce={listRefresh} onSelectTopic={openTopic} />
+          </div>
+        )}
+      </main>
+      <aside class="rt-aside">
+        <ChatPanel resetNonce={resetNonce} onTopicPublished={() => setListRefresh((n) => n + 1)} />
+      </aside>
+    </div>
+  );
+}

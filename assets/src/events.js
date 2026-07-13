@@ -11,7 +11,10 @@ export function eventsToTurn(events) {
   for (const ev of Array.isArray(events) ? events : []) {
     if (ev.type === 'assistant_text' && typeof ev.data?.text === 'string') turn.reply += ev.data.text;
     else if (ev.type === 'error') turn.error = true;
-    else if (ev.type === 'result') turn.outcome = ev.data || null;
+    else if (ev.type === 'result') {
+      turn.outcome = ev.data || null;
+      if (ev.data?.is_error) turn.error = true;
+    }
     else if (STEP_TYPES.has(ev.type)) turn.steps.push(ev);
   }
   return turn;
