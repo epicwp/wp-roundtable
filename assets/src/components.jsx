@@ -1,6 +1,6 @@
 /** @jsx h */
 import { h } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { renderMarkdown } from './markdown.js';
 import { eventsToTurn } from './events.js';
 import { sendMessage, resetChat, createDraft, publishCase } from './api.js';
@@ -96,10 +96,18 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [topicDraft, setTopicDraft] = useState(null);
   const [showPublish, setShowPublish] = useState(false);
   const [draftBusy, setDraftBusy] = useState(false);
+  const composerRef = useRef(null);
 
   useEffect(() => {
     if (resetNonce > 0) newTopic();
   }, [resetNonce]);
+
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [composer]);
 
   async function send(textOverride) {
     const text = (textOverride ?? composer).trim();
@@ -190,7 +198,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
       {busy && <div class="rt-working"><span class="rt-dots"><i /><i /><i /></span> Working…</div>}
       <div class="rt-composer">
         <div class="rt-cbox">
-          <textarea rows="1" placeholder={composerPlaceholder} value={composer}
+          <textarea ref={composerRef} rows="1" placeholder={composerPlaceholder} value={composer}
             onInput={(e) => setComposer(e.currentTarget.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
           <button class="rt-send-icon" type="button" disabled={busy} onClick={() => send()} aria-label="Send">➤</button>
