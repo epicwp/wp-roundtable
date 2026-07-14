@@ -28,6 +28,24 @@ test('mapCaseToTopic maps hub fields to UI labels', () => {
   assert.equal(topic.initials, 'TO');
 });
 
+test('mapCaseToTopic treats pending visibility as awaiting approval', () => {
+  const topic = mapCaseToTopic({
+    id: 'c3',
+    title: 'Pending bug',
+    summary: 's',
+    type: 'bug',
+    status: 'open',
+    visibility: 'pending',
+    author_handle: 'h',
+    net: 0,
+    created_at: '2026-07-01T12:00:00',
+  });
+  assert.equal(topic.isDraft, false);
+  assert.equal(topic.isPending, true);
+  assert.equal(topic.statusLabel, 'Pending approval');
+  assert.equal(topic.statusClass, 'rt-s-pending');
+});
+
 test('mapCaseToTopic treats private visibility as draft', () => {
   const topic = mapCaseToTopic({
     id: 'c2',

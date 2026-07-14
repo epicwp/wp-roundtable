@@ -30,7 +30,7 @@ export function PublishDialog({ draft, busy, onCancel, onPublish }) {
         <div class="rt-pub-head">
           <div>
             <h2 class="rt-modal-title">Review &amp; publish</h2>
-            <p class="rt-modal-sub">Edit the draft below. Once published, others can read and vote on it.</p>
+            <p class="rt-modal-sub">Edit the draft below. After you submit, a maintainer reviews it before it appears in the public list.</p>
           </div>
           <span class={'rt-badge ' + activeType.badgeClass}>{activeType.label}</span>
         </div>

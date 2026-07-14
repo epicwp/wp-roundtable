@@ -151,7 +151,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     setTopicDraft(null);
     setTurns((t) => [...t, {
       role: 'agent',
-      reply: `Published **${res.case.title}** to the community. It should appear in the list on the left.`,
+      reply: `Submitted **${res.case.title}** for approval. You can track it under Started → Pending approval.`,
       steps: [],
       error: false,
     }]);

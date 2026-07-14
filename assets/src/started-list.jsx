@@ -39,6 +39,7 @@ function SectionHead({ title, hint }) {
 
 export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft, onVoteChange }) {
   const [drafts, setDrafts] = useState([]);
+  const [pending, setPending] = useState([]);
   const [published, setPublished] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -56,20 +57,23 @@ export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft, on
       if (res.error) {
         setError(true);
         setDrafts([]);
+        setPending([]);
         setPublished([]);
         return;
       }
       const topics = (res.cases || []).map(mapCaseToTopic);
       setDrafts(topics.filter((t) => t.isDraft));
-      setPublished(topics.filter((t) => !t.isDraft));
+      setPublished(topics.filter((t) => !t.isDraft && !t.isPending));
+      setPending(topics.filter((t) => t.isPending));
     })();
     return () => { cancelled = true; };
   }, [refreshNonce]);
 
   const filteredDrafts = useMemo(() => filterTopics(drafts, q, type), [drafts, q, type]);
+  const filteredPending = useMemo(() => filterTopics(pending, q, type), [pending, q, type]);
   const filteredPublished = useMemo(() => filterTopics(published, q, type), [published, q, type]);
-  const total = drafts.length + published.length;
-  const filteredTotal = filteredDrafts.length + filteredPublished.length;
+  const total = drafts.length + pending.length + published.length;
+  const filteredTotal = filteredDrafts.length + filteredPending.length + filteredPublished.length;
 
   return (
     <div class="rt-list-area rt-started-area">
@@ -93,6 +97,16 @@ export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft, on
           <SectionHead title="Drafts" hint={`${filteredDrafts.length} · only you can see these`} />
           <div class="rt-list">
             {filteredDrafts.map((t) => <DraftRow key={t.id} topic={t} onReview={onReviewDraft} />)}
+          </div>
+        </div>
+      )}
+      {!loading && !error && filteredPending.length > 0 && (
+        <div class="rt-started-block">
+          <SectionHead title="Pending approval" hint={`${filteredPending.length} · awaiting maintainer review`} />
+          <div class="rt-list">
+            {filteredPending.map((t) => (
+              <TopicRow key={t.id} topic={t} onSelect={onSelectTopic} onVoteChange={onVoteChange} />
+            ))}
           </div>
         </div>
       )}

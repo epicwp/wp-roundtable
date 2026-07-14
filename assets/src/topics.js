@@ -35,6 +35,7 @@ const STATUS_CLASS = {
 };
 
 const DRAFT_STATUS_CLASS = 'rt-s-draft';
+const PENDING_STATUS_CLASS = 'rt-s-pending';
 
 /**
  * Format an ISO timestamp as a short relative age (e.g. "3d", "2w").
@@ -116,21 +117,24 @@ export function mapCaseToTopic(row) {
   const status = row.status || 'open';
   const handle = row.author_handle || '';
   const summary = row.summary || '';
-  const isDraft = row.visibility === 'private';
+  const visibility = row.visibility || 'public';
+  const isDraft = visibility === 'private';
+  const isPending = visibility === 'pending';
   return {
     id: row.id,
     title: row.title || '',
     snippet: summary,
     typeLabel: TYPE_LABELS[type] || type,
     typeClass: TYPE_CLASS[type] || 'rt-b-q',
-    statusLabel: isDraft ? 'Draft' : (STATUS_LABELS[status] || status),
-    statusClass: isDraft ? DRAFT_STATUS_CLASS : (STATUS_CLASS[status] || 'rt-s-open'),
+    statusLabel: isDraft ? 'Draft' : (isPending ? 'Pending approval' : (STATUS_LABELS[status] || status)),
+    statusClass: isDraft ? DRAFT_STATUS_CLASS : (isPending ? PENDING_STATUS_CLASS : (STATUS_CLASS[status] || 'rt-s-open')),
     handle,
     initials: handleInitials(handle),
     net: typeof row.net === 'number' ? row.net : 0,
     age: formatAge(row.created_at),
     isDraft,
-    visibility: row.visibility || 'public',
+    isPending,
+    visibility,
   };
 }
 
