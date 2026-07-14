@@ -18,7 +18,8 @@ test('ChatPanel renders the configured agent name in header, greeting and compos
   const { ChatPanel } = await import('../src/components.jsx');
   globalThis.window = { RoundtableConfig: { agentName: 'Nova', projectName: 'Acme Plugin' } };
   const html = renderToString(h(ChatPanel, {}));
-  assert.match(html, /Nova/);
+  assert.match(html, /rt-head-text"><b>Nova<\/b>/);
+  assert.match(html, /rt-name">Nova</);
   assert.match(html, /Message Nova/);
   assert.match(html, /Ask how Acme Plugin works/);
   assert.doesNotMatch(html, /Sage/);

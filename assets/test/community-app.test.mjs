@@ -10,6 +10,7 @@ test('CommunityApp shows the project name under the Community title', () => {
   assert.match(html, /rt-title[^>]*>Community</);
   assert.match(html, /rt-sub[^>]*>Acme Plugin</);
   assert.doesNotMatch(html, /Browse public topics/);
+  assert.match(html, /aria-label="Open Nova chat"/);
 });
 
 test('CommunityApp renders no sub-line when no project name is configured', () => {
