@@ -6,7 +6,8 @@ import { eventsToTurn } from './events.js';
 import { sendMessage, resetChat, createDraft, publishCase } from './api.js';
 import { canDraftTopic, turnsToConversation } from './conversation.js';
 import { PublishDialog } from './publish-dialog.jsx';
-import { AgentAvatar, agentDisplayName } from './avatars.jsx';
+import { AgentAvatar } from './avatars.jsx';
+import { agentDisplayName, projectDisplayName } from './config.js';
 import { labelStep } from './steps.js';
 import { CHAT_GREETING, NEW_TOPIC_INTRO, TOPIC_CHIPS } from './chat-copy.js';
 
