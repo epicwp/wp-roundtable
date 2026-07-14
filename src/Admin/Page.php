@@ -51,9 +51,10 @@ final class Page {
             self::HANDLE,
             'RoundtableConfig',
             array(
-                'agentName' => $this->config->agentName,
-                'nonce'     => \wp_create_nonce( 'wp_rest' ),
-                'restUrl'   => \rest_url( 'roundtable/v1' ),
+                'agentName'   => $this->config->agentName,
+                'nonce'       => \wp_create_nonce( 'wp_rest' ),
+                'projectName' => $this->config->projectName,
+                'restUrl'     => \rest_url( 'roundtable/v1' ),
             ),
         );
     }
