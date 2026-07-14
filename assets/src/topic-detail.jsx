@@ -99,6 +99,11 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
   return (
     <div class="rt-detail-area">
       <button type="button" class="rt-back" onClick={onBack}>← All topics</button>
+      {topic.isPending && (
+        <div class="rt-banner rt-banner-pending">
+          <b>Pending approval.</b> Only you can see this topic until a maintainer approves it for the community.
+        </div>
+      )}
       <div class="rt-detail-card rt-card">
         <div class="rt-th">
           <VoteControl caseId={topic.id} net={topic.net} onChange={onVoteChange} />

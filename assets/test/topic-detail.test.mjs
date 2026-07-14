@@ -4,6 +4,28 @@ import { h } from 'preact';
 import { renderToString } from 'preact-render-to-string';
 import { TopicDetail } from '../src/topic-detail.jsx';
 
+test('TopicDetail shows pending approval banner', () => {
+  const html = renderToString(h(TopicDetail, {
+    topic: {
+      id: 'c2',
+      title: 'Awaiting review',
+      snippet: 'Body',
+      typeLabel: 'Bug',
+      typeClass: 'rt-b-bug',
+      statusLabel: 'Pending approval',
+      statusClass: 'rt-s-pending',
+      handle: 'teal-owl',
+      initials: 'TO',
+      net: 0,
+      age: '1d',
+      isPending: true,
+    },
+    onBack: () => {},
+  }));
+  assert.match(html, /Pending approval/);
+  assert.match(html, /rt-banner-pending/);
+});
+
 test('TopicDetail renders title and back link', () => {
   const html = renderToString(h(TopicDetail, {
     topic: {
