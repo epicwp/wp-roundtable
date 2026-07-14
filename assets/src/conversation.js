@@ -20,5 +20,10 @@ export function turnsToConversation(turns) {
  */
 export function canDraftTopic(turns) {
   const list = Array.isArray(turns) ? turns : [];
-  return list.some((t) => t.role === 'user' && t.reply?.trim()) && list.some((t) => t.role === 'agent' && t.reply?.trim());
+  let seenUser = false;
+  for (const t of list) {
+    if (t.role === 'user' && t.reply?.trim()) seenUser = true;
+    else if (seenUser && t.role === 'agent' && t.reply?.trim() && !t.error) return true;
+  }
+  return false;
 }

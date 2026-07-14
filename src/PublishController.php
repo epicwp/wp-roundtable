@@ -82,13 +82,13 @@ final class PublishController {
      *
      * @param \WP_REST_Request<array<string, mixed>> $request The incoming request.
      *
-     * @return array<string, mixed> Optional `title`, `summary`.
+     * @return array<string, mixed> Optional `title`, `summary`, `type`.
      */
     private function publishOverridesFrom( // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- `\WP_REST_Request<array<string, mixed>>` is a PHPStan generic; the native param type stays `\WP_REST_Request`.
         \WP_REST_Request $request,
     ): array {
         $overrides = array();
-        foreach ( array( 'title', 'summary' ) as $key ) {
+        foreach ( array( 'title', 'summary', 'type' ) as $key ) {
             $value = $request->get_param( $key );
             if ( null === $value || '' === (string) $value ) {
                 continue;

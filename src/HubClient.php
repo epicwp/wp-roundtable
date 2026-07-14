@@ -286,7 +286,7 @@ final class HubClient {
      * Publish a private Case, with optional last-minute edits.
      *
      * @param string               $caseId    The Case id.
-     * @param array<string, mixed> $overrides Optional `title`, `summary`.
+     * @param array<string, mixed> $overrides Optional `title`, `summary`, `type`.
      *
      * @return array<string, mixed> The hub CaseResponse object.
      *
@@ -297,7 +297,7 @@ final class HubClient {
         $body = $this->encodeJson(
             \array_merge(
                 array( 'subject_id' => $this->config->consumer->subjectId() ),
-                $this->pickOverrides( $overrides, array( 'title', 'summary' ) ),
+                $this->pickOverrides( $overrides, array( 'title', 'summary', 'type' ) ),
             ),
         );
 
