@@ -6,6 +6,7 @@ import { filterTopics } from './list-filters.js';
 import { ListToolbar } from './list-toolbar.jsx';
 import { mapCaseToTopic } from './topics.js';
 import { TopicRow } from './topic-list.jsx';
+import { agentDisplayName } from './config.js';
 
 function DraftRow({ topic, onReview }) {
   return (
@@ -45,6 +46,7 @@ export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft, on
   const [error, setError] = useState(false);
   const [q, setQ] = useState('');
   const [type, setType] = useState('');
+  const agentName = agentDisplayName();
 
   useEffect(() => {
     let cancelled = false;
@@ -87,7 +89,7 @@ export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft, on
       {loading && <div class="rt-list-msg">Loading your topics…</div>}
       {!loading && error && <div class="rt-list-msg rt-list-error">Could not load your topics. Try again.</div>}
       {!loading && !error && total === 0 && (
-        <div class="rt-list-msg">No topics started yet. Use Sage on the right to draft one.</div>
+        <div class="rt-list-msg">{`No topics started yet. Use ${agentName} on the right to draft one.`}</div>
       )}
       {!loading && !error && total > 0 && filteredTotal === 0 && (
         <div class="rt-list-msg">No matching topics in your started list.</div>

@@ -133,7 +133,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
 
   async function turnIntoTopic() {
     if (busy || draftBusy || topicDraft) return;
-    const conversation = turnsToConversation(turns);
+    const conversation = turnsToConversation(turns, agentDisplayName());
     if (!conversation) return;
     setDraftBusy(true);
     const res = await createDraft({ conversation });
@@ -160,7 +160,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   }
 
   const agentName = agentDisplayName();
-  const composerPlaceholder = newTopicMode ? 'Describe your topic…' : 'Message Sage…';
+  const composerPlaceholder = newTopicMode ? 'Describe your topic…' : `Message ${agentName}…`;
 
   return (
     <div class="rt-panel">
