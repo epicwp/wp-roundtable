@@ -1,6 +1,14 @@
-/** Default Sage greeting when browsing the community. */
-export const CHAT_GREETING =
-  "Hi — I'm Sage. Ask how translation works, report something off, or suggest an improvement. If it's worth tracking, I'll draft a topic for you.";
+/**
+ * The greeting shown when the user opens the chat while browsing the community.
+ * @param {string} agentName   The configured assistant name.
+ * @param {string} projectName The configured product name; '' falls back to generic copy.
+ * @returns {string}
+ */
+export function chatGreeting(agentName, projectName) {
+  const subject = projectName ? `how ${projectName} works` : 'how it works';
+  return `Hi — I'm ${agentName}. Ask ${subject}, report something off, or suggest an improvement. `
+    + "If it's worth tracking, I'll draft a topic for you.";
+}
 
 /** Opening copy when the user starts a new topic. */
 export const NEW_TOPIC_INTRO =

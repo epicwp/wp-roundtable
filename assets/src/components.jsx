@@ -9,7 +9,7 @@ import { PublishDialog } from './publish-dialog.jsx';
 import { AgentAvatar } from './avatars.jsx';
 import { agentDisplayName, projectDisplayName } from './config.js';
 import { labelStep } from './steps.js';
-import { CHAT_GREETING, NEW_TOPIC_INTRO, TOPIC_CHIPS } from './chat-copy.js';
+import { chatGreeting, NEW_TOPIC_INTRO, TOPIC_CHIPS } from './chat-copy.js';
 
 function StepLog({ steps }) {
   if (!steps?.length) return null;
@@ -89,7 +89,7 @@ export function Thread({ turns, onChipSend, chipDisabled }) {
 export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [newTopicMode, setNewTopicMode] = useState(false);
   const [turns, setTurns] = useState([{
-    role: 'agent', reply: CHAT_GREETING, steps: [], error: false, introChips: true,
+    role: 'agent', reply: chatGreeting(agentDisplayName(), projectDisplayName()), steps: [], error: false, introChips: true,
   }]);
   const [composer, setComposer] = useState('');
   const [busy, setBusy] = useState(false);
