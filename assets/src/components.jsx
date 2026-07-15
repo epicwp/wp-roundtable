@@ -2,13 +2,37 @@
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { renderMarkdown } from './markdown.js';
-import { eventsToTurn } from './events.js';
-import { sendMessage, resetChat, createDraft, publishCase } from './api.js';
+import { streamMessage, resetChat, createDraft, publishCase } from './api.js';
 import { canDraftTopic, turnsToConversation } from './conversation.js';
 import { PublishDialog } from './publish-dialog.jsx';
 import { AgentAvatar, agentDisplayName } from './avatars.jsx';
 import { labelStep } from './steps.js';
 import { CHAT_GREETING, NEW_TOPIC_INTRO, TOPIC_CHIPS } from './chat-copy.js';
+
+/**
+ * Fold one streamed hub event onto the last (in-flight agent) turn.
+ * guarded_text_delta keeps accumulating onto `reply` even after `result` —
+ * the guard flushes a trailing delta after `result`, so accumulation must not
+ * stop there. assistant_text is ignored: the deltas already sum to the full
+ * guarded text, so snapping to it would duplicate the flushed tail.
+ * @param {Array} turns
+ * @param {{type:string, text?:string, summary?:string}} ev
+ * @returns {Array} new turns array
+ */
+export function applyStreamEvent(turns, ev) {
+  if (!turns.length) return turns;
+  const i = turns.length - 1;
+  const turn = turns[i];
+  let patch;
+  if (ev.type === 'guarded_text_delta') patch = { reply: turn.reply + (ev.text || '') };
+  else if (ev.type === 'progress') patch = { steps: [...turn.steps, { summary: ev.summary }] };
+  else if (ev.type === 'result') patch = { done: true };
+  else if (ev.type === 'error') patch = { error: true };
+  else return turns;
+  const next = turns.slice();
+  next[i] = { ...turn, ...patch };
+  return next;
+}
 
 function StepLog({ steps }) {
   if (!steps?.length) return null;
@@ -34,6 +58,8 @@ function TopicChips({ onSend, disabled }) {
 function Bubble({ turn, onChipSend, chipDisabled }) {
   if (turn.role === 'user') return <div class="rt-user">{turn.reply}</div>;
   const agentName = agentDisplayName();
+  const steps = turn.steps;
+  const n = steps?.length || 0;
   return (
     <div class="rt-agent-turn">
       <AgentAvatar size="sm" class="rt-agent-ava" />
@@ -44,6 +70,17 @@ function Bubble({ turn, onChipSend, chipDisabled }) {
              dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(turn.reply) }} />
         {turn.introChips && <TopicChips disabled={chipDisabled} onSend={onChipSend} />}
         {!turn.error && <StepLog steps={turn.steps} />}
+        {n > 0 && !turn.done && (
+          <div class="rt-activity-live">⏺ {steps[n - 1].summary}</div>
+        )}
+        {turn.done && n > 0 && (
+          <details class="rt-activity">
+            <summary>Code doorzocht · {n} {n === 1 ? 'stap' : 'stappen'}</summary>
+            <ul>
+              {steps.map((s, i) => <li key={i}>{s.summary}</li>)}
+            </ul>
+          </details>
+        )}
       </div>
     </div>
   );
@@ -105,14 +142,16 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     if (!text || busy) return;
     setComposer('');
     setTurns((t) => [...t, { role: 'user', reply: text, steps: [], error: false }]);
+    setTurns((t) => [...t, { role: 'agent', reply: '', steps: [], done: false, error: false }]);
     setBusy(true);
-    const res = await sendMessage(text);
-    setBusy(false);
-    if (res.error) {
-      setTurns((t) => [...t, { role: 'agent', reply: '', steps: [], error: true }]);
-      return;
-    }
-    setTurns((t) => [...t, { role: 'agent', ...eventsToTurn(res.events) }]);
+    await streamMessage(text, {
+      onEvent: (ev) => setTurns((t) => applyStreamEvent(t, ev)),
+      onError: () => {
+        setTurns((t) => applyStreamEvent(t, { type: 'error' }));
+        setBusy(false);
+      },
+      onDone: () => setBusy(false),
+    });
   }
 
   async function newTopic() {
@@ -186,7 +225,6 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
       {!topicDraft && canDraftTopic(turns) && (
         <DraftPrompt busy={busy} drafting={draftBusy} onDraft={turnIntoTopic} />
       )}
-      {busy && <div class="rt-working"><span class="rt-dots"><i /><i /><i /></span> Working…</div>}
       <div class="rt-composer">
         <div class="rt-cbox">
           <textarea rows="1" placeholder={composerPlaceholder} value={composer}

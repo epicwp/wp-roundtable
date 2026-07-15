@@ -209,6 +209,10 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-prose .hljs-comment, #roundtable-app .rt-ab .hljs-comment { color:#6b7699; }
 #roundtable-app .rt-prose code:not(.hljs) { background:#eceffe; color:var(--rt-accent-ink); border-radius:5px; padding:1px 5px; font-size:.92em; }
 #roundtable-app .rt-working { padding:0 16px 8px; color:var(--rt-ink-soft); font-size:13px; flex:none; }
+#roundtable-app .rt-activity-live { margin-top:6px; font-size:12.5px; color:var(--rt-ink-soft); display:flex; align-items:center; gap:6px; }
+#roundtable-app .rt-activity { margin-top:6px; font-size:12.5px; color:var(--rt-ink-soft); }
+#roundtable-app .rt-activity > summary { cursor:pointer; list-style:none; color:var(--rt-ink-faint); }
+#roundtable-app .rt-activity ul { margin:6px 0 0; padding-left:16px; }
 #roundtable-app .rt-composer { border-top:1px solid var(--rt-line); background:#fafbfd; padding:12px 14px; flex:none; }
 #roundtable-app .rt-cbox { display:flex; align-items:flex-end; gap:8px; background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:11px; padding:7px 7px 7px 12px; }
 #roundtable-app .rt-cbox:focus-within { border-color:var(--rt-accent); box-shadow:0 0 0 3px #eceffe; }
