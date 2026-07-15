@@ -2,7 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { h } from 'preact';
 import { renderToString } from 'preact-render-to-string';
-import { Thread, applyStreamEvent, sendTurn } from '../src/components.jsx';
+import {
+  Thread, applyStreamEvent, sendTurn, visibleSteps, stepDuration,
+} from '../src/components.jsx';
 
 // Node's test runner has no DOM; components.jsx reads window.RoundtableConfig
 // at render time (browser-only global). Shim it so renderToString can run.
@@ -59,42 +61,82 @@ test('Thread renders the live activity line while streaming', () => {
   assert.match(html, /Reading a file/);
 });
 
+test('Thread renders a thinking indicator for an empty in-flight agent turn', () => {
+  const turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
+  const html = renderToString(h(Thread, { turns }));
+  assert.match(html, /rt-thinking/);
+});
+
+test('Thread renders a timestamp when turn.at is set', () => {
+  const turns = [{ role: 'user', reply: 'hello', steps: [], error: false, at: 1700000000000 }];
+  const html = renderToString(h(Thread, { turns }));
+  assert.match(html, /rt-time/);
+});
+
 test('applyStreamEvent accumulates guarded_text_delta onto the last agent turn reply', () => {
   const turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
-  let t = applyStreamEvent(turns, { type: 'guarded_text_delta', text: 'Hel' });
-  t = applyStreamEvent(t, { type: 'guarded_text_delta', text: 'lo' });
+  let t = applyStreamEvent(turns, { type: 'guarded_text_delta', text: 'Hel' }, 1000);
+  t = applyStreamEvent(t, { type: 'guarded_text_delta', text: 'lo' }, 1010);
   assert.equal(t[0].reply, 'Hello');
 });
 
-test('applyStreamEvent pushes a step on progress', () => {
+test('applyStreamEvent pushes a timestamped step on progress', () => {
   const turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
-  const t = applyStreamEvent(turns, { type: 'progress', summary: 'Searching the code' });
-  assert.deepEqual(t[0].steps, [{ summary: 'Searching the code' }]);
+  const t = applyStreamEvent(turns, { type: 'progress', summary: 'Searching the code' }, 1234);
+  assert.deepEqual(t[0].steps, [{ summary: 'Searching the code', at: 1234 }]);
 });
 
-test('applyStreamEvent marks done on result without stopping later delta accumulation, and ignores assistant_text', () => {
+test('applyStreamEvent marks done with doneAt on result without stopping later delta accumulation, and ignores assistant_text', () => {
   let turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
-  turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: 'because ' });
-  turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: 'shortcodes' });
-  turns = applyStreamEvent(turns, { type: 'assistant_text', text: 'TOTALLY DIFFERENT TEXT' });
-  turns = applyStreamEvent(turns, { type: 'result' });
-  turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: ' run late' });
+  turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: 'because ' }, 100);
+  turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: 'shortcodes' }, 110);
+  turns = applyStreamEvent(turns, { type: 'assistant_text', text: 'TOTALLY DIFFERENT TEXT' }, 115);
+  turns = applyStreamEvent(turns, { type: 'result' }, 120);
+  turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: ' run late' }, 130);
   assert.equal(turns[0].reply, 'because shortcodes run late');
   assert.equal(turns[0].done, true);
+  assert.equal(turns[0].doneAt, 120);
   assert.equal(turns[0].error, false);
 });
 
-test('applyStreamEvent flags a result with is_error:true as done and error', () => {
+test('applyStreamEvent flags a result with is_error:true as done, error, and doneAt', () => {
   const turns = [{ role: 'agent', reply: 'oops', steps: [], done: false, error: false }];
-  const t = applyStreamEvent(turns, { type: 'result', is_error: true });
+  const t = applyStreamEvent(turns, { type: 'result', is_error: true }, 555);
   assert.equal(t[0].done, true);
   assert.equal(t[0].error, true);
+  assert.equal(t[0].doneAt, 555);
 });
 
 test('applyStreamEvent sets error state', () => {
   const turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
-  const t = applyStreamEvent(turns, { type: 'error' });
+  const t = applyStreamEvent(turns, { type: 'error' }, 999);
   assert.equal(t[0].error, true);
+});
+
+test('visibleSteps drops the "Working on it" placeholder and keeps real steps', () => {
+  const steps = [
+    { summary: 'Working on it', at: 1 },
+    { summary: 'Searching the code', at: 2 },
+    { summary: 'Reading a file', at: 3 },
+  ];
+  assert.deepEqual(visibleSteps(steps), [
+    { summary: 'Searching the code', at: 2 },
+    { summary: 'Reading a file', at: 3 },
+  ]);
+});
+
+test('visibleSteps returns an empty array when only "Working on it" was ever recorded', () => {
+  assert.deepEqual(visibleSteps([{ summary: 'Working on it', at: 1 }]), []);
+});
+
+test('stepDuration formats sub-second gaps in ms and second-plus gaps in one-decimal seconds', () => {
+  assert.equal(stepDuration({ at: 1000 }, 1080), '80ms');
+  assert.equal(stepDuration({ at: 1000 }, 2200), '1.2s');
+});
+
+test('stepDuration returns null when a timestamp is missing', () => {
+  assert.equal(stepDuration({ at: 1000 }, undefined), null);
+  assert.equal(stepDuration({}, 2000), null);
 });
 
 function fakeState(initial) {

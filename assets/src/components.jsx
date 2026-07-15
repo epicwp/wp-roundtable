@@ -1,6 +1,8 @@
 /** @jsx h */
 import { h } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import {
+  useEffect, useRef, useState,
+} from 'preact/hooks';
 import { renderMarkdown } from './markdown.js';
 import { streamMessage, sendMessage, resetChat, createDraft, publishCase } from './api.js';
 import { eventsToTurn } from './events.js';
@@ -24,8 +26,10 @@ const STREAM_FIRST_EVENT_TIMEOUT_MS = 15000;
 export async function sendTurn(text, {
   setTurns, setBusy, streamFn = streamMessage, sendFn = sendMessage, timeoutMs = STREAM_FIRST_EVENT_TIMEOUT_MS,
 }) {
-  setTurns((t) => [...t, { role: 'user', reply: text, steps: [], error: false }]);
-  setTurns((t) => [...t, { role: 'agent', reply: '', steps: [], done: false, error: false }]);
+  setTurns((t) => [...t, { role: 'user', reply: text, steps: [], error: false, at: Date.now() }]);
+  setTurns((t) => [...t, {
+    role: 'agent', reply: '', steps: [], done: false, error: false, at: Date.now(),
+  }]);
   setBusy(true);
 
   let streamed = false;
@@ -74,12 +78,13 @@ export async function sendTurn(text, {
     onEvent: (ev) => {
       streamed = true;
       clearTimeout(timer);
-      setTurns((t) => applyStreamEvent(t, ev));
+      const now = Date.now();
+      setTurns((t) => applyStreamEvent(t, ev, now));
     },
     onError: async () => {
       clearTimeout(timer);
       if (streamed) {
-        setTurns((t) => applyStreamEvent(t, { type: 'error' }));
+        setTurns((t) => applyStreamEvent(t, { type: 'error' }, Date.now()));
         setBusy(false);
       } else {
         await fallback();
@@ -100,21 +105,48 @@ export async function sendTurn(text, {
  * guarded text, so snapping to it would duplicate the flushed tail.
  * @param {Array} turns
  * @param {{type:string, text?:string, summary?:string}} ev
+ * @param {number} now current time (ms), used to stamp step/completion timestamps
  * @returns {Array} new turns array
  */
-export function applyStreamEvent(turns, ev) {
+export function applyStreamEvent(turns, ev, now) {
   if (!turns.length) return turns;
   const i = turns.length - 1;
   const turn = turns[i];
   let patch;
   if (ev.type === 'guarded_text_delta') patch = { reply: turn.reply + (ev.text || '') };
-  else if (ev.type === 'progress') patch = { steps: [...turn.steps, { summary: ev.summary }] };
-  else if (ev.type === 'result') patch = ev.is_error === true ? { done: true, error: true } : { done: true };
-  else if (ev.type === 'error') patch = { error: true };
+  else if (ev.type === 'progress') patch = { steps: [...turn.steps, { summary: ev.summary, at: now }] };
+  else if (ev.type === 'result') {
+    patch = ev.is_error === true ? { done: true, error: true, doneAt: now } : { done: true, doneAt: now };
+  } else if (ev.type === 'error') patch = { error: true };
   else return turns;
   const next = turns.slice();
   next[i] = { ...turn, ...patch };
   return next;
+}
+
+/**
+ * Steps shown to the user: drops the "Working on it" placeholder frame, which
+ * only exists to drive the immediate thinking indicator (see Bubble) and is
+ * not a real step.
+ * @param {Array<{summary:string, at?:number}>} steps
+ * @returns {Array}
+ */
+export function visibleSteps(steps) {
+  return (steps || []).filter((s) => s.summary !== 'Working on it');
+}
+
+/**
+ * Format the time a step took: (next step's timestamp, or the turn's
+ * completion timestamp) minus this step's timestamp.
+ * @param {{at?:number}} step
+ * @param {number} [nextAt]
+ * @returns {string|null} e.g. "1.2s" or "80ms", or null if not measurable
+ */
+export function stepDuration(step, nextAt) {
+  if (step?.at == null || nextAt == null) return null;
+  const ms = nextAt - step.at;
+  if (ms < 0) return null;
+  return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 
 function TopicChips({ onSend, disabled }) {
@@ -129,31 +161,118 @@ function TopicChips({ onSend, disabled }) {
   );
 }
 
+/**
+ * Local HH:MM for a message timestamp.
+ * @param {number} ms
+ * @returns {string}
+ */
+function formatTime(ms) {
+  return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function ThinkingDots() {
+  return (
+    <span class="rt-thinking" aria-hidden="true">
+      <span class="rt-thinking-dot" />
+      <span class="rt-thinking-dot" />
+      <span class="rt-thinking-dot" />
+    </span>
+  );
+}
+
+/**
+ * Advance a "shown length" toward target.length on an interval, revealing
+ * more per tick the further behind it is (so a big chunk lands smoothly
+ * instead of snapping). While inactive, shown tracks the full text.
+ * @param {string} text
+ * @param {boolean} active
+ * @returns {number} shown length
+ */
+function useTypewriter(text, active) {
+  const [shown, setShown] = useState(() => (active ? 0 : text.length));
+  const textRef = useRef(text);
+  textRef.current = text;
+
+  useEffect(() => {
+    if (!active) {
+      setShown(textRef.current.length);
+      return undefined;
+    }
+    const id = setInterval(() => {
+      setShown((s) => {
+        const total = textRef.current.length;
+        if (s >= total) return s;
+        const step = Math.max(1, Math.ceil((total - s) / 10));
+        return Math.min(total, s + step);
+      });
+    }, 24);
+    return () => clearInterval(id);
+  }, [active]);
+
+  return active ? Math.min(shown, text.length) : text.length;
+}
+
+/**
+ * The reply bubble content. Types out `turn.reply` character-by-character
+ * while `streaming` is true; otherwise renders the full text immediately.
+ */
+function TypedBubble({ turn, streaming }) {
+  const shown = useTypewriter(turn.reply, streaming);
+  const text = streaming ? turn.reply.slice(0, shown) : turn.reply;
+  return (
+    <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
+         // eslint-disable-next-line react/no-danger
+         dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(text) }} />
+  );
+}
+
 function Bubble({ turn, onChipSend, chipDisabled }) {
-  if (turn.role === 'user') return <div class="rt-user">{turn.reply}</div>;
+  if (turn.role === 'user') {
+    return (
+      <div class="rt-user-wrap">
+        <div class="rt-user">{turn.reply}</div>
+        {turn.at && <div class="rt-time">{formatTime(turn.at)}</div>}
+      </div>
+    );
+  }
   const agentName = agentDisplayName();
-  const steps = turn.steps;
-  const n = steps?.length || 0;
+  const steps = turn.steps || [];
+  const n = steps.length;
+  const vsteps = visibleSteps(steps);
+  // Only the turn sendTurn is currently streaming carries done:false explicitly
+  // (static turns — greeting, buffered-fallback replies, ... — leave done unset).
+  const streaming = turn.done === false && !turn.error;
+  const thinking = streaming && turn.reply === '';
   return (
     <div class="rt-agent-turn">
       <AgentAvatar size="sm" class="rt-agent-ava" />
       <div class="rt-agent-body">
         <span class="rt-name">{agentName}</span>
-        <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
-             // eslint-disable-next-line react/no-danger
-             dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(turn.reply) }} />
+        {thinking ? (
+          <div class="rt-ab rt-ab-thinking">
+            <ThinkingDots />
+            {n > 0 && <span class="rt-thinking-step">{steps[n - 1].summary}</span>}
+          </div>
+        ) : (
+          <TypedBubble turn={turn} streaming={streaming} />
+        )}
         {turn.introChips && <TopicChips disabled={chipDisabled} onSend={onChipSend} />}
         {n > 0 && !turn.done && (
           <div class="rt-activity-live">⏺ {steps[n - 1].summary}</div>
         )}
-        {turn.done && n > 0 && (
+        {turn.done && vsteps.length > 0 && (
           <details class="rt-activity">
-            <summary>Code doorzocht · {n} {n === 1 ? 'stap' : 'stappen'}</summary>
+            <summary>Code doorzocht · {vsteps.length} {vsteps.length === 1 ? 'stap' : 'stappen'}</summary>
             <ul>
-              {steps.map((s, i) => <li key={i}>{s.summary}</li>)}
+              {vsteps.map((s, i) => {
+                const nextAt = i + 1 < vsteps.length ? vsteps[i + 1].at : turn.doneAt;
+                const dur = stepDuration(s, nextAt);
+                return <li key={i}>{dur ? `${s.summary} · ${dur}` : s.summary}</li>;
+              })}
             </ul>
           </details>
         )}
+        {turn.at && <div class="rt-time">{formatTime(turn.at)}</div>}
       </div>
     </div>
   );
@@ -187,9 +306,11 @@ function DraftPrompt({ busy, drafting, onDraft }) {
   );
 }
 
-export function Thread({ turns, onChipSend, chipDisabled }) {
+export function Thread({
+  turns, onChipSend, chipDisabled, threadRef,
+}) {
   return (
-    <div class="rt-thread">
+    <div class="rt-thread" ref={threadRef}>
       {turns.map((t, i) => <Bubble key={i} turn={t} onChipSend={onChipSend} chipDisabled={chipDisabled} />)}
     </div>
   );
@@ -205,10 +326,32 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [topicDraft, setTopicDraft] = useState(null);
   const [showPublish, setShowPublish] = useState(false);
   const [draftBusy, setDraftBusy] = useState(false);
+  const threadRef = useRef(null);
+  const stickToBottomRef = useRef(true);
 
   useEffect(() => {
     if (resetNonce > 0) newTopic();
   }, [resetNonce]);
+
+  // Track whether the user is parked near the bottom, via real scroll events
+  // rather than recomputing from post-update scrollHeight (which would
+  // already reflect newly streamed content and read as "far from bottom").
+  useEffect(() => {
+    const el = threadRef.current;
+    if (!el) return undefined;
+    const onScroll = () => {
+      stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    };
+    el.addEventListener('scroll', onScroll);
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Stick to the bottom as new turns/deltas arrive, unless the user scrolled
+  // up to read history.
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight;
+  }, [turns]);
 
   async function send(textOverride) {
     const text = (textOverride ?? composer).trim();
@@ -274,7 +417,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
         <span class="rt-head-grow" />
         <button class="rt-iconbtn" type="button" onClick={newTopic} title="New conversation" aria-label="New conversation">+</button>
       </div>
-      <Thread turns={turns} chipDisabled={busy || draftBusy} onChipSend={(msg) => send(msg)} />
+      <Thread turns={turns} chipDisabled={busy || draftBusy} onChipSend={(msg) => send(msg)} threadRef={threadRef} />
       {topicDraft && (
         <div class="rt-thread-extras">
           <OutcomeCard
