@@ -152,3 +152,35 @@ test('sendTurn does not fall back once a stream event already arrived — a late
   assert.equal(last.error, true);
   assert.equal(getBusy(), false);
 });
+
+test('sendTurn ends the turn in an error state when the buffered fallback throws', async () => {
+  const [getTurns, setTurns] = fakeState([]);
+  const [getBusy, setBusy] = fakeState(false);
+
+  const streamFn = async (text, { onError }) => { onError(); };
+  const sendFn = async () => { throw new Error('network down'); };
+
+  await sendTurn('Where is X defined?', { setTurns, setBusy, streamFn, sendFn });
+
+  const turns = getTurns();
+  const last = turns[turns.length - 1];
+  assert.equal(last.error, true);
+  assert.equal(last.done, true);
+  assert.equal(getBusy(), false);
+});
+
+test('sendTurn ends the turn in an error state when the buffered fallback returns { error }', async () => {
+  const [getTurns, setTurns] = fakeState([]);
+  const [getBusy, setBusy] = fakeState(false);
+
+  const streamFn = async (text, { onError }) => { onError(); };
+  const sendFn = async () => ({ error: { kind: 'http_502' } });
+
+  await sendTurn('Where is X defined?', { setTurns, setBusy, streamFn, sendFn });
+
+  const turns = getTurns();
+  const last = turns[turns.length - 1];
+  assert.equal(last.error, true);
+  assert.equal(last.done, true);
+  assert.equal(getBusy(), false);
+});

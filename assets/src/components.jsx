@@ -33,21 +33,40 @@ export async function sendTurn(text, {
   const timer = setTimeout(() => { if (!streamed) controller.abort(); }, timeoutMs);
 
   async function fallback() {
-    const res = await sendFn(text);
-    const turn = eventsToTurn(res.events);
-    setTurns((t) => {
-      const next = t.slice();
-      const i = next.length - 1;
-      next[i] = {
-        ...next[i],
-        reply: turn.reply,
-        steps: turn.steps.map((s) => ({ summary: labelStep(s) })),
-        error: turn.error,
-        done: true,
-      };
-      return next;
-    });
-    setBusy(false);
+    try {
+      const res = await sendFn(text);
+      if (res.error) {
+        setTurns((t) => {
+          const next = t.slice();
+          const i = next.length - 1;
+          next[i] = { ...next[i], error: true, done: true };
+          return next;
+        });
+        return;
+      }
+      const turn = eventsToTurn(res.events);
+      setTurns((t) => {
+        const next = t.slice();
+        const i = next.length - 1;
+        next[i] = {
+          ...next[i],
+          reply: turn.reply,
+          steps: turn.steps.map((s) => ({ summary: labelStep(s) })),
+          error: turn.error,
+          done: true,
+        };
+        return next;
+      });
+    } catch (e) {
+      setTurns((t) => {
+        const next = t.slice();
+        const i = next.length - 1;
+        next[i] = { ...next[i], error: true, done: true };
+        return next;
+      });
+    } finally {
+      setBusy(false);
+    }
   }
 
   await streamFn(text, {
