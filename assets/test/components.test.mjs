@@ -33,18 +33,6 @@ test('Thread renders agent turn with agent avatar', () => {
   assert.match(html, /rt-agent-icon/);
 });
 
-test('Thread renders step log under agent reply', () => {
-  const turns = [{
-    role: 'agent',
-    reply: 'done',
-    steps: [{ type: 'progress', data: { summary: 'Looking into it' } }],
-    error: false,
-  }];
-  const html = renderToString(h(Thread, { turns }));
-  assert.match(html, /rt-step-log/);
-  assert.match(html, /Looking into it/);
-});
-
 test('Thread renders a user message as text', () => {
   const turns = [{ role: 'user', reply: 'hello', steps: [], error: false }];
   const html = renderToString(h(Thread, { turns }));
@@ -93,6 +81,14 @@ test('applyStreamEvent marks done on result without stopping later delta accumul
   turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: ' run late' });
   assert.equal(turns[0].reply, 'because shortcodes run late');
   assert.equal(turns[0].done, true);
+  assert.equal(turns[0].error, false);
+});
+
+test('applyStreamEvent flags a result with is_error:true as done and error', () => {
+  const turns = [{ role: 'agent', reply: 'oops', steps: [], done: false, error: false }];
+  const t = applyStreamEvent(turns, { type: 'result', is_error: true });
+  assert.equal(t[0].done, true);
+  assert.equal(t[0].error, true);
 });
 
 test('applyStreamEvent sets error state', () => {

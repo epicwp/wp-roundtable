@@ -109,21 +109,12 @@ export function applyStreamEvent(turns, ev) {
   let patch;
   if (ev.type === 'guarded_text_delta') patch = { reply: turn.reply + (ev.text || '') };
   else if (ev.type === 'progress') patch = { steps: [...turn.steps, { summary: ev.summary }] };
-  else if (ev.type === 'result') patch = { done: true };
+  else if (ev.type === 'result') patch = ev.is_error === true ? { done: true, error: true } : { done: true };
   else if (ev.type === 'error') patch = { error: true };
   else return turns;
   const next = turns.slice();
   next[i] = { ...turn, ...patch };
   return next;
-}
-
-function StepLog({ steps }) {
-  if (!steps?.length) return null;
-  return (
-    <ul class="rt-step-log">
-      {steps.map((s, i) => <li key={i}>{labelStep(s)}</li>)}
-    </ul>
-  );
 }
 
 function TopicChips({ onSend, disabled }) {
@@ -152,7 +143,6 @@ function Bubble({ turn, onChipSend, chipDisabled }) {
              // eslint-disable-next-line react/no-danger
              dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(turn.reply) }} />
         {turn.introChips && <TopicChips disabled={chipDisabled} onSend={onChipSend} />}
-        {!turn.error && <StepLog steps={turn.steps} />}
         {n > 0 && !turn.done && (
           <div class="rt-activity-live">⏺ {steps[n - 1].summary}</div>
         )}
