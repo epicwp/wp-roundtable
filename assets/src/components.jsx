@@ -10,7 +10,7 @@ import { AgentAvatar, agentDisplayName } from './avatars.jsx';
 import { labelStep } from './steps.js';
 import { CHAT_GREETING, NEW_TOPIC_INTRO, TOPIC_CHIPS } from './chat-copy.js';
 
-const STREAM_FIRST_EVENT_TIMEOUT_MS = 2000;
+const STREAM_FIRST_EVENT_TIMEOUT_MS = 15000;
 
 /**
  * Send one turn: start the stream, and fall back to the buffered endpoint if

@@ -180,3 +180,36 @@ test('sendTurn ends the turn in an error state when the buffered fallback return
   assert.equal(last.done, true);
   assert.equal(getBusy(), false);
 });
+
+test('sendTurn falls back when no stream event arrives within timeout', async () => {
+  const [getTurns, setTurns] = fakeState([]);
+  const [getBusy, setBusy] = fakeState(false);
+
+  // Stream function that listens to abort but never emits events.
+  // When abort fires (from the timeout), it calls onError to trigger fallback.
+  const streamFn = async (text, { signal, onError }) => {
+    return new Promise((resolve) => {
+      signal.addEventListener('abort', () => {
+        onError();
+        resolve();
+      });
+    });
+  };
+
+  const sendFn = async (text) => ({
+    events: [
+      { type: 'assistant_text', data: { text: 'Timeout fallback reply' } },
+      { type: 'result', data: { subtype: 'success' } },
+    ],
+  });
+
+  // Use timeoutMs=0 to trigger abort on next event loop iteration
+  await sendTurn('Test message', { setTurns, setBusy, streamFn, sendFn, timeoutMs: 0 });
+
+  const turns = getTurns();
+  const last = turns[turns.length - 1];
+  assert.equal(last.reply, 'Timeout fallback reply');
+  assert.equal(last.done, true);
+  assert.equal(last.error, false);
+  assert.equal(getBusy(), false);
+});
