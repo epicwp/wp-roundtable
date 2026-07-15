@@ -1,4 +1,6 @@
 // assets/src/api.js
+import { parseSseChunk } from './sse.js';
+
 function cfg() {
   return window.RoundtableConfig || { restUrl: '', nonce: '' };
 }
@@ -56,6 +58,38 @@ export function sendMessage(text) {
 /** Start a fresh chat (clears server-side session). */
 export function resetChat() {
   return post('/reset', {});
+}
+
+/**
+ * Stream a chat turn. Calls onEvent per decoded event; onError on failure; onDone at end.
+ * @param {string} text
+ * @param {{onEvent:(e:object)=>void, onError:()=>void, onDone:()=>void, signal?:AbortSignal}} handlers
+ */
+export async function streamMessage(text, { onEvent, onError, onDone, signal }) {
+  let res;
+  try {
+    res = await fetch(restBase() + '/message/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': cfg().nonce },
+      body: JSON.stringify({ message: text }),
+      signal,
+    });
+  } catch { onError(); return; }
+  if (!res.ok || !res.body) { onError(); return; }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parsed = parseSseChunk(buffer);
+      buffer = parsed.rest;
+      for (const ev of parsed.events) onEvent(ev);
+    }
+    onDone();
+  } catch { onError(); }
 }
 
 /**
