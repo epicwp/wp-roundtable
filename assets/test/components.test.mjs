@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { h } from 'preact';
 import { renderToString } from 'preact-render-to-string';
-import { Thread, applyStreamEvent } from '../src/components.jsx';
+import { Thread, applyStreamEvent, sendTurn } from '../src/components.jsx';
 
 // Node's test runner has no DOM; components.jsx reads window.RoundtableConfig
 // at render time (browser-only global). Shim it so renderToString can run.
@@ -88,7 +88,7 @@ test('applyStreamEvent marks done on result without stopping later delta accumul
   let turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
   turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: 'because ' });
   turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: 'shortcodes' });
-  turns = applyStreamEvent(turns, { type: 'assistant_text', text: 'because shortcodes' });
+  turns = applyStreamEvent(turns, { type: 'assistant_text', text: 'TOTALLY DIFFERENT TEXT' });
   turns = applyStreamEvent(turns, { type: 'result' });
   turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: ' run late' });
   assert.equal(turns[0].reply, 'because shortcodes run late');
@@ -99,4 +99,56 @@ test('applyStreamEvent sets error state', () => {
   const turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
   const t = applyStreamEvent(turns, { type: 'error' });
   assert.equal(t[0].error, true);
+});
+
+function fakeState(initial) {
+  let value = initial;
+  const set = (updater) => { value = typeof updater === 'function' ? updater(value) : updater; };
+  return [() => value, set];
+}
+
+test('sendTurn falls back to the buffered endpoint when onError fires before any stream event arrives', async () => {
+  const [getTurns, setTurns] = fakeState([]);
+  const [getBusy, setBusy] = fakeState(false);
+
+  const streamFn = async (text, { onError }) => { onError(); };
+  const sendFn = async (text) => ({
+    events: [
+      { type: 'assistant_text', data: { text: 'Fallback reply' } },
+      { type: 'tool_step', data: { summary: 'Searched the code' } },
+      { type: 'progress', data: { summary: 'Read a file' } },
+      { type: 'result', data: { subtype: 'success' } },
+    ],
+  });
+
+  await sendTurn('Where is X defined?', { setTurns, setBusy, streamFn, sendFn });
+
+  const turns = getTurns();
+  const last = turns[turns.length - 1];
+  assert.equal(last.reply, 'Fallback reply');
+  assert.equal(last.done, true);
+  assert.equal(last.error, false);
+  assert.deepEqual(last.steps, [{ summary: 'Searched the code' }, { summary: 'Read a file' }]);
+  assert.equal(getBusy(), false);
+});
+
+test('sendTurn does not fall back once a stream event already arrived — a later onError just ends the turn in error state', async () => {
+  const [getTurns, setTurns] = fakeState([]);
+  const [getBusy, setBusy] = fakeState(false);
+
+  let sendFnCalled = false;
+  const streamFn = async (text, { onEvent, onError }) => {
+    onEvent({ type: 'guarded_text_delta', text: 'partial' });
+    onError();
+  };
+  const sendFn = async () => { sendFnCalled = true; return { events: [] }; };
+
+  await sendTurn('Where is X defined?', { setTurns, setBusy, streamFn, sendFn });
+
+  const turns = getTurns();
+  const last = turns[turns.length - 1];
+  assert.equal(sendFnCalled, false);
+  assert.equal(last.reply, 'partial');
+  assert.equal(last.error, true);
+  assert.equal(getBusy(), false);
 });

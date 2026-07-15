@@ -2,12 +2,76 @@
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { renderMarkdown } from './markdown.js';
-import { streamMessage, resetChat, createDraft, publishCase } from './api.js';
+import { streamMessage, sendMessage, resetChat, createDraft, publishCase } from './api.js';
+import { eventsToTurn } from './events.js';
 import { canDraftTopic, turnsToConversation } from './conversation.js';
 import { PublishDialog } from './publish-dialog.jsx';
 import { AgentAvatar, agentDisplayName } from './avatars.jsx';
 import { labelStep } from './steps.js';
 import { CHAT_GREETING, NEW_TOPIC_INTRO, TOPIC_CHIPS } from './chat-copy.js';
+
+const STREAM_FIRST_EVENT_TIMEOUT_MS = 2000;
+
+/**
+ * Send one turn: start the stream, and fall back to the buffered endpoint if
+ * onError fires before any stream event arrives, or nothing arrives within
+ * `timeoutMs`. Once at least one event has streamed in, a later error just
+ * ends the turn in an error state — the user already saw partial output, so
+ * no fallback and no double-render.
+ * @param {string} text
+ * @param {{setTurns:Function, setBusy:Function, streamFn?:Function, sendFn?:Function, timeoutMs?:number}} opts
+ */
+export async function sendTurn(text, {
+  setTurns, setBusy, streamFn = streamMessage, sendFn = sendMessage, timeoutMs = STREAM_FIRST_EVENT_TIMEOUT_MS,
+}) {
+  setTurns((t) => [...t, { role: 'user', reply: text, steps: [], error: false }]);
+  setTurns((t) => [...t, { role: 'agent', reply: '', steps: [], done: false, error: false }]);
+  setBusy(true);
+
+  let streamed = false;
+  const controller = new AbortController();
+  const timer = setTimeout(() => { if (!streamed) controller.abort(); }, timeoutMs);
+
+  async function fallback() {
+    const res = await sendFn(text);
+    const turn = eventsToTurn(res.events);
+    setTurns((t) => {
+      const next = t.slice();
+      const i = next.length - 1;
+      next[i] = {
+        ...next[i],
+        reply: turn.reply,
+        steps: turn.steps.map((s) => ({ summary: labelStep(s) })),
+        error: turn.error,
+        done: true,
+      };
+      return next;
+    });
+    setBusy(false);
+  }
+
+  await streamFn(text, {
+    signal: controller.signal,
+    onEvent: (ev) => {
+      streamed = true;
+      clearTimeout(timer);
+      setTurns((t) => applyStreamEvent(t, ev));
+    },
+    onError: async () => {
+      clearTimeout(timer);
+      if (streamed) {
+        setTurns((t) => applyStreamEvent(t, { type: 'error' }));
+        setBusy(false);
+      } else {
+        await fallback();
+      }
+    },
+    onDone: () => {
+      clearTimeout(timer);
+      setBusy(false);
+    },
+  });
+}
 
 /**
  * Fold one streamed hub event onto the last (in-flight agent) turn.
@@ -141,17 +205,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     const text = (textOverride ?? composer).trim();
     if (!text || busy) return;
     setComposer('');
-    setTurns((t) => [...t, { role: 'user', reply: text, steps: [], error: false }]);
-    setTurns((t) => [...t, { role: 'agent', reply: '', steps: [], done: false, error: false }]);
-    setBusy(true);
-    await streamMessage(text, {
-      onEvent: (ev) => setTurns((t) => applyStreamEvent(t, ev)),
-      onError: () => {
-        setTurns((t) => applyStreamEvent(t, { type: 'error' }));
-        setBusy(false);
-      },
-      onDone: () => setBusy(false),
-    });
+    await sendTurn(text, { setTurns, setBusy });
   }
 
   async function newTopic() {
