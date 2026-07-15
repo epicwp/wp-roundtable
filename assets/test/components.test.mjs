@@ -86,7 +86,7 @@ test('applyStreamEvent pushes a timestamped step on progress', () => {
   assert.deepEqual(t[0].steps, [{ summary: 'Searching the code', at: 1234 }]);
 });
 
-test('applyStreamEvent marks done with doneAt on result without stopping later delta accumulation, and ignores assistant_text', () => {
+test('applyStreamEvent marks done with doneAt on result without stopping later delta accumulation, and does not let assistant_text overwrite a delta-built reply', () => {
   let turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
   turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: 'because ' }, 100);
   turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: 'shortcodes' }, 110);
@@ -94,9 +94,20 @@ test('applyStreamEvent marks done with doneAt on result without stopping later d
   turns = applyStreamEvent(turns, { type: 'result' }, 120);
   turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: ' run late' }, 130);
   assert.equal(turns[0].reply, 'because shortcodes run late');
+  assert.equal(turns[0].finalText, 'TOTALLY DIFFERENT TEXT');
   assert.equal(turns[0].done, true);
   assert.equal(turns[0].doneAt, 120);
   assert.equal(turns[0].error, false);
+});
+
+test('applyStreamEvent falls back to assistant_text as reply when a turn ends with no deltas (refusal / no-stream case)', () => {
+  let turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
+  turns = applyStreamEvent(turns, { type: 'assistant_text', text: 'I can only help with questions about this community.' }, 100);
+  turns = applyStreamEvent(turns, { type: 'result' }, 110);
+  assert.equal(turns[0].reply, 'I can only help with questions about this community.');
+  assert.equal(turns[0].reply, turns[0].finalText);
+  assert.equal(turns[0].done, true);
+  assert.equal(turns[0].doneAt, 110);
 });
 
 test('applyStreamEvent flags a result with is_error:true as done, error, and doneAt', () => {

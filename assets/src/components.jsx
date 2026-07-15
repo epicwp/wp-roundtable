@@ -92,6 +92,20 @@ export async function sendTurn(text, {
     },
     onDone: () => {
       clearTimeout(timer);
+      // Belt-and-suspenders: if the stream ended without a `result` event,
+      // applyStreamEvent never got a chance to fall back to a captured
+      // finalText (e.g. an assistant_text refusal). Reconcile here so the
+      // turn still shows something instead of rendering empty.
+      setTurns((t) => {
+        if (!t.length) return t;
+        const last = t[t.length - 1];
+        if (last.reply === '' && last.finalText) {
+          const next = t.slice();
+          next[next.length - 1] = { ...last, reply: last.finalText, done: true };
+          return next;
+        }
+        return t;
+      });
       setBusy(false);
     },
   });
@@ -101,8 +115,12 @@ export async function sendTurn(text, {
  * Fold one streamed hub event onto the last (in-flight agent) turn.
  * guarded_text_delta keeps accumulating onto `reply` even after `result` —
  * the guard flushes a trailing delta after `result`, so accumulation must not
- * stop there. assistant_text is ignored: the deltas already sum to the full
- * guarded text, so snapping to it would duplicate the flushed tail.
+ * stop there. assistant_text is stored as `finalText` without touching
+ * `reply`, so it never overwrites (and duplicates) a delta-built reply. On
+ * `result`, if no deltas arrived (`reply` is still empty) but a `finalText`
+ * was captured — e.g. an off-topic refusal, or a turn the model didn't
+ * stream partial-message deltas for — it becomes the reply, so the turn
+ * doesn't render as empty.
  * @param {Array} turns
  * @param {{type:string, text?:string, summary?:string}} ev
  * @param {number} now current time (ms), used to stamp step/completion timestamps
@@ -114,9 +132,15 @@ export function applyStreamEvent(turns, ev, now) {
   const turn = turns[i];
   let patch;
   if (ev.type === 'guarded_text_delta') patch = { reply: turn.reply + (ev.text || '') };
+  else if (ev.type === 'assistant_text') patch = { finalText: ev.text };
   else if (ev.type === 'progress') patch = { steps: [...turn.steps, { summary: ev.summary, at: now }] };
   else if (ev.type === 'result') {
-    patch = ev.is_error === true ? { done: true, error: true, doneAt: now } : { done: true, doneAt: now };
+    const base = ev.is_error === true
+      ? { done: true, error: true, doneAt: now }
+      : { done: true, doneAt: now };
+    patch = (turn.reply === '' && turn.finalText)
+      ? { ...base, reply: turn.finalText }
+      : base;
   } else if (ev.type === 'error') patch = { error: true };
   else return turns;
   const next = turns.slice();
@@ -251,7 +275,6 @@ function Bubble({ turn, onChipSend, chipDisabled }) {
         {thinking ? (
           <div class="rt-ab rt-ab-thinking">
             <ThinkingDots />
-            {n > 0 && <span class="rt-thinking-step">{steps[n - 1].summary}</span>}
           </div>
         ) : (
           <TypedBubble turn={turn} streaming={streaming} />
