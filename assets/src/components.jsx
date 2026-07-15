@@ -204,45 +204,71 @@ function ThinkingDots() {
   );
 }
 
+// Steady typing pace, in characters/second — reads like fast, smooth typing.
+const TYPEWRITER_BASE_CPS = 100;
+// Catch-up window: the reveal rate speeds up so at most this many seconds of
+// backlog is ever pending, so a big chunk landing speeds things up smoothly
+// instead of snapping.
+const TYPEWRITER_MAX_LAG_SECONDS = 0.7;
+
 /**
- * Advance a "shown length" toward target.length on an interval, revealing
- * more per tick the further behind it is (so a big chunk lands smoothly
- * instead of snapping). While inactive, shown tracks the full text.
+ * Advance a "shown length" toward text.length using a requestAnimationFrame
+ * delta-time accumulator, so the reveal pace is frame-rate independent and
+ * doesn't jump on every streamed chunk. A turn that starts active (a real
+ * streamed reply) animates from 0 and keeps animating — even after `active`
+ * flips to false when the stream ends — until it catches up to the text, so
+ * there's no snap-to-full at completion. A turn that starts inactive (the
+ * greeting, a buffered-fallback reply) shows the full text immediately.
  * @param {string} text
  * @param {boolean} active
  * @returns {number} shown length
  */
 function useTypewriter(text, active) {
-  const [shown, setShown] = useState(() => (active ? 0 : text.length));
+  const animateRef = useRef(active);
+  const [shown, setShown] = useState(() => (animateRef.current ? 0 : text.length));
+  const shownRef = useRef(shown);
   const textRef = useRef(text);
+  const rafRef = useRef(null);
   textRef.current = text;
 
   useEffect(() => {
-    if (!active) {
-      setShown(textRef.current.length);
-      return undefined;
-    }
-    const id = setInterval(() => {
-      setShown((s) => {
-        const total = textRef.current.length;
-        if (s >= total) return s;
-        const step = Math.max(1, Math.ceil((total - s) / 10));
-        return Math.min(total, s + step);
-      });
-    }, 24);
-    return () => clearInterval(id);
-  }, [active]);
+    if (!animateRef.current) return undefined;
+    if (rafRef.current != null || shownRef.current >= text.length) return undefined;
 
-  return active ? Math.min(shown, text.length) : text.length;
+    let lastTime = null;
+    const tick = (time) => {
+      if (lastTime === null) lastTime = time;
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+
+      const total = textRef.current.length;
+      const backlog = total - shownRef.current;
+      const cps = Math.max(TYPEWRITER_BASE_CPS, backlog / TYPEWRITER_MAX_LAG_SECONDS);
+      const next = Math.min(total, shownRef.current + cps * dt);
+      shownRef.current = next;
+      setShown(next);
+      rafRef.current = next < textRef.current.length ? requestAnimationFrame(tick) : null;
+    };
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, [text]);
+
+  return Math.floor(Math.min(shown, text.length));
 }
 
 /**
  * The reply bubble content. Types out `turn.reply` character-by-character
- * while `streaming` is true; otherwise renders the full text immediately.
+ * for a turn that started streaming — and keeps typing it in until caught
+ * up, even after the stream itself has finished (see useTypewriter); a turn
+ * that never streamed renders the full text immediately.
  */
 function TypedBubble({ turn, streaming }) {
   const shown = useTypewriter(turn.reply, streaming);
-  const text = streaming ? turn.reply.slice(0, shown) : turn.reply;
+  const text = turn.reply.slice(0, shown);
   return (
     <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
          // eslint-disable-next-line react/no-danger
@@ -261,7 +287,6 @@ function Bubble({ turn, onChipSend, chipDisabled }) {
   }
   const agentName = agentDisplayName();
   const steps = turn.steps || [];
-  const n = steps.length;
   const vsteps = visibleSteps(steps);
   // Only the turn sendTurn is currently streaming carries done:false explicitly
   // (static turns — greeting, buffered-fallback replies, ... — leave done unset).
@@ -280,8 +305,8 @@ function Bubble({ turn, onChipSend, chipDisabled }) {
           <TypedBubble turn={turn} streaming={streaming} />
         )}
         {turn.introChips && <TopicChips disabled={chipDisabled} onSend={onChipSend} />}
-        {n > 0 && !turn.done && (
-          <div class="rt-activity-live">⏺ {steps[n - 1].summary}</div>
+        {vsteps.length > 0 && !turn.done && (
+          <div class="rt-activity-live">⏺ {vsteps[vsteps.length - 1].summary}</div>
         )}
         {turn.done && vsteps.length > 0 && (
           <details class="rt-activity">

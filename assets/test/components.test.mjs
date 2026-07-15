@@ -61,6 +61,29 @@ test('Thread renders the live activity line while streaming', () => {
   assert.match(html, /Reading a file/);
 });
 
+test('Thread never shows the "Working on it" placeholder as the live activity line', () => {
+  const turns = [{
+    role: 'agent', reply: 'because short', steps: [{ summary: 'Working on it' }],
+    done: false, error: false,
+  }];
+  const html = renderToString(h(Thread, { turns }));
+  assert.doesNotMatch(html, /Working on it/);
+  assert.doesNotMatch(html, /rt-activity-live/);
+});
+
+test('Thread live activity line falls through to the latest visible step past a leading "Working on it"', () => {
+  const turns = [{
+    role: 'agent',
+    reply: 'because short',
+    steps: [{ summary: 'Working on it' }, { summary: 'Reading a file' }],
+    done: false,
+    error: false,
+  }];
+  const html = renderToString(h(Thread, { turns }));
+  assert.match(html, /Reading a file/);
+  assert.doesNotMatch(html, /Working on it/);
+});
+
 test('Thread renders a thinking indicator for an empty in-flight agent turn', () => {
   const turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
   const html = renderToString(h(Thread, { turns }));
