@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use EpicWP\Roundtable\Config;
 use EpicWP\Roundtable\Consumer;
 use EpicWP\Roundtable\Roundtable;
+use EpicWP\Roundtable\StreamController;
 use PHPUnit\Framework\TestCase;
 
 final class RoundtableMountTest extends TestCase {
@@ -23,11 +24,23 @@ final class RoundtableMountTest extends TestCase {
         };
         $added = array();
         Functions\when( 'add_action' )->alias(
-            static function ( string $hook ) use ( &$added ): void { $added[] = $hook; },
+            static function ( string $hook, $callback = null ) use ( &$added ): void {
+                $added[] = array( 'hook' => $hook, 'callback' => $callback );
+            },
         );
         Roundtable::mount( new Config( 'pk_secret', $consumer ), 'tools.php' );
-        self::assertContains( 'admin_menu', $added );
-        self::assertContains( 'admin_enqueue_scripts', $added );
-        self::assertContains( 'rest_api_init', $added );
+        $hooks = \array_column( $added, 'hook' );
+        self::assertContains( 'admin_menu', $hooks );
+        self::assertContains( 'admin_enqueue_scripts', $hooks );
+        self::assertContains( 'rest_api_init', $hooks );
+
+        $streamRegisters = \array_filter(
+            $added,
+            static fn ( array $entry ): bool => 'rest_api_init' === $entry['hook']
+                && \is_array( $entry['callback'] )
+                && $entry['callback'][0] instanceof StreamController
+                && 'register' === $entry['callback'][1],
+        );
+        self::assertCount( 1, $streamRegisters );
     }
 }
