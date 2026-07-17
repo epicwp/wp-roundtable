@@ -13,7 +13,10 @@ final class PageTest extends TestCase
 {
     private function page(): Page
     {
-        return new Page(new Config('pk_secret', new FakeConsumer(), 'Sage'), 'tools.php');
+        return new Page(
+            new Config('pk_secret', new FakeConsumer(), 'Sage', projectName: 'Polylang AI Automatic Translation'),
+            'tools.php',
+        );
     }
 
     public function test_register_menu_adds_a_community_submenu(): void
@@ -44,7 +47,9 @@ final class PageTest extends TestCase
         Functions\expect('wp_localize_script')->once()->with(
             'roundtable',
             'RoundtableConfig',
-            \Mockery::on(static fn ($d) => 'nonce123' === $d['nonce'] && 'Sage' === $d['agentName']),
+            \Mockery::on(static fn ($d) => 'nonce123' === $d['nonce']
+                && 'Sage' === $d['agentName']
+                && 'Polylang AI Automatic Translation' === $d['projectName']),
         );
         $this->page()->enqueue('tools_page_roundtable-community');
     }

@@ -58,6 +58,8 @@ Roundtable::mount(
     new Config(
         projectApiKey: 'pk_...',   // your project key
         consumer:      $myConsumer, // implements EpicWP\Roundtable\Consumer
+        agentName:     'Roundtable', // default; set to your own assistant's name
+        projectName:   '',           // default; set to your product's display name
     ),
     'my-plugin-discussions',        // your admin page slug
 );

@@ -1,7 +1,7 @@
 body.wp-admin .rt-community-wrap { max-width:none!important; margin:0 0 0 -20px!important; padding:0!important; }
 body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app, #roundtable-app * { box-sizing:border-box; }
-#roundtable-app { --rt-accent:#3858e9; --rt-accent-ink:#2c46c6; --rt-line:#e5e7eb; --rt-ink:#1c2430; --rt-ink-soft:#54617a; --rt-ink-faint:#8b96ab; --rt-panel:#fff; --rt-body:#f9fafb; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; font-size:14px; color:var(--rt-ink); background:var(--rt-body); margin:0; min-height:calc(100vh - 32px); }
+#roundtable-app { --rt-accent:#3858e9; --rt-accent-ink:#2c46c6; --rt-line:#e5e7eb; --rt-ink:#1c2430; --rt-ink-soft:#54617a; --rt-ink-faint:#8b96ab; --rt-panel:#fff; --rt-body:#f9fafb; --rt-user-bg:#1e293b; --rt-user-ink:#fff; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; font-size:14px; color:var(--rt-ink); background:var(--rt-body); margin:0; min-height:calc(100vh - 32px); }
 #roundtable-app h1.rt-title { font-size:21px!important; font-weight:650!important; margin:0!important; padding:0!important; line-height:1.2!important; color:var(--rt-ink)!important; }
 #roundtable-app button, #roundtable-app input, #roundtable-app select, #roundtable-app textarea { font-family:inherit; }
 #roundtable-app .rt-layout { display:flex; min-height:calc(100vh - 32px); align-items:stretch; }
@@ -189,7 +189,7 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-iconbtn:hover { color:var(--rt-ink); border-color:var(--rt-ink-faint); }
 #roundtable-app .rt-thread { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding:16px; min-height:0; }
 #roundtable-app .rt-user-wrap { align-self:flex-end; max-width:88%; display:flex; flex-direction:column; align-items:flex-end; }
-#roundtable-app .rt-user { background:var(--rt-accent); color:#fff; border-radius:12px 12px 3px 12px; padding:9px 12px; font-size:13.5px; box-shadow:0 3px 10px -4px var(--rt-accent); }
+#roundtable-app .rt-user { background:var(--rt-user-bg); color:var(--rt-user-ink); border-radius:12px 12px 3px 12px; padding:9px 12px; font-size:13.5px; box-shadow:0 3px 10px -6px rgba(15,23,42,.45); }
 #roundtable-app .rt-time { font-size:11px; color:var(--rt-ink-faint); margin-top:4px; }
 #roundtable-app .rt-agent-turn { display:grid; grid-template-columns:32px 1fr; gap:10px; align-items:start; max-width:100%; }
 #roundtable-app .rt-agent-body { min-width:0; }
@@ -224,9 +224,9 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-activity > summary { cursor:pointer; list-style:none; color:var(--rt-ink-faint); }
 #roundtable-app .rt-activity ul { margin:6px 0 0; padding-left:16px; }
 #roundtable-app .rt-composer { border-top:1px solid var(--rt-line); background:#fafbfd; padding:12px 14px; flex:none; }
-#roundtable-app .rt-cbox { display:flex; align-items:flex-end; gap:8px; background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:11px; padding:7px 7px 7px 12px; }
+#roundtable-app .rt-cbox { display:flex; align-items:center; gap:8px; background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:11px; padding:7px 7px 7px 12px; }
 #roundtable-app .rt-cbox:focus-within { border-color:var(--rt-accent); box-shadow:0 0 0 3px #eceffe; }
-#roundtable-app .rt-cbox textarea { flex:1; border:none!important; background:transparent!important; box-shadow:none!important; resize:none; font:inherit; font-size:13.5px; color:var(--rt-ink); outline:none; padding:4px 0; min-height:0; margin:0; }
+#roundtable-app .rt-cbox textarea { flex:1; border:none!important; background:transparent!important; box-shadow:none!important; resize:none; font:inherit; font-size:13.5px; line-height:1.45; color:var(--rt-ink); outline:none; padding:4px 0; min-height:0; max-height:106px; overflow-y:auto; margin:0; }
 #roundtable-app .rt-send-icon { width:34px; height:34px; border-radius:9px; border:none; background:var(--rt-accent); color:#fff; display:grid; place-items:center; cursor:pointer; flex:none; font-size:14px; padding:0; box-shadow:none; min-height:0; }
 #roundtable-app .rt-send-icon:hover { background:var(--rt-accent-ink); }
 #roundtable-app .rt-send-icon[disabled] { opacity:.6; cursor:default; }

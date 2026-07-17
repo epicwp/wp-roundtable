@@ -14,6 +14,7 @@ final class Config {
      * @param string|null $agentAvatarUrl Optional avatar URL for the agent.
      * @param int         $timeoutSeconds HTTP timeout for a buffered turn.
      * @param string|null $hubBaseUrl     Dev/staging override ONLY; null uses the baked-in SaaS URL.
+     * @param string      $projectName    The consuming product's display name; '' hides it in the UI.
      */
     public function __construct(
         public readonly string $projectApiKey,
@@ -22,6 +23,7 @@ final class Config {
         public readonly ?string $agentAvatarUrl = null,
         public readonly int $timeoutSeconds = 30,
         public readonly ?string $hubBaseUrl = null,
+        public readonly string $projectName = '',
     ) {
     }
 }
