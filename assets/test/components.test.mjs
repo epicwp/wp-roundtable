@@ -14,11 +14,15 @@ test('Thread renders an agent reply as markdown', () => {
   assert.match(html, /<strong>hi<\/strong>/);
 });
 
-test('ChatPanel renders Sage header, composer, and intro chips', async () => {
+test('ChatPanel renders the configured agent name in header, greeting and composer', async () => {
   const { ChatPanel } = await import('../src/components.jsx');
-  globalThis.window = { RoundtableConfig: { agentName: 'Sage' } };
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova', projectName: 'Acme Plugin' } };
   const html = renderToString(h(ChatPanel, {}));
-  assert.match(html, /Sage/);
+  assert.match(html, /rt-head-text"><b>Nova<\/b>/);
+  assert.match(html, /rt-name">Nova</);
+  assert.match(html, /Message Nova/);
+  assert.match(html, /Ask how Acme Plugin works/);
+  assert.doesNotMatch(html, /Sage/);
   assert.match(html, /Community assistant/);
   assert.match(html, /rt-agent-icon/);
   assert.match(html, /rt-cbox/);

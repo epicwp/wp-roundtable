@@ -172,7 +172,7 @@ export function commentRoleBadge(role, agentName) {
   return null;
 }
 
-export function mapCommentToView(row, agentName = 'Sage') {
+export function mapCommentToView(row, agentName = 'Roundtable') {
   const handle = row.author_handle || '';
   const status = row.status || 'active';
   const isTombstone = status !== 'active' || row.body == null || row.body === '';

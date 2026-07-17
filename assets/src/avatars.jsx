@@ -26,7 +26,7 @@ function AgentIcon() {
 }
 
 /**
- * Avatar for the AI assistant (Sage).
+ * Avatar for the AI assistant.
  * @param {{class?:string, size?:'sm'|'md'|'lg'}} props
  */
 export function AgentAvatar({ class: className = '', size = 'md' }) {
@@ -47,9 +47,4 @@ export function PersonAvatar({ initials, class: className = '', size = 'md' }) {
       {initials}
     </div>
   );
-}
-
-/** @returns {string} */
-export function agentDisplayName() {
-  return (typeof window !== 'undefined' && window.RoundtableConfig?.agentName) || 'Sage';
 }

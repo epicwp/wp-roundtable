@@ -102,3 +102,8 @@ test('mapCommentToView exposes agent badge and avatar hint', () => {
   assert.equal(view.roleBadge, 'Sage · Assistant');
   assert.equal(commentRoleBadge('maintainer', 'Sage'), 'Maintainer');
 });
+
+test('mapCommentToView falls back to the SDK default agent name when none is passed', () => {
+  const view = mapCommentToView({ id: 'c', author_handle: 'sage', author_role: 'assistant', body: 'Hi', status: 'active', created_at: '2026-07-01T12:00:00' });
+  assert.equal(view.roleBadge, 'Roundtable · Assistant');
+});

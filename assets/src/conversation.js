@@ -1,13 +1,14 @@
 /**
  * Build a hub-ready conversation transcript from chat turns.
  * @param {Array<{role:string, reply:string}>} turns
+ * @param {string} agentName The configured assistant name, used to label its lines.
  * @returns {string}
  */
-export function turnsToConversation(turns) {
+export function turnsToConversation(turns, agentName = 'Roundtable') {
   const lines = [];
   for (const turn of Array.isArray(turns) ? turns : []) {
     if (!turn?.reply?.trim()) continue;
-    const who = turn.role === 'user' ? 'User' : 'Sage';
+    const who = turn.role === 'user' ? 'User' : agentName;
     lines.push(`${who}: ${turn.reply.trim()}`);
   }
   return lines.join('\n');

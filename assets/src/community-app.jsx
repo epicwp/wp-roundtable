@@ -11,6 +11,7 @@ import { TopicDetail } from './topic-detail.jsx';
 import { PublishDialog } from './publish-dialog.jsx';
 import { publishCase } from './api.js';
 import { fetchTabCounts } from './tab-counts.js';
+import { agentDisplayName, projectDisplayName } from './config.js';
 
 const TABS = [
   { id: 'all', label: 'All', enabled: true },
@@ -29,6 +30,8 @@ export function CommunityApp() {
   const [publishBusy, setPublishBusy] = useState(false);
   const [tabCounts, setTabCounts] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const agentName = agentDisplayName();
+  const projectName = projectDisplayName();
 
   useEffect(() => {
     let cancelled = false;
@@ -68,14 +71,6 @@ export function CommunityApp() {
     if (activeTab !== 'started') setActiveTab('started');
   }
 
-  const subCopy = activeTab === 'started'
-    ? 'Your drafts and published topics — or ask Sage on the right.'
-    : activeTab === 'participating'
-      ? 'Topics you have commented on or voted on — or ask Sage on the right.'
-      : activeTab === 'roadmap'
-        ? 'Follow what is planned, in progress, and shipped — or ask Sage on the right.'
-        : 'Browse public topics — or ask Sage on the right.';
-
   return (
     <div class={'rt-layout' + (chatOpen ? ' rt-chat-open' : '')}>
       <main class="rt-main">
@@ -86,7 +81,7 @@ export function CommunityApp() {
             <div class="rt-pagehead">
               <div>
                 <h1 class="rt-title">Community</h1>
-                <p class="rt-sub">{subCopy}</p>
+                {projectName && <p class="rt-sub">{projectName}</p>}
               </div>
               <button class="rt-newtopic-head" type="button" onClick={requestNewTopic}>+ New topic</button>
             </div>
@@ -137,7 +132,7 @@ export function CommunityApp() {
         <button
           type="button"
           class="rt-chat-launch"
-          aria-label="Open Sage chat"
+          aria-label={`Open ${agentName} chat`}
           onClick={() => setChatOpen(true)}
         >
           <AgentAvatar size="sm" />
