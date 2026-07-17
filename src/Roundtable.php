@@ -26,6 +26,7 @@ final class Roundtable {
 
         $hub           = new HubClient( $config, new WpHttpTransport() );
         $message       = new MessageController( $config, $hub );
+        $stream        = new StreamController( $config, $hub, new Http\CurlStreamingTransport() );
         $session       = new SessionController( $config );
         $cases         = new CasesController( $config, $hub );
         $myCases       = new MyCasesController( $config, $hub );
@@ -35,6 +36,7 @@ final class Roundtable {
         $draft         = new CaseDraftController( $config, $hub );
         $publish       = new PublishController( $config, $hub );
         \add_action( 'rest_api_init', array( $message, 'register' ) );
+        \add_action( 'rest_api_init', array( $stream, 'register' ) );
         \add_action( 'rest_api_init', array( $session, 'register' ) );
         \add_action( 'rest_api_init', array( $cases, 'register' ) );
         \add_action( 'rest_api_init', array( $myCases, 'register' ) );

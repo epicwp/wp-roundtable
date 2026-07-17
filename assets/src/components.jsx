@@ -2,8 +2,8 @@
 import { h } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { renderMarkdown } from './markdown.js';
+import { streamMessage, sendMessage, resetChat, createDraft, publishCase } from './api.js';
 import { eventsToTurn } from './events.js';
-import { sendMessage, resetChat, createDraft, publishCase } from './api.js';
 import { canDraftTopic, turnsToConversation } from './conversation.js';
 import { PublishDialog } from './publish-dialog.jsx';
 import { AgentAvatar } from './avatars.jsx';
@@ -11,13 +11,165 @@ import { agentDisplayName, projectDisplayName } from './config.js';
 import { labelStep } from './steps.js';
 import { chatGreeting, NEW_TOPIC_INTRO, TOPIC_CHIPS } from './chat-copy.js';
 
-function StepLog({ steps }) {
-  if (!steps?.length) return null;
-  return (
-    <ul class="rt-step-log">
-      {steps.map((s, i) => <li key={i}>{labelStep(s)}</li>)}
-    </ul>
-  );
+const STREAM_FIRST_EVENT_TIMEOUT_MS = 15000;
+
+/**
+ * Send one turn: start the stream, and fall back to the buffered endpoint if
+ * onError fires before any stream event arrives, or nothing arrives within
+ * `timeoutMs`. Once at least one event has streamed in, a later error just
+ * ends the turn in an error state — the user already saw partial output, so
+ * no fallback and no double-render.
+ * @param {string} text
+ * @param {{setTurns:Function, setBusy:Function, streamFn?:Function, sendFn?:Function, timeoutMs?:number}} opts
+ */
+export async function sendTurn(text, {
+  setTurns, setBusy, streamFn = streamMessage, sendFn = sendMessage, timeoutMs = STREAM_FIRST_EVENT_TIMEOUT_MS,
+}) {
+  setTurns((t) => [...t, { role: 'user', reply: text, steps: [], error: false, at: Date.now() }]);
+  setTurns((t) => [...t, {
+    role: 'agent', reply: '', steps: [], done: false, error: false, at: Date.now(),
+  }]);
+  setBusy(true);
+
+  let streamed = false;
+  const controller = new AbortController();
+  const timer = setTimeout(() => { if (!streamed) controller.abort(); }, timeoutMs);
+
+  async function fallback() {
+    try {
+      const res = await sendFn(text);
+      if (res.error) {
+        setTurns((t) => {
+          const next = t.slice();
+          const i = next.length - 1;
+          next[i] = { ...next[i], error: true, done: true };
+          return next;
+        });
+        return;
+      }
+      const turn = eventsToTurn(res.events);
+      setTurns((t) => {
+        const next = t.slice();
+        const i = next.length - 1;
+        next[i] = {
+          ...next[i],
+          reply: turn.reply,
+          steps: turn.steps.map((s) => ({ summary: labelStep(s) })),
+          error: turn.error,
+          done: true,
+        };
+        return next;
+      });
+    } catch (e) {
+      setTurns((t) => {
+        const next = t.slice();
+        const i = next.length - 1;
+        next[i] = { ...next[i], error: true, done: true };
+        return next;
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  await streamFn(text, {
+    signal: controller.signal,
+    onEvent: (ev) => {
+      streamed = true;
+      clearTimeout(timer);
+      const now = Date.now();
+      setTurns((t) => applyStreamEvent(t, ev, now));
+    },
+    onError: async () => {
+      clearTimeout(timer);
+      if (streamed) {
+        setTurns((t) => applyStreamEvent(t, { type: 'error' }, Date.now()));
+        setBusy(false);
+      } else {
+        await fallback();
+      }
+    },
+    onDone: () => {
+      clearTimeout(timer);
+      // Belt-and-suspenders: if the stream ended without a `result` event,
+      // applyStreamEvent never got a chance to fall back to a captured
+      // finalText (e.g. an assistant_text refusal). Reconcile here so the
+      // turn still shows something instead of rendering empty.
+      setTurns((t) => {
+        if (!t.length) return t;
+        const last = t[t.length - 1];
+        if (last.reply === '' && last.finalText) {
+          const next = t.slice();
+          next[next.length - 1] = { ...last, reply: last.finalText, done: true };
+          return next;
+        }
+        return t;
+      });
+      setBusy(false);
+    },
+  });
+}
+
+/**
+ * Fold one streamed hub event onto the last (in-flight agent) turn.
+ * guarded_text_delta keeps accumulating onto `reply` even after `result` —
+ * the guard flushes a trailing delta after `result`, so accumulation must not
+ * stop there. assistant_text is stored as `finalText` without touching
+ * `reply`, so it never overwrites (and duplicates) a delta-built reply. On
+ * `result`, if no deltas arrived (`reply` is still empty) but a `finalText`
+ * was captured — e.g. an off-topic refusal, or a turn the model didn't
+ * stream partial-message deltas for — it becomes the reply, so the turn
+ * doesn't render as empty.
+ * @param {Array} turns
+ * @param {{type:string, text?:string, summary?:string}} ev
+ * @param {number} now current time (ms), used to stamp step/completion timestamps
+ * @returns {Array} new turns array
+ */
+export function applyStreamEvent(turns, ev, now) {
+  if (!turns.length) return turns;
+  const i = turns.length - 1;
+  const turn = turns[i];
+  let patch;
+  if (ev.type === 'guarded_text_delta') patch = { reply: turn.reply + (ev.text || '') };
+  else if (ev.type === 'assistant_text') patch = { finalText: ev.text };
+  else if (ev.type === 'progress') patch = { steps: [...turn.steps, { summary: ev.summary, at: now }] };
+  else if (ev.type === 'result') {
+    const base = ev.is_error === true
+      ? { done: true, error: true, doneAt: now }
+      : { done: true, doneAt: now };
+    patch = (turn.reply === '' && turn.finalText)
+      ? { ...base, reply: turn.finalText }
+      : base;
+  } else if (ev.type === 'error') patch = { error: true };
+  else return turns;
+  const next = turns.slice();
+  next[i] = { ...turn, ...patch };
+  return next;
+}
+
+/**
+ * Steps shown to the user: drops the "Working on it" placeholder frame, which
+ * only exists to drive the immediate thinking indicator (see Bubble) and is
+ * not a real step.
+ * @param {Array<{summary:string, at?:number}>} steps
+ * @returns {Array}
+ */
+export function visibleSteps(steps) {
+  return (steps || []).filter((s) => s.summary !== 'Working on it');
+}
+
+/**
+ * Format the time a step took: (next step's timestamp, or the turn's
+ * completion timestamp) minus this step's timestamp.
+ * @param {{at?:number}} step
+ * @param {number} [nextAt]
+ * @returns {string|null} e.g. "1.2s" or "80ms", or null if not measurable
+ */
+export function stepDuration(step, nextAt) {
+  if (step?.at == null || nextAt == null) return null;
+  const ms = nextAt - step.at;
+  if (ms < 0) return null;
+  return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 
 function TopicChips({ onSend, disabled }) {
@@ -32,19 +184,142 @@ function TopicChips({ onSend, disabled }) {
   );
 }
 
+/**
+ * Local HH:MM for a message timestamp.
+ * @param {number} ms
+ * @returns {string}
+ */
+function formatTime(ms) {
+  return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function ThinkingDots() {
+  return (
+    <span class="rt-thinking" aria-hidden="true">
+      <span class="rt-thinking-dot" />
+      <span class="rt-thinking-dot" />
+      <span class="rt-thinking-dot" />
+    </span>
+  );
+}
+
+// Steady typing pace, in characters/second — reads like fast, smooth typing.
+const TYPEWRITER_BASE_CPS = 100;
+// Catch-up window: the reveal rate speeds up so at most this many seconds of
+// backlog is ever pending, so a big chunk landing speeds things up smoothly
+// instead of snapping.
+const TYPEWRITER_MAX_LAG_SECONDS = 0.7;
+
+/**
+ * Advance a "shown length" toward text.length using a requestAnimationFrame
+ * delta-time accumulator, so the reveal pace is frame-rate independent and
+ * doesn't jump on every streamed chunk. A turn that starts active (a real
+ * streamed reply) animates from 0 and keeps animating — even after `active`
+ * flips to false when the stream ends — until it catches up to the text, so
+ * there's no snap-to-full at completion. A turn that starts inactive (the
+ * greeting, a buffered-fallback reply) shows the full text immediately.
+ * @param {string} text
+ * @param {boolean} active
+ * @returns {number} shown length
+ */
+function useTypewriter(text, active) {
+  const animateRef = useRef(active);
+  const [shown, setShown] = useState(() => (animateRef.current ? 0 : text.length));
+  const shownRef = useRef(shown);
+  const textRef = useRef(text);
+  const rafRef = useRef(null);
+  textRef.current = text;
+
+  useEffect(() => {
+    if (!animateRef.current) return undefined;
+    if (rafRef.current != null || shownRef.current >= text.length) return undefined;
+
+    let lastTime = null;
+    const tick = (time) => {
+      if (lastTime === null) lastTime = time;
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+
+      const total = textRef.current.length;
+      const backlog = total - shownRef.current;
+      const cps = Math.max(TYPEWRITER_BASE_CPS, backlog / TYPEWRITER_MAX_LAG_SECONDS);
+      const next = Math.min(total, shownRef.current + cps * dt);
+      shownRef.current = next;
+      setShown(next);
+      rafRef.current = next < textRef.current.length ? requestAnimationFrame(tick) : null;
+    };
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, [text]);
+
+  return Math.floor(Math.min(shown, text.length));
+}
+
+/**
+ * The reply bubble content. Types out `turn.reply` character-by-character
+ * for a turn that started streaming — and keeps typing it in until caught
+ * up, even after the stream itself has finished (see useTypewriter); a turn
+ * that never streamed renders the full text immediately.
+ */
+function TypedBubble({ turn, streaming }) {
+  const shown = useTypewriter(turn.reply, streaming);
+  const text = turn.reply.slice(0, shown);
+  return (
+    <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
+         // eslint-disable-next-line react/no-danger
+         dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(text) }} />
+  );
+}
+
 function Bubble({ turn, onChipSend, chipDisabled }) {
-  if (turn.role === 'user') return <div class="rt-user">{turn.reply}</div>;
+  if (turn.role === 'user') {
+    return (
+      <div class="rt-user-wrap">
+        <div class="rt-user">{turn.reply}</div>
+        {turn.at && <div class="rt-time">{formatTime(turn.at)}</div>}
+      </div>
+    );
+  }
   const agentName = agentDisplayName();
+  const steps = turn.steps || [];
+  const vsteps = visibleSteps(steps);
+  // Only the turn sendTurn is currently streaming carries done:false explicitly
+  // (static turns — greeting, buffered-fallback replies, ... — leave done unset).
+  const streaming = turn.done === false && !turn.error;
+  const thinking = streaming && turn.reply === '';
   return (
     <div class="rt-agent-turn">
       <AgentAvatar size="sm" class="rt-agent-ava" />
       <div class="rt-agent-body">
         <span class="rt-name">{agentName}</span>
-        <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
-             // eslint-disable-next-line react/no-danger
-             dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(turn.reply) }} />
+        {thinking ? (
+          <div class="rt-ab rt-ab-thinking">
+            <ThinkingDots />
+          </div>
+        ) : (
+          <TypedBubble turn={turn} streaming={streaming} />
+        )}
         {turn.introChips && <TopicChips disabled={chipDisabled} onSend={onChipSend} />}
-        {!turn.error && <StepLog steps={turn.steps} />}
+        {vsteps.length > 0 && !turn.done && (
+          <div class="rt-activity-live">⏺ {vsteps[vsteps.length - 1].summary}</div>
+        )}
+        {turn.done && vsteps.length > 0 && (
+          <details class="rt-activity">
+            <summary>Code doorzocht · {vsteps.length} {vsteps.length === 1 ? 'stap' : 'stappen'}</summary>
+            <ul>
+              {vsteps.map((s, i) => {
+                const nextAt = i + 1 < vsteps.length ? vsteps[i + 1].at : turn.doneAt;
+                const dur = stepDuration(s, nextAt);
+                return <li key={i}>{dur ? `${s.summary} · ${dur}` : s.summary}</li>;
+              })}
+            </ul>
+          </details>
+        )}
+        {turn.at && <div class="rt-time">{formatTime(turn.at)}</div>}
       </div>
     </div>
   );
@@ -78,9 +353,11 @@ function DraftPrompt({ busy, drafting, onDraft }) {
   );
 }
 
-export function Thread({ turns, onChipSend, chipDisabled }) {
+export function Thread({
+  turns, onChipSend, chipDisabled, threadRef,
+}) {
   return (
-    <div class="rt-thread">
+    <div class="rt-thread" ref={threadRef}>
       {turns.map((t, i) => <Bubble key={i} turn={t} onChipSend={onChipSend} chipDisabled={chipDisabled} />)}
     </div>
   );
@@ -97,6 +374,8 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [showPublish, setShowPublish] = useState(false);
   const [draftBusy, setDraftBusy] = useState(false);
   const composerRef = useRef(null);
+  const threadRef = useRef(null);
+  const stickToBottomRef = useRef(true);
 
   useEffect(() => {
     if (resetNonce > 0) newTopic();
@@ -109,19 +388,31 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     el.style.height = `${el.scrollHeight}px`;
   }, [composer]);
 
+  // Track whether the user is parked near the bottom, via real scroll events
+  // rather than recomputing from post-update scrollHeight (which would
+  // already reflect newly streamed content and read as "far from bottom").
+  useEffect(() => {
+    const el = threadRef.current;
+    if (!el) return undefined;
+    const onScroll = () => {
+      stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    };
+    el.addEventListener('scroll', onScroll);
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Stick to the bottom as new turns/deltas arrive, unless the user scrolled
+  // up to read history.
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight;
+  }, [turns]);
+
   async function send(textOverride) {
     const text = (textOverride ?? composer).trim();
     if (!text || busy) return;
     setComposer('');
-    setTurns((t) => [...t, { role: 'user', reply: text, steps: [], error: false }]);
-    setBusy(true);
-    const res = await sendMessage(text);
-    setBusy(false);
-    if (res.error) {
-      setTurns((t) => [...t, { role: 'agent', reply: '', steps: [], error: true }]);
-      return;
-    }
-    setTurns((t) => [...t, { role: 'agent', ...eventsToTurn(res.events) }]);
+    await sendTurn(text, { setTurns, setBusy });
   }
 
   async function newTopic() {
@@ -181,7 +472,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
         <span class="rt-head-grow" />
         <button class="rt-iconbtn" type="button" onClick={newTopic} title="New conversation" aria-label="New conversation">+</button>
       </div>
-      <Thread turns={turns} chipDisabled={busy || draftBusy} onChipSend={(msg) => send(msg)} />
+      <Thread turns={turns} chipDisabled={busy || draftBusy} onChipSend={(msg) => send(msg)} threadRef={threadRef} />
       {topicDraft && (
         <div class="rt-thread-extras">
           <OutcomeCard
@@ -195,7 +486,6 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
       {!topicDraft && canDraftTopic(turns) && (
         <DraftPrompt busy={busy} drafting={draftBusy} onDraft={turnIntoTopic} />
       )}
-      {busy && <div class="rt-working"><span class="rt-dots"><i /><i /><i /></span> Working…</div>}
       <div class="rt-composer">
         <div class="rt-cbox">
           <textarea ref={composerRef} rows="1" placeholder={composerPlaceholder} value={composer}

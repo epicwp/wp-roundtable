@@ -68,6 +68,44 @@ final class HubClient {
     }
 
     /**
+     * Stream a chat turn, invoking $onEvent per decoded hub event.
+     *
+     * @param string                                     $chatId      The chat/session id.
+     * @param string                                     $message     The user's message.
+     * @param bool                                       $isFirstTurn Whether to send first-turn context.
+     * @param \EpicWP\Roundtable\Http\StreamingTransport $transport The streaming transport.
+     * @param callable(\EpicWP\Roundtable\Event):void    $onEvent   Per-event callback.
+     *
+     * @throws \EpicWP\Roundtable\HubException On a gate refusal, server error, or network failure.
+     */
+    public function streamMessage( string $chatId, string $message, bool $isFirstTurn, \EpicWP\Roundtable\Http\StreamingTransport $transport, callable $onEvent ): void {
+        $url  = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/chats/' . $chatId . '/messages';
+        $body = $this->buildBody( $message, $isFirstTurn );
+        try {
+            $status = $transport->stream(
+                $url,
+                array(
+                    'Accept'        => 'text/event-stream',
+                    'Authorization' => 'Bearer ' . $this->config->projectApiKey,
+                    'Content-Type'  => 'application/json',
+                ),
+                $body,
+                $this->config->timeoutSeconds,
+                static function ( string $frame ) use ( $onEvent ): void {
+                    $event = \EpicWP\Roundtable\Chat\SseParser::parse( $frame );
+                    foreach ( $event as $e ) {
+                        $onEvent( $e );
+                    }
+                },
+            );
+        } catch ( \EpicWP\Roundtable\Http\TransportException $e ) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal transport error string, never rendered as HTML.
+            throw \EpicWP\Roundtable\HubException::network( $e->getMessage() );
+        }
+        $this->guardStatus( $status );
+    }
+
+    /**
      * List public cases from the hub browse API.
      *
      * @param array<string, int|string> $query Optional hub query params: `type`, `q`, `sort`, `limit`, `offset`.
