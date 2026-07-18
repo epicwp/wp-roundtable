@@ -108,6 +108,34 @@ final class MessageControllerTest extends TestCase
         self::assertArrayNotHasKey('client_version', $body);
     }
 
+    public function test_handle_forwards_trigger_to_hub_client(): void
+    {
+        $this->mockCurrentUser(7);
+        $this->mockSessionMeta(chatId: 'chat-1', primed: '1');
+
+        [$controller, $transport] = $this->controllerWithFakeTransport(new FakeConsumer());
+
+        $request = $this->request();
+        $request->set_param('trigger', 'create_topic');
+        $controller->handle($request);
+
+        $body = json_decode((string) $transport->lastBody, true);
+        self::assertSame('create_topic', $body['trigger']);
+    }
+
+    public function test_handle_omits_trigger_when_not_provided(): void
+    {
+        $this->mockCurrentUser(7);
+        $this->mockSessionMeta(chatId: 'chat-1', primed: '1');
+
+        [$controller, $transport] = $this->controllerWithFakeTransport(new FakeConsumer());
+
+        $controller->handle($this->request());
+
+        $body = json_decode((string) $transport->lastBody, true);
+        self::assertArrayNotHasKey('trigger', $body);
+    }
+
     public function test_handle_returns_structured_error_without_the_key_on_hub_exception(): void
     {
         $this->mockCurrentUser(7);

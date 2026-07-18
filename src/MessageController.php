@@ -65,11 +65,17 @@ final class MessageController {
         \WP_REST_Request $request,
     ): \WP_REST_Response {
         $message = (string) $request->get_param( 'message' );
+        $trigger = $this->triggerFrom( $request );
         $session = new Session( (int) \wp_get_current_user()->ID );
 
         try {
             $isFirstTurn = ! $session->isPrimed();
-            $result      = $this->hubClient->postMessage( $session->chatId(), $message, $isFirstTurn );
+            $result      = $this->hubClient->postMessage(
+                $session->chatId(),
+                $message,
+                $isFirstTurn,
+                $trigger,
+            );
             if ( $isFirstTurn ) {
                 $session->markPrimed();
             }
@@ -81,6 +87,20 @@ final class MessageController {
         }
 
         return new \WP_REST_Response( array( 'events' => $this->serialize( $result ) ), 200 );
+    }
+
+    /**
+     * Read the optional `trigger` param from the request (E12: "create_topic" or absent).
+     *
+     * @param \WP_REST_Request<array<string, mixed>> $request The incoming request.
+     *
+     * @return string|null The trigger value, or null if not provided or not a non-empty string.
+     */
+    private function triggerFrom( // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- `\WP_REST_Request<array<string, mixed>>` is a PHPStan generic; the native param type stays `\WP_REST_Request`.
+        \WP_REST_Request $request,
+    ): ?string {
+        $trigger = $request->get_param( 'trigger' );
+        return \is_string( $trigger ) && '' !== $trigger ? $trigger : null;
     }
 
     /**

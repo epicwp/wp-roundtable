@@ -128,6 +128,28 @@ final class StreamControllerTest extends TestCase
         self::assertSame([['type' => 'error', 'message' => HubException::BLOCKED]], $written);
     }
 
+    public function test_stream_turn_forwards_trigger_to_hub_client(): void
+    {
+        [$controller, $transport] = $this->controllerWithFakeStreamingTransport(200, []);
+
+        $this->streamTurn($controller, new Session(7), 'chat-1', 'hi', false, static function (array $payload): void {
+        }, 'create_topic');
+
+        $body = json_decode((string) $transport->lastBody, true);
+        self::assertSame('create_topic', $body['trigger']);
+    }
+
+    public function test_stream_turn_omits_trigger_when_not_provided(): void
+    {
+        [$controller, $transport] = $this->controllerWithFakeStreamingTransport(200, []);
+
+        $this->streamTurn($controller, new Session(7), 'chat-1', 'hi', false, static function (array $payload): void {
+        });
+
+        $body = json_decode((string) $transport->lastBody, true);
+        self::assertArrayNotHasKey('trigger', $body);
+    }
+
     /**
      * Invoke the private security-critical core with a recording writer (no output buffering).
      *
@@ -140,10 +162,11 @@ final class StreamControllerTest extends TestCase
         string $message,
         bool $isFirstTurn,
         callable $write,
+        ?string $trigger = null,
     ): void {
         $method = new \ReflectionMethod($controller, 'streamTurn');
         $method->setAccessible(true);
-        $method->invoke($controller, $session, $chatId, $message, $isFirstTurn, $write);
+        $method->invoke($controller, $session, $chatId, $message, $isFirstTurn, $write, $trigger);
     }
 
     private function request(string $nonce = 'valid-nonce'): \WP_REST_Request
@@ -164,5 +187,22 @@ final class StreamControllerTest extends TestCase
         $hubClient = new HubClient($config, new FakeTransport());
 
         return new StreamController($config, $hubClient, new FakeStreamingTransport($status, $frames));
+    }
+
+    /**
+     * Like {@see self::controller()}, but also returns the streaming transport so tests can
+     * assert on the last request body sent to it.
+     *
+     * @param list<string> $frames
+     *
+     * @return array{0: StreamController, 1: FakeStreamingTransport}
+     */
+    private function controllerWithFakeStreamingTransport(int $status, array $frames): array
+    {
+        $config    = new Config('pk_secret', new FakeConsumer());
+        $hubClient = new HubClient($config, new FakeTransport());
+        $transport = new FakeStreamingTransport($status, $frames);
+
+        return [new StreamController($config, $hubClient, $transport), $transport];
     }
 }

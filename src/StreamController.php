@@ -75,13 +75,14 @@ final class StreamController {
         \WP_REST_Request $request,
     ): \WP_REST_Response {
         $message     = (string) $request->get_param( 'message' );
+        $trigger     = $this->triggerFrom( $request );
         $session     = new Session( (int) \wp_get_current_user()->ID );
         $chatId      = $session->chatId();
         $isFirstTurn = ! $session->isPrimed();
 
         \add_filter(
             'rest_pre_serve_request',
-            function () use ( $session, $chatId, $message, $isFirstTurn ): bool {
+            function () use ( $session, $chatId, $message, $isFirstTurn, $trigger ): bool {
                 \header( 'Content-Type: text/event-stream' );
                 \header( 'Cache-Control: no-cache' );
                 \header( 'X-Accel-Buffering: no' );
@@ -98,12 +99,27 @@ final class StreamController {
                         echo 'data: ' . \wp_json_encode( $payload ) . "\n\n";
                         \flush();
                     },
+                    $trigger,
                 );
                 return true;
             },
         );
 
         return new \WP_REST_Response( null, 200 );
+    }
+
+    /**
+     * Read the optional `trigger` param from the request (E12: "create_topic" or absent).
+     *
+     * @param \WP_REST_Request<array<string, mixed>> $request The incoming request.
+     *
+     * @return string|null The trigger value, or null if not provided or not a non-empty string.
+     */
+    private function triggerFrom( // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- `\WP_REST_Request<array<string, mixed>>` is a PHPStan generic; the native param type stays `\WP_REST_Request`.
+        \WP_REST_Request $request,
+    ): ?string {
+        $trigger = $request->get_param( 'trigger' );
+        return \is_string( $trigger ) && '' !== $trigger ? $trigger : null;
     }
 
     /**
@@ -120,6 +136,8 @@ final class StreamController {
      * @param string                               $message     The user's message.
      * @param bool                                 $isFirstTurn Whether this is the chat's first turn.
      * @param callable(array<string, mixed>): void $write       Sink for each SSE payload array.
+     * @param string|null                          $trigger     E12: `"create_topic"` when this turn is the
+     *                                                           user's "Create topic" click; null otherwise.
      */
     private function streamTurn( // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- `callable(array<string, mixed>): void` is a PHPStan callable-signature; the native param type stays `callable`.
         Session $session,
@@ -127,6 +145,7 @@ final class StreamController {
         string $message,
         bool $isFirstTurn,
         callable $write,
+        ?string $trigger = null,
     ): void {
         try {
             $this->hubClient->streamMessage(
@@ -137,6 +156,7 @@ final class StreamController {
                 static function ( Event $event ) use ( $write ): void {
                     $write( \array_merge( array( 'type' => $event->type ), $event->data ) );
                 },
+                $trigger,
             );
             if ( $isFirstTurn ) {
                 $session->markPrimed();
