@@ -20,11 +20,11 @@ final class Roundtable {
      * @param string $menuSlug The parent admin menu slug the "Community" submenu attaches to.
      */
     public static function mount( Config $config, string $menuSlug ): void {
-        $page = new Admin\Page( $config, $menuSlug );
+        $hub  = new HubClient( $config, new WpHttpTransport() );
+        $page = new Admin\Page( $config, $menuSlug, $hub );
         \add_action( 'admin_menu', array( $page, 'registerMenu' ) );
         \add_action( 'admin_enqueue_scripts', array( $page, 'enqueue' ) );
 
-        $hub           = new HubClient( $config, new WpHttpTransport() );
         $message       = new MessageController( $config, $hub );
         $stream        = new StreamController( $config, $hub, new Http\CurlStreamingTransport() );
         $session       = new SessionController( $config );

@@ -46,6 +46,29 @@ final class HubClientVoteTest extends PHPUnitTestCase
         self::assertSame( 1, $tally['my_vote'] );
     }
 
+    public function test_get_vote_tally_accepts_an_empty_json_object_body(): void
+    {
+        $transport = new FakeTransport( 200, '{}' );
+        $client    = new HubClient( $this->config(), $transport );
+
+        $tally = $client->getVoteTally( 'c1' );
+
+        self::assertSame( [], $tally );
+    }
+
+    public function test_get_vote_tally_rejects_an_empty_json_array_body(): void
+    {
+        $client = new HubClient( $this->config(), new FakeTransport( 200, '[]' ) );
+
+        $this->expectException( HubException::class );
+        try {
+            $client->getVoteTally( 'c1' );
+        } catch ( HubException $e ) {
+            self::assertSame( HubException::BAD_RESPONSE, $e->kind() );
+            throw $e;
+        }
+    }
+
     public function test_retract_vote_deletes_with_subject_query(): void
     {
         $body      = '{"up":0,"down":0,"net":0,"my_vote":null}';

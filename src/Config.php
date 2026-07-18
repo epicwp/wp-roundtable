@@ -10,7 +10,8 @@ final class Config {
      *
      * @param string      $projectApiKey  Per-project (multi-tenant) bearer key; stays server-side.
      * @param Consumer    $consumer       The plugin's licensing/identity boundary.
-     * @param string      $agentName      Display name for the agent (local; no /project/config yet).
+     * @param string      $agentName      Display name for the agent (local fallback; the hub's
+     *                                    /project/config is preferred when reachable).
      * @param string|null $agentAvatarUrl Optional avatar URL for the agent.
      * @param int         $timeoutSeconds HTTP timeout for a buffered turn.
      * @param string|null $hubBaseUrl     Dev/staging override ONLY; null uses the baked-in SaaS URL.

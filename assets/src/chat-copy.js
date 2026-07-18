@@ -10,6 +10,18 @@ export function chatGreeting(agentName, projectName) {
     + "If it's worth tracking, I'll draft a topic for you.";
 }
 
+/**
+ * Resolve the chat's opening message: the vendor's configured initial message when
+ * set, otherwise the generated greeting.
+ * @param {string} initialMessage The configured initial message; '' when unset.
+ * @param {string} agentName      The configured assistant name.
+ * @param {string} projectName    The configured product name; '' falls back to generic copy.
+ * @returns {string}
+ */
+export function resolveInitialMessage(initialMessage, agentName, projectName) {
+  return initialMessage || chatGreeting(agentName, projectName);
+}
+
 /** Opening copy when the user starts a new topic. */
 export const NEW_TOPIC_INTRO =
   "Let's start a new topic. Tell me what's going on — a question, something that's broken, or a feature you'd like — and I'll shape it into a clear topic you can review & publish to the community.";

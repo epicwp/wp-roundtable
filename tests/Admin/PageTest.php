@@ -6,17 +6,28 @@ namespace EpicWP\Roundtable\Tests\Admin;
 use Brain\Monkey\Functions;
 use EpicWP\Roundtable\Admin\Page;
 use EpicWP\Roundtable\Config;
+use EpicWP\Roundtable\HubClient;
+use EpicWP\Roundtable\Http\TransportException;
 use EpicWP\Roundtable\Tests\Support\FakeConsumer;
+use EpicWP\Roundtable\Tests\Support\FakeTransport;
 use EpicWP\Roundtable\Tests\TestCase;
 
 final class PageTest extends TestCase
 {
-    private function page(): Page
+    private function config(): Config
     {
-        return new Page(
-            new Config('pk_secret', new FakeConsumer(), 'Sage', projectName: 'Polylang AI Automatic Translation'),
-            'tools.php',
+        return new Config(
+            'pk_secret',
+            new FakeConsumer(),
+            'Sage',
+            projectName: 'Polylang AI Automatic Translation',
         );
+    }
+
+    private function page(?HubClient $hub = null): Page
+    {
+        $hub ??= new HubClient($this->config(), new FakeTransport(200, '{}'));
+        return new Page($this->config(), 'tools.php', $hub);
     }
 
     public function test_register_menu_adds_a_community_submenu(): void
@@ -36,9 +47,11 @@ final class PageTest extends TestCase
         $this->page()->enqueue('edit.php');
     }
 
-    public function test_enqueue_loads_bundle_and_localizes_config_on_our_screen(): void
+    public function test_enqueue_uses_hub_display_config_when_available(): void
     {
         $this->expectNotToPerformAssertions();
+        $body = '{"agent_name":"HubSage","project_name":"Hub Project","initial_message":"Hi from the hub."}';
+        $hub  = new HubClient($this->config(), new FakeTransport(200, $body));
         Functions\when('wp_enqueue_style')->justReturn(true);
         Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
         Functions\when('rest_url')->justReturn('http://x/wp-json/roundtable/v1');
@@ -48,10 +61,30 @@ final class PageTest extends TestCase
             'roundtable',
             'RoundtableConfig',
             \Mockery::on(static fn ($d) => 'nonce123' === $d['nonce']
-                && 'Sage' === $d['agentName']
-                && 'Polylang AI Automatic Translation' === $d['projectName']),
+                && 'HubSage' === $d['agentName']
+                && 'Hub Project' === $d['projectName']
+                && 'Hi from the hub.' === $d['initialMessage']),
         );
-        $this->page()->enqueue('tools_page_roundtable-community');
+        $this->page($hub)->enqueue('tools_page_roundtable-community');
+    }
+
+    public function test_enqueue_falls_back_to_local_config_when_hub_call_fails(): void
+    {
+        $this->expectNotToPerformAssertions();
+        $hub = new HubClient($this->config(), new FakeTransport(throw: new TransportException('timeout')));
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
+        Functions\when('rest_url')->justReturn('http://x/wp-json/roundtable/v1');
+        Functions\when('wp_create_nonce')->justReturn('nonce123');
+        Functions\expect('wp_enqueue_script')->once();
+        Functions\expect('wp_localize_script')->once()->with(
+            'roundtable',
+            'RoundtableConfig',
+            \Mockery::on(static fn ($d) => 'Sage' === $d['agentName']
+                && 'Polylang AI Automatic Translation' === $d['projectName']
+                && '' === $d['initialMessage']),
+        );
+        $this->page($hub)->enqueue('tools_page_roundtable-community');
     }
 
     public function test_render_outputs_the_app_container(): void

@@ -32,6 +32,16 @@ test('ChatPanel renders the configured agent name in header, greeting and compos
   assert.match(html, /Report a bug/);
 });
 
+test('ChatPanel renders the configured initial message instead of the generated greeting when set', async () => {
+  const { ChatPanel } = await import('../src/components.jsx');
+  globalThis.window = {
+    RoundtableConfig: { agentName: 'Nova', projectName: 'Acme Plugin', initialMessage: 'Welcome to Acme support!' },
+  };
+  const html = renderToString(h(ChatPanel, {}));
+  assert.match(html, /Welcome to Acme support!/);
+  assert.doesNotMatch(html, /Ask how Acme Plugin works/);
+});
+
 test('Thread renders agent turn with agent avatar', () => {
   const turns = [{ role: 'agent', reply: 'hello', steps: [], error: false }];
   const html = renderToString(h(Thread, { turns }));

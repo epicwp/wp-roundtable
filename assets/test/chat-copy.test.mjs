@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chatGreeting } from '../src/chat-copy.js';
+import { chatGreeting, resolveInitialMessage } from '../src/chat-copy.js';
 
 test('chatGreeting names the agent and the project', () => {
   const text = chatGreeting('Sage', 'Polylang AI Automatic Translation');
@@ -13,4 +13,15 @@ test('chatGreeting falls back when no project name is configured', () => {
   assert.match(text, /I'm Roundtable\./);
   assert.match(text, /Ask how it works/);
   assert.doesNotMatch(text, /translation/i);
+});
+
+test('resolveInitialMessage uses the configured initial message when set', () => {
+  const text = resolveInitialMessage('Welcome! Ask me anything about Widget.', 'Sage', 'Widget');
+  assert.equal(text, 'Welcome! Ask me anything about Widget.');
+});
+
+test('resolveInitialMessage falls back to the generated greeting when unset', () => {
+  const text = resolveInitialMessage('', 'Sage', 'Widget');
+  assert.match(text, /I'm Sage\./);
+  assert.match(text, /Ask how Widget works/);
 });
