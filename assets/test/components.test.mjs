@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { h } from 'preact';
 import { renderToString } from 'preact-render-to-string';
 import {
-  Thread, applyStreamEvent, sendTurn, visibleSteps, stepDuration,
+  Thread, applyStreamEvent, sendTurn, visibleSteps, stepDuration, reduceSignal, computeShowDraftPrompt,
 } from '../src/components.jsx';
 
 // Node's test runner has no DOM; components.jsx reads window.RoundtableConfig
@@ -302,4 +302,143 @@ test('sendTurn falls back when no stream event arrives within timeout', async ()
   assert.equal(last.done, true);
   assert.equal(last.error, false);
   assert.equal(getBusy(), false);
+});
+
+test('sendTurn does not push a user bubble when trigger is set', async () => {
+  const turnsLog = [];
+  let turns = [];
+  const setTurns = (fn) => { turns = typeof fn === 'function' ? fn(turns) : fn; turnsLog.push(turns); };
+  const streamFn = async (text, { onEvent, onDone }) => { onDone(); };
+
+  await sendTurn('', { setTurns, setBusy: () => {}, streamFn, trigger: 'create_topic' });
+
+  assert.equal(turns.filter((t) => t.role === 'user').length, 0);
+  assert.equal(turns.filter((t) => t.role === 'agent').length, 1);
+});
+
+test('sendTurn pushes a user bubble when trigger is not set', async () => {
+  let turns = [];
+  const setTurns = (fn) => { turns = typeof fn === 'function' ? fn(turns) : fn; };
+  const streamFn = async (text, { onDone }) => { onDone(); };
+
+  await sendTurn('hello', { setTurns, setBusy: () => {}, streamFn });
+
+  assert.equal(turns.filter((t) => t.role === 'user').length, 1);
+});
+
+test('sendTurn forwards topic_worthy events to onSignal, not applyStreamEvent', async () => {
+  let turns = [];
+  const setTurns = (fn) => { turns = typeof fn === 'function' ? fn(turns) : fn; };
+  const signals = [];
+  const streamFn = async (text, { onEvent, onDone }) => {
+    onEvent({ type: 'topic_worthy', case_type_hint: 'bug', rationale: 'clear repro' });
+    onDone();
+  };
+
+  await sendTurn('hello', { setTurns, setBusy: () => {}, streamFn, onSignal: (ev) => signals.push(ev) });
+
+  assert.equal(signals.length, 1);
+  assert.equal(signals[0].type, 'topic_worthy');
+});
+
+test('sendTurn forwards topic_drafted events to onSignal', async () => {
+  let turns = [];
+  const setTurns = (fn) => { turns = typeof fn === 'function' ? fn(turns) : fn; };
+  const signals = [];
+  const streamFn = async (text, { onEvent, onDone }) => {
+    onEvent({ type: 'topic_drafted', case_id: 'c1', case_type: 'bug', title: 'T', summary: 'S' });
+    onDone();
+  };
+
+  await sendTurn('hello', { setTurns, setBusy: () => {}, streamFn, onSignal: (ev) => signals.push(ev) });
+
+  assert.equal(signals.length, 1);
+  // Streaming path: onSignal receives the flat shape verbatim (no `.data` nesting) --
+  // see Task 20 Step 3's note on the two transports' different wire shapes.
+  assert.equal(signals[0].case_id, 'c1');
+});
+
+test('sendTurn passes trigger through to streamFn', async () => {
+  let capturedTrigger;
+  const streamFn = async (text, { onDone, trigger }) => { capturedTrigger = trigger; onDone(); };
+
+  await sendTurn('', { setTurns: () => {}, setBusy: () => {}, streamFn, trigger: 'create_topic' });
+
+  assert.equal(capturedTrigger, 'create_topic');
+});
+
+test('applyStreamEvent leaves turns unchanged for topic_worthy (handled via onSignal, not turns)', () => {
+  const turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
+  const next = applyStreamEvent(turns, { type: 'topic_worthy', case_type_hint: 'bug', rationale: 'x' }, Date.now());
+  assert.deepEqual(next, turns);
+});
+
+// The gating decision behind ChatPanel's "Create topic" affordance is exercised
+// directly via the pure functions it's built from (reduceSignal, computeShowDraftPrompt),
+// rather than through a rendering-level ChatPanel test: this file's only ChatPanel-rendering
+// tool is `preact-render-to-string`, a one-shot SSR pass with no DOM and no event dispatch,
+// so there's no way to drive ChatPanel from "before topic_worthy" to "after topic_worthy"
+// through simulated interaction. Testing the pure decision functions directly covers the
+// same logic without that infrastructure gap.
+
+test('reduceSignal makes the affordance visible on a topic_worthy signal', () => {
+  const next = reduceSignal({ topicWorthy: false, topicDraft: null }, { type: 'topic_worthy', case_type_hint: 'bug', rationale: 'x' });
+  assert.equal(next.topicWorthy, true);
+  assert.equal(next.topicDraft, null);
+});
+
+test('computeShowDraftPrompt hides the affordance in ordinary chat before any topic_worthy signal', () => {
+  const showDraftPrompt = computeShowDraftPrompt({
+    topicDraft: null, newTopicMode: false, topicWorthy: false, turns: [],
+  });
+  assert.equal(showDraftPrompt, false);
+});
+
+test('computeShowDraftPrompt shows the affordance in ordinary chat once topicWorthy is true', () => {
+  const showDraftPrompt = computeShowDraftPrompt({
+    topicDraft: null, newTopicMode: false, topicWorthy: true, turns: [],
+  });
+  assert.equal(showDraftPrompt, true);
+});
+
+test('reduceSignal produces the draft state and clears topicWorthy on a topic_drafted signal (flat streaming wire shape)', () => {
+  const next = reduceSignal(
+    { topicWorthy: true, topicDraft: null },
+    {
+      type: 'topic_drafted', case_id: 'c1', case_type: 'bug', title: 'T', summary: 'S',
+    },
+  );
+  assert.equal(next.topicWorthy, false);
+  assert.deepEqual(next.topicDraft, {
+    id: 'c1', title: 'T', summary: 'S', type: 'bug',
+  });
+});
+
+test('reduceSignal produces the draft state on a topic_drafted signal (nested buffered-fallback wire shape)', () => {
+  const next = reduceSignal(
+    { topicWorthy: true, topicDraft: null },
+    {
+      type: 'topic_drafted',
+      data: {
+        case_id: 'c2', case_type: 'feature', title: 'T2', summary: 'S2',
+      },
+    },
+  );
+  assert.equal(next.topicWorthy, false);
+  assert.deepEqual(next.topicDraft, {
+    id: 'c2', title: 'T2', summary: 'S2', type: 'feature',
+  });
+});
+
+test('computeShowDraftPrompt in newTopicMode ignores topicWorthy and defers to canDraftTopic(turns), unaffected by this task', () => {
+  const readyTurns = [
+    { role: 'user', reply: 'help me' },
+    { role: 'agent', reply: 'sure, here is help', error: false },
+  ];
+  assert.equal(computeShowDraftPrompt({
+    topicDraft: null, newTopicMode: true, topicWorthy: false, turns: readyTurns,
+  }), true);
+  assert.equal(computeShowDraftPrompt({
+    topicDraft: null, newTopicMode: true, topicWorthy: true, turns: [],
+  }), false);
 });

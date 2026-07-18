@@ -20,12 +20,15 @@ const STREAM_FIRST_EVENT_TIMEOUT_MS = 15000;
  * ends the turn in an error state — the user already saw partial output, so
  * no fallback and no double-render.
  * @param {string} text
- * @param {{setTurns:Function, setBusy:Function, streamFn?:Function, sendFn?:Function, timeoutMs?:number}} opts
+ * @param {{setTurns:Function, setBusy:Function, streamFn?:Function, sendFn?:Function, timeoutMs?:number, trigger?:string, onSignal?:(ev:object)=>void}} opts
  */
 export async function sendTurn(text, {
   setTurns, setBusy, streamFn = streamMessage, sendFn = sendMessage, timeoutMs = STREAM_FIRST_EVENT_TIMEOUT_MS,
+  trigger, onSignal,
 }) {
-  setTurns((t) => [...t, { role: 'user', reply: text, steps: [], error: false, at: Date.now() }]);
+  if (!trigger) {
+    setTurns((t) => [...t, { role: 'user', reply: text, steps: [], error: false, at: Date.now() }]);
+  }
   setTurns((t) => [...t, {
     role: 'agent', reply: '', steps: [], done: false, error: false, at: Date.now(),
   }]);
@@ -37,7 +40,7 @@ export async function sendTurn(text, {
 
   async function fallback() {
     try {
-      const res = await sendFn(text);
+      const res = await sendFn(text, trigger);
       if (res.error) {
         setTurns((t) => {
           const next = t.slice();
@@ -46,6 +49,9 @@ export async function sendTurn(text, {
           return next;
         });
         return;
+      }
+      for (const ev of res.events || []) {
+        if (ev.type === 'topic_worthy' || ev.type === 'topic_drafted') onSignal?.(ev);
       }
       const turn = eventsToTurn(res.events);
       setTurns((t) => {
@@ -74,9 +80,11 @@ export async function sendTurn(text, {
 
   await streamFn(text, {
     signal: controller.signal,
+    trigger,
     onEvent: (ev) => {
       streamed = true;
       clearTimeout(timer);
+      if (ev.type === 'topic_worthy' || ev.type === 'topic_drafted') { onSignal?.(ev); return; }
       const now = Date.now();
       setTurns((t) => applyStreamEvent(t, ev, now));
     },
@@ -363,6 +371,54 @@ export function Thread({
   );
 }
 
+/**
+ * Pure reducer: fold one hub `topic_worthy`/`topic_drafted` signal onto
+ * ChatPanel's ordinary-chat affordance state. `topic_worthy` flips the
+ * "Create topic" affordance on; `topic_drafted` flips it back off and fills
+ * the draft outcome. Any other event type is a no-op (state passed through
+ * unchanged) — in practice `handleSignal` is only ever called with these two
+ * types (see sendTurn's onEvent short-circuit).
+ *
+ * Reads both `ev.data?.*` and a bare `ev.*` fallback for the drafted fields,
+ * because the SDK's two transports use different wire shapes for the same
+ * hub event: streaming spreads the event's fields onto the top level, the
+ * buffered fallback nests them under `data` (see sendTurn's fallback()).
+ * @param {{topicWorthy:boolean, topicDraft:object|null}} state Prior affordance state.
+ * @param {{type:string, data?:object, case_id?:string, title?:string, summary?:string, case_type?:string}} ev
+ * @returns {{topicWorthy:boolean, topicDraft:object|null}} Next affordance state.
+ */
+export function reduceSignal(state, ev) {
+  if (ev.type === 'topic_worthy') return { ...state, topicWorthy: true };
+  if (ev.type === 'topic_drafted') {
+    return {
+      topicWorthy: false,
+      topicDraft: {
+        id: ev.data?.case_id ?? ev.case_id,
+        title: ev.data?.title ?? ev.title,
+        summary: ev.data?.summary ?? ev.summary,
+        type: ev.data?.case_type ?? ev.case_type,
+      },
+    };
+  }
+  return state;
+}
+
+/**
+ * Whether the "Create topic" / "Turn into topic" affordance (DraftPrompt)
+ * should be visible. An existing draft always hides it. Otherwise, the
+ * "+ New topic" flow (`newTopicMode`) keeps its pre-E12 client-only
+ * `canDraftTopic()` heuristic over the visible turns, unchanged; ordinary
+ * chat is instead gated by the hub-driven `topicWorthy` signal (see
+ * `reduceSignal`).
+ * @param {{topicDraft:object|null, newTopicMode:boolean, topicWorthy:boolean, turns:Array}} state
+ * @returns {boolean}
+ */
+export function computeShowDraftPrompt({
+  topicDraft, newTopicMode, topicWorthy, turns,
+}) {
+  return !topicDraft && (newTopicMode ? canDraftTopic(turns) : topicWorthy);
+}
+
 export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [newTopicMode, setNewTopicMode] = useState(false);
   const [turns, setTurns] = useState([{
@@ -371,6 +427,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [composer, setComposer] = useState('');
   const [busy, setBusy] = useState(false);
   const [topicDraft, setTopicDraft] = useState(null);
+  const [topicWorthy, setTopicWorthy] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
   const [draftBusy, setDraftBusy] = useState(false);
   const composerRef = useRef(null);
@@ -408,11 +465,17 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight;
   }, [turns]);
 
+  function handleSignal(ev) {
+    const next = reduceSignal({ topicWorthy, topicDraft }, ev);
+    setTopicWorthy(next.topicWorthy);
+    setTopicDraft(next.topicDraft);
+  }
+
   async function send(textOverride) {
     const text = (textOverride ?? composer).trim();
-    if (!text || busy) return;
+    if (!text || busy || draftBusy) return;
     setComposer('');
-    await sendTurn(text, { setTurns, setBusy });
+    await sendTurn(text, { setTurns, setBusy, onSignal: handleSignal });
   }
 
   async function newTopic() {
@@ -426,6 +489,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     }
     setNewTopicMode(true);
     setTopicDraft(null);
+    setTopicWorthy(false);
     setShowPublish(false);
     setTurns([{ role: 'agent', reply: NEW_TOPIC_INTRO, steps: [], error: false, introChips: true }]);
   }
@@ -439,6 +503,13 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     setDraftBusy(false);
     if (res.error) return;
     setTopicDraft(res.case);
+  }
+
+  async function createTopic() {
+    if (busy || draftBusy || topicDraft) return;
+    await sendTurn('', {
+      setTurns, setBusy: setDraftBusy, trigger: 'create_topic', onSignal: handleSignal,
+    });
   }
 
   async function confirmPublish({ title, summary, type }) {
@@ -460,6 +531,9 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
 
   const agentName = agentDisplayName();
   const composerPlaceholder = newTopicMode ? 'Describe your topic…' : `Message ${agentName}…`;
+  const showDraftPrompt = computeShowDraftPrompt({
+    topicDraft, newTopicMode, topicWorthy, turns,
+  });
 
   return (
     <div class="rt-panel">
@@ -483,15 +557,15 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
           />
         </div>
       )}
-      {!topicDraft && canDraftTopic(turns) && (
-        <DraftPrompt busy={busy} drafting={draftBusy} onDraft={turnIntoTopic} />
+      {showDraftPrompt && (
+        <DraftPrompt busy={busy} drafting={draftBusy} onDraft={newTopicMode ? turnIntoTopic : createTopic} />
       )}
       <div class="rt-composer">
         <div class="rt-cbox">
           <textarea ref={composerRef} rows="1" placeholder={composerPlaceholder} value={composer}
             onInput={(e) => setComposer(e.currentTarget.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
-          <button class="rt-send-icon" type="button" disabled={busy} onClick={() => send()} aria-label="Send">➤</button>
+          <button class="rt-send-icon" type="button" disabled={busy || draftBusy} onClick={() => send()} aria-label="Send">➤</button>
         </div>
         <div class="rt-chint">Enter to send · Shift+Enter for a new line</div>
       </div>

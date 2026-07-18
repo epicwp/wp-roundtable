@@ -24,6 +24,10 @@ final class Event {
     public const RESULT = 'result';
     /** The turn failed; `$data` carries the error detail. */
     public const ERROR = 'error';
+    /** E12: the agent judged this conversation worth turning into a topic. */
+    public const TOPIC_WORTHY = 'topic_worthy';
+    /** E12: a topic proposal was drafted and persisted as a private draft Case. */
+    public const TOPIC_DRAFTED = 'topic_drafted';
 
     /**
      * Creates the event.

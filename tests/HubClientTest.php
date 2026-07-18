@@ -119,4 +119,26 @@ final class HubClientTest extends PHPUnitTestCase
         self::assertArrayNotHasKey('metadata', $body);
         self::assertArrayNotHasKey('client_version', $body);
     }
+
+    public function test_post_message_includes_trigger_in_body_when_given(): void
+    {
+        $transport = new FakeTransport(200, '');
+        $client    = new HubClient($this->config(new FakeConsumer()), $transport);
+
+        $client->postMessage('chat-1', 'ignored', false, 'create_topic');
+
+        $body = \json_decode((string) $transport->lastBody, true);
+        self::assertSame('create_topic', $body['trigger']);
+    }
+
+    public function test_post_message_omits_trigger_when_null(): void
+    {
+        $transport = new FakeTransport(200, '');
+        $client    = new HubClient($this->config(new FakeConsumer()), $transport);
+
+        $client->postMessage('chat-1', 'hi', false);
+
+        $body = \json_decode((string) $transport->lastBody, true);
+        self::assertArrayNotHasKey('trigger', $body);
+    }
 }

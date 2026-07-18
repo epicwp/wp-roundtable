@@ -35,4 +35,15 @@ final class HubClientStreamTest extends PHPUnitTestCase
         $client->streamMessage('c', 'hi', false, new FakeStreamingTransport(403, []),
             function (Event $e) { /* never called */ });
     }
+
+    public function test_stream_message_includes_trigger_in_body_when_given(): void
+    {
+        $client    = new HubClient(new Config('pk', new FakeConsumer()), new FakeTransport());
+        $transport = new FakeStreamingTransport(200, []);
+
+        $client->streamMessage('chat-1', 'ignored', false, $transport, static function (Event $e): void {}, 'create_topic');
+
+        $body = \json_decode((string) $transport->lastBody, true);
+        self::assertSame('create_topic', $body['trigger']);
+    }
 }

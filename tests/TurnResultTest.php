@@ -46,4 +46,14 @@ final class TurnResultTest extends PHPUnitTestCase
         $result   = new TurnResult([$step, new Event(Event::ASSISTANT_TEXT, ['text' => 'x']), $progress]);
         self::assertSame([$step, $progress], $result->steps());
     }
+
+    public function test_topic_worthy_constant_matches_hub_wire_value(): void
+    {
+        self::assertSame('topic_worthy', Event::TOPIC_WORTHY);
+    }
+
+    public function test_topic_drafted_constant_matches_hub_wire_value(): void
+    {
+        self::assertSame('topic_drafted', Event::TOPIC_DRAFTED);
+    }
 }
