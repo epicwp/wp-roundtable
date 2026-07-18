@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace EpicWP\Roundtable\Admin;
 
 use EpicWP\Roundtable\Config;
+use EpicWP\Roundtable\HubClient;
 
 /** The "Community" admin page: registers the submenu, enqueues the bundle, renders the root container. */
 final class Page {
@@ -15,12 +16,14 @@ final class Page {
     /**
      * Creates the page.
      *
-     * @param Config $config   The SDK configuration.
-     * @param string $menuSlug The parent menu slug the host already registered (submenu parent).
+     * @param Config    $config   The SDK configuration.
+     * @param string    $menuSlug The parent menu slug the host already registered (submenu parent).
+     * @param HubClient $hub      The hub client, used to fetch the remote display config (E11 §6).
      */
     public function __construct(
         private Config $config,
         private string $menuSlug,
+        private HubClient $hub,
     ) {
     }
 
@@ -45,16 +48,18 @@ final class Page {
         if ( ! \str_ends_with( $hookSuffix, '_page_' . self::PAGE_SLUG ) ) {
             return;
         }
+        $display = $this->resolveDisplayConfig();
         \wp_enqueue_style( self::HANDLE, $this->assetUrl( 'roundtable.css' ), array(), $this->version() );
         \wp_enqueue_script( self::HANDLE, $this->assetUrl( 'roundtable.js' ), array(), $this->version(), true );
         \wp_localize_script(
             self::HANDLE,
             'RoundtableConfig',
             array(
-                'agentName'   => $this->config->agentName,
-                'nonce'       => \wp_create_nonce( 'wp_rest' ),
-                'projectName' => $this->config->projectName,
-                'restUrl'     => \rest_url( 'roundtable/v1' ),
+                'agentName'      => $display['agentName'],
+                'initialMessage' => $display['initialMessage'],
+                'nonce'          => \wp_create_nonce( 'wp_rest' ),
+                'projectName'    => $display['projectName'],
+                'restUrl'        => \rest_url( 'roundtable/v1' ),
             ),
         );
     }
@@ -63,6 +68,30 @@ final class Page {
     public function render(): void {
         echo '<div class="wrap rt-community-wrap"><div id="roundtable-app" data-loading="'
             . \esc_attr__( 'Loading…', 'wp-roundtable' ) . '"></div></div>';
+    }
+
+    /**
+     * Resolve the display config: the hub's `/project/config` values, falling back to the
+     * local `Config` (and an empty initial message) on any hub/transport failure — the hub
+     * is the primary source (E11 §5), local `Config` stays a safety-net fallback.
+     *
+     * @return array{agentName: string, projectName: string, initialMessage: string}
+     */
+    private function resolveDisplayConfig(): array {
+        try {
+            $remote = $this->hub->getProjectConfig();
+            return array(
+                'agentName'      => (string) ( $remote['agent_name'] ?? $this->config->agentName ),
+                'initialMessage' => (string) ( $remote['initial_message'] ?? '' ),
+                'projectName'    => (string) ( $remote['project_name'] ?? $this->config->projectName ),
+            );
+        } catch ( \EpicWP\Roundtable\HubException ) {
+            return array(
+                'agentName'      => $this->config->agentName,
+                'initialMessage' => '',
+                'projectName'    => $this->config->projectName,
+            );
+        }
     }
 
     /**
