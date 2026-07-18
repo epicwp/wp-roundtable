@@ -32,19 +32,22 @@ final class HubClient {
     /**
      * Post one chat message and return the turn's parsed events.
      *
-     * @param string $chatId      The consumer-supplied chat/session id (resumes the hub session).
-     * @param string $message     The user's message (markdown; sent verbatim).
-     * @param bool   $isFirstTurn Whether this is the first turn of the chat — only then are the
-     *                            health-report `metadata` and `client_version` included.
+     * @param string      $chatId      The consumer-supplied chat/session id (resumes the hub session).
+     * @param string      $message     The user's message (markdown; sent verbatim).
+     * @param bool        $isFirstTurn Whether this is the first turn of the chat — only then are the
+     *                                 health-report `metadata` and `client_version` included.
+     * @param string|null $trigger     E12: `"create_topic"` when this turn is the user's
+     *                                 "Create topic" click rather than an ordinary message; null
+     *                                 otherwise.
      *
      * @return TurnResult The ordered events.
      *
      * @throws \EpicWP\Roundtable\HubException On a gate refusal (403/429), a server error (5xx), a
      *                  malformed response, or a network failure. The project key is never in the message.
      */
-    public function postMessage( string $chatId, string $message, bool $isFirstTurn ): TurnResult {
+    public function postMessage( string $chatId, string $message, bool $isFirstTurn, ?string $trigger = null ): TurnResult {
         $url  = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/chats/' . $chatId . '/messages';
-        $body = $this->buildBody( $message, $isFirstTurn );
+        $body = $this->buildBody( $message, $isFirstTurn, $trigger );
 
         try {
             $response = $this->transport->post(
@@ -75,12 +78,15 @@ final class HubClient {
      * @param bool                                       $isFirstTurn Whether to send first-turn context.
      * @param \EpicWP\Roundtable\Http\StreamingTransport $transport The streaming transport.
      * @param callable(\EpicWP\Roundtable\Event):void    $onEvent   Per-event callback.
+     * @param string|null                                $trigger     E12: `"create_topic"` when this turn is the user's
+     *                                                                "Create topic" click rather than an ordinary message; null
+     *                                                                otherwise.
      *
      * @throws \EpicWP\Roundtable\HubException On a gate refusal, server error, or network failure.
      */
-    public function streamMessage( string $chatId, string $message, bool $isFirstTurn, \EpicWP\Roundtable\Http\StreamingTransport $transport, callable $onEvent ): void {
+    public function streamMessage( string $chatId, string $message, bool $isFirstTurn, \EpicWP\Roundtable\Http\StreamingTransport $transport, callable $onEvent, ?string $trigger = null ): void {
         $url  = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/chats/' . $chatId . '/messages';
-        $body = $this->buildBody( $message, $isFirstTurn );
+        $body = $this->buildBody( $message, $isFirstTurn, $trigger );
         try {
             $status = $transport->stream(
                 $url,
@@ -588,15 +594,20 @@ final class HubClient {
     /**
      * Builds the JSON-encoded request body for a chat turn.
      *
-     * @param string $message     The user's message.
-     * @param bool   $isFirstTurn Whether to include the first-turn `metadata`/`client_version` context.
+     * @param string      $message     The user's message.
+     * @param bool        $isFirstTurn Whether to include the first-turn `metadata`/`client_version` context.
+     * @param string|null $trigger     E12: `"create_topic"` when this is the user's "Create
+     *                                 topic" click; null for an ordinary message.
      *
      * @return string The JSON-encoded body.
      */
-    private function buildBody( string $message, bool $isFirstTurn ): string {
-        $payload = array(
-            'message'    => $message,
-            'subject_id' => $this->config->consumer->subjectId(),
+    private function buildBody( string $message, bool $isFirstTurn, ?string $trigger = null ): string {
+        $payload = \array_merge(
+            array(
+                'message'    => $message,
+                'subject_id' => $this->config->consumer->subjectId(),
+            ),
+            $this->triggerField( $trigger ),
         );
         if ( $isFirstTurn ) {
             $metadata = $this->config->consumer->metadata();
@@ -610,5 +621,20 @@ final class HubClient {
         }
         // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- pure-PHP core class, no WordPress dependency by design; wp_json_encode() is unavailable here.
         return (string) \json_encode( $payload );
+    }
+
+    /**
+     * Optional `trigger` field for a chat-turn body, when set.
+     *
+     * @param string|null $trigger E12: `"create_topic"` when this is the user's "Create topic"
+     *                             click; null for an ordinary message.
+     *
+     * @return array<string, string> Zero or one keyed entry.
+     */
+    private function triggerField( ?string $trigger ): array {
+        if ( null === $trigger ) {
+            return array();
+        }
+        return array( 'trigger' => $trigger );
     }
 }
