@@ -303,3 +303,89 @@ test('sendTurn falls back when no stream event arrives within timeout', async ()
   assert.equal(last.error, false);
   assert.equal(getBusy(), false);
 });
+
+test('sendTurn does not push a user bubble when trigger is set', async () => {
+  const turnsLog = [];
+  let turns = [];
+  const setTurns = (fn) => { turns = typeof fn === 'function' ? fn(turns) : fn; turnsLog.push(turns); };
+  const streamFn = async (text, { onEvent, onDone }) => { onDone(); };
+
+  await sendTurn('', { setTurns, setBusy: () => {}, streamFn, trigger: 'create_topic' });
+
+  assert.equal(turns.filter((t) => t.role === 'user').length, 0);
+  assert.equal(turns.filter((t) => t.role === 'agent').length, 1);
+});
+
+test('sendTurn pushes a user bubble when trigger is not set', async () => {
+  let turns = [];
+  const setTurns = (fn) => { turns = typeof fn === 'function' ? fn(turns) : fn; };
+  const streamFn = async (text, { onDone }) => { onDone(); };
+
+  await sendTurn('hello', { setTurns, setBusy: () => {}, streamFn });
+
+  assert.equal(turns.filter((t) => t.role === 'user').length, 1);
+});
+
+test('sendTurn forwards topic_worthy events to onSignal, not applyStreamEvent', async () => {
+  let turns = [];
+  const setTurns = (fn) => { turns = typeof fn === 'function' ? fn(turns) : fn; };
+  const signals = [];
+  const streamFn = async (text, { onEvent, onDone }) => {
+    onEvent({ type: 'topic_worthy', case_type_hint: 'bug', rationale: 'clear repro' });
+    onDone();
+  };
+
+  await sendTurn('hello', { setTurns, setBusy: () => {}, streamFn, onSignal: (ev) => signals.push(ev) });
+
+  assert.equal(signals.length, 1);
+  assert.equal(signals[0].type, 'topic_worthy');
+});
+
+test('sendTurn forwards topic_drafted events to onSignal', async () => {
+  let turns = [];
+  const setTurns = (fn) => { turns = typeof fn === 'function' ? fn(turns) : fn; };
+  const signals = [];
+  const streamFn = async (text, { onEvent, onDone }) => {
+    onEvent({ type: 'topic_drafted', case_id: 'c1', case_type: 'bug', title: 'T', summary: 'S' });
+    onDone();
+  };
+
+  await sendTurn('hello', { setTurns, setBusy: () => {}, streamFn, onSignal: (ev) => signals.push(ev) });
+
+  assert.equal(signals.length, 1);
+  // Streaming path: onSignal receives the flat shape verbatim (no `.data` nesting) --
+  // see Task 20 Step 3's note on the two transports' different wire shapes.
+  assert.equal(signals[0].case_id, 'c1');
+});
+
+test('sendTurn passes trigger through to streamFn', async () => {
+  let capturedTrigger;
+  const streamFn = async (text, { onDone, trigger }) => { capturedTrigger = trigger; onDone(); };
+
+  await sendTurn('', { setTurns: () => {}, setBusy: () => {}, streamFn, trigger: 'create_topic' });
+
+  assert.equal(capturedTrigger, 'create_topic');
+});
+
+test('applyStreamEvent leaves turns unchanged for topic_worthy (handled via onSignal, not turns)', () => {
+  const turns = [{ role: 'agent', reply: '', steps: [], done: false, error: false }];
+  const next = applyStreamEvent(turns, { type: 'topic_worthy', case_type_hint: 'bug', rationale: 'x' }, Date.now());
+  assert.deepEqual(next, turns);
+});
+
+// TODO(Task 20): a rendering-level test proving ChatPanel's ordinary-chat gating
+// (topicWorthy state driven by a topic_worthy signal, vs. the unchanged
+// canDraftTopic() gate for newTopicMode) is intentionally not implemented here.
+// This file's only ChatPanel-rendering tool is `preact-render-to-string`, a
+// one-shot SSR pass with no DOM and no event dispatch: hooks never persist
+// across separate renderToString() calls, and useEffect/event handlers never
+// run during SSR. There is no way to drive ChatPanel from "before topic_worthy"
+// to "after topic_worthy" (or to reach canDraftTopic()-true turns at all,
+// since that also requires simulating a user send) without either adding a
+// DOM/testing-library dependency (e.g. jsdom + preact's `render`/`act`) or
+// extracting the gating boolean into an exported pure function for direct
+// unit testing — both are judgment calls outside this task's given code.
+// The event-forwarding contract this gating depends on (topic_worthy /
+// topic_drafted -> onSignal, not applyStreamEvent) is covered by the
+// sendTurn tests above.
+test.todo('ChatPanel shows Create topic prompt in ordinary chat only after topic_worthy fires');

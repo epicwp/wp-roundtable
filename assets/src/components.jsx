@@ -20,12 +20,15 @@ const STREAM_FIRST_EVENT_TIMEOUT_MS = 15000;
  * ends the turn in an error state — the user already saw partial output, so
  * no fallback and no double-render.
  * @param {string} text
- * @param {{setTurns:Function, setBusy:Function, streamFn?:Function, sendFn?:Function, timeoutMs?:number}} opts
+ * @param {{setTurns:Function, setBusy:Function, streamFn?:Function, sendFn?:Function, timeoutMs?:number, trigger?:string, onSignal?:(ev:object)=>void}} opts
  */
 export async function sendTurn(text, {
   setTurns, setBusy, streamFn = streamMessage, sendFn = sendMessage, timeoutMs = STREAM_FIRST_EVENT_TIMEOUT_MS,
+  trigger, onSignal,
 }) {
-  setTurns((t) => [...t, { role: 'user', reply: text, steps: [], error: false, at: Date.now() }]);
+  if (!trigger) {
+    setTurns((t) => [...t, { role: 'user', reply: text, steps: [], error: false, at: Date.now() }]);
+  }
   setTurns((t) => [...t, {
     role: 'agent', reply: '', steps: [], done: false, error: false, at: Date.now(),
   }]);
@@ -37,7 +40,7 @@ export async function sendTurn(text, {
 
   async function fallback() {
     try {
-      const res = await sendFn(text);
+      const res = await sendFn(text, trigger);
       if (res.error) {
         setTurns((t) => {
           const next = t.slice();
@@ -46,6 +49,9 @@ export async function sendTurn(text, {
           return next;
         });
         return;
+      }
+      for (const ev of res.events || []) {
+        if (ev.type === 'topic_worthy' || ev.type === 'topic_drafted') onSignal?.(ev);
       }
       const turn = eventsToTurn(res.events);
       setTurns((t) => {
@@ -74,9 +80,11 @@ export async function sendTurn(text, {
 
   await streamFn(text, {
     signal: controller.signal,
+    trigger,
     onEvent: (ev) => {
       streamed = true;
       clearTimeout(timer);
+      if (ev.type === 'topic_worthy' || ev.type === 'topic_drafted') { onSignal?.(ev); return; }
       const now = Date.now();
       setTurns((t) => applyStreamEvent(t, ev, now));
     },
@@ -371,6 +379,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [composer, setComposer] = useState('');
   const [busy, setBusy] = useState(false);
   const [topicDraft, setTopicDraft] = useState(null);
+  const [topicWorthy, setTopicWorthy] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
   const [draftBusy, setDraftBusy] = useState(false);
   const composerRef = useRef(null);
@@ -408,11 +417,25 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight;
   }, [turns]);
 
+  function handleSignal(ev) {
+    if (ev.type === 'topic_worthy') {
+      setTopicWorthy(true);
+    } else if (ev.type === 'topic_drafted') {
+      setTopicWorthy(false);
+      setTopicDraft({
+        id: ev.data?.case_id ?? ev.case_id,
+        title: ev.data?.title ?? ev.title,
+        summary: ev.data?.summary ?? ev.summary,
+        type: ev.data?.case_type ?? ev.case_type,
+      });
+    }
+  }
+
   async function send(textOverride) {
     const text = (textOverride ?? composer).trim();
     if (!text || busy) return;
     setComposer('');
-    await sendTurn(text, { setTurns, setBusy });
+    await sendTurn(text, { setTurns, setBusy, onSignal: handleSignal });
   }
 
   async function newTopic() {
@@ -426,6 +449,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     }
     setNewTopicMode(true);
     setTopicDraft(null);
+    setTopicWorthy(false);
     setShowPublish(false);
     setTurns([{ role: 'agent', reply: NEW_TOPIC_INTRO, steps: [], error: false, introChips: true }]);
   }
@@ -439,6 +463,13 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     setDraftBusy(false);
     if (res.error) return;
     setTopicDraft(res.case);
+  }
+
+  async function createTopic() {
+    if (busy || draftBusy || topicDraft) return;
+    await sendTurn('', {
+      setTurns, setBusy: setDraftBusy, trigger: 'create_topic', onSignal: handleSignal,
+    });
   }
 
   async function confirmPublish({ title, summary, type }) {
@@ -460,6 +491,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
 
   const agentName = agentDisplayName();
   const composerPlaceholder = newTopicMode ? 'Describe your topic…' : `Message ${agentName}…`;
+  const showDraftPrompt = !topicDraft && (newTopicMode ? canDraftTopic(turns) : topicWorthy);
 
   return (
     <div class="rt-panel">
@@ -483,8 +515,8 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
           />
         </div>
       )}
-      {!topicDraft && canDraftTopic(turns) && (
-        <DraftPrompt busy={busy} drafting={draftBusy} onDraft={turnIntoTopic} />
+      {showDraftPrompt && (
+        <DraftPrompt busy={busy} drafting={draftBusy} onDraft={newTopicMode ? turnIntoTopic : createTopic} />
       )}
       <div class="rt-composer">
         <div class="rt-cbox">
