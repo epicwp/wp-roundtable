@@ -445,13 +445,7 @@ final class HubClient {
 
         $this->guardStatus( $response->status );
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.json_decode_json_decode -- pure-PHP core class, no WordPress dependency by design.
-        $decoded = \json_decode( $response->body, true );
-        if ( ! \is_array( $decoded ) || \array_is_list( $decoded ) ) {
-            throw \EpicWP\Roundtable\HubException::badResponse( 'hub response was not a JSON object' );
-        }
-
-        return $decoded;
+        return $this->decodeJsonObject( $response->body );
     }
 
     /**
@@ -477,13 +471,7 @@ final class HubClient {
 
         $this->guardStatus( $response->status );
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.json_decode_json_decode -- pure-PHP core class, no WordPress dependency by design.
-        $decoded = \json_decode( $response->body, true );
-        if ( ! \is_array( $decoded ) || \array_is_list( $decoded ) ) {
-            throw \EpicWP\Roundtable\HubException::badResponse( 'hub response was not a JSON object' );
-        }
-
-        return $decoded;
+        return $this->decodeJsonObject( $response->body );
     }
 
     /**
@@ -509,9 +497,28 @@ final class HubClient {
 
         $this->guardStatus( $response->status );
 
+        return $this->decodeJsonObject( $response->body );
+    }
+
+    /**
+     * Decode a hub response body as a JSON object.
+     *
+     * An empty JSON object (`{}`) and an empty JSON array (`[]`) both decode to `[]` via
+     * `json_decode(..., true)`, so `array_is_list()` alone can't tell them apart; the raw
+     * body's first non-whitespace character disambiguates the empty case.
+     *
+     * @param string $body The raw response body.
+     *
+     * @return array<string, mixed> The decoded object.
+     *
+     * @throws \EpicWP\Roundtable\HubException When the body is not a JSON object.
+     */
+    private function decodeJsonObject( string $body ): array {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.json_decode_json_decode -- pure-PHP core class, no WordPress dependency by design.
-        $decoded = \json_decode( $response->body, true );
-        if ( ! \is_array( $decoded ) || \array_is_list( $decoded ) ) {
+        $decoded  = \json_decode( $body, true );
+        $isObject = \is_array( $decoded )
+            && ( ! \array_is_list( $decoded ) || \str_starts_with( \ltrim( $body ), '{' ) );
+        if ( ! $isObject ) {
             throw \EpicWP\Roundtable\HubException::badResponse( 'hub response was not a JSON object' );
         }
 
