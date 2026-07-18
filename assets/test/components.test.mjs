@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { h } from 'preact';
 import { renderToString } from 'preact-render-to-string';
 import {
-  Thread, applyStreamEvent, sendTurn, visibleSteps, stepDuration,
+  Thread, applyStreamEvent, sendTurn, visibleSteps, stepDuration, reduceSignal, computeShowDraftPrompt,
 } from '../src/components.jsx';
 
 // Node's test runner has no DOM; components.jsx reads window.RoundtableConfig
@@ -373,19 +373,72 @@ test('applyStreamEvent leaves turns unchanged for topic_worthy (handled via onSi
   assert.deepEqual(next, turns);
 });
 
-// TODO(Task 20): a rendering-level test proving ChatPanel's ordinary-chat gating
-// (topicWorthy state driven by a topic_worthy signal, vs. the unchanged
-// canDraftTopic() gate for newTopicMode) is intentionally not implemented here.
-// This file's only ChatPanel-rendering tool is `preact-render-to-string`, a
-// one-shot SSR pass with no DOM and no event dispatch: hooks never persist
-// across separate renderToString() calls, and useEffect/event handlers never
-// run during SSR. There is no way to drive ChatPanel from "before topic_worthy"
-// to "after topic_worthy" (or to reach canDraftTopic()-true turns at all,
-// since that also requires simulating a user send) without either adding a
-// DOM/testing-library dependency (e.g. jsdom + preact's `render`/`act`) or
-// extracting the gating boolean into an exported pure function for direct
-// unit testing — both are judgment calls outside this task's given code.
-// The event-forwarding contract this gating depends on (topic_worthy /
-// topic_drafted -> onSignal, not applyStreamEvent) is covered by the
-// sendTurn tests above.
-test.todo('ChatPanel shows Create topic prompt in ordinary chat only after topic_worthy fires');
+// The gating decision behind ChatPanel's "Create topic" affordance is exercised
+// directly via the pure functions it's built from (reduceSignal, computeShowDraftPrompt),
+// rather than through a rendering-level ChatPanel test: this file's only ChatPanel-rendering
+// tool is `preact-render-to-string`, a one-shot SSR pass with no DOM and no event dispatch,
+// so there's no way to drive ChatPanel from "before topic_worthy" to "after topic_worthy"
+// through simulated interaction. Testing the pure decision functions directly covers the
+// same logic without that infrastructure gap.
+
+test('reduceSignal makes the affordance visible on a topic_worthy signal', () => {
+  const next = reduceSignal({ topicWorthy: false, topicDraft: null }, { type: 'topic_worthy', case_type_hint: 'bug', rationale: 'x' });
+  assert.equal(next.topicWorthy, true);
+  assert.equal(next.topicDraft, null);
+});
+
+test('computeShowDraftPrompt hides the affordance in ordinary chat before any topic_worthy signal', () => {
+  const showDraftPrompt = computeShowDraftPrompt({
+    topicDraft: null, newTopicMode: false, topicWorthy: false, turns: [],
+  });
+  assert.equal(showDraftPrompt, false);
+});
+
+test('computeShowDraftPrompt shows the affordance in ordinary chat once topicWorthy is true', () => {
+  const showDraftPrompt = computeShowDraftPrompt({
+    topicDraft: null, newTopicMode: false, topicWorthy: true, turns: [],
+  });
+  assert.equal(showDraftPrompt, true);
+});
+
+test('reduceSignal produces the draft state and clears topicWorthy on a topic_drafted signal (flat streaming wire shape)', () => {
+  const next = reduceSignal(
+    { topicWorthy: true, topicDraft: null },
+    {
+      type: 'topic_drafted', case_id: 'c1', case_type: 'bug', title: 'T', summary: 'S',
+    },
+  );
+  assert.equal(next.topicWorthy, false);
+  assert.deepEqual(next.topicDraft, {
+    id: 'c1', title: 'T', summary: 'S', type: 'bug',
+  });
+});
+
+test('reduceSignal produces the draft state on a topic_drafted signal (nested buffered-fallback wire shape)', () => {
+  const next = reduceSignal(
+    { topicWorthy: true, topicDraft: null },
+    {
+      type: 'topic_drafted',
+      data: {
+        case_id: 'c2', case_type: 'feature', title: 'T2', summary: 'S2',
+      },
+    },
+  );
+  assert.equal(next.topicWorthy, false);
+  assert.deepEqual(next.topicDraft, {
+    id: 'c2', title: 'T2', summary: 'S2', type: 'feature',
+  });
+});
+
+test('computeShowDraftPrompt in newTopicMode ignores topicWorthy and defers to canDraftTopic(turns), unaffected by this task', () => {
+  const readyTurns = [
+    { role: 'user', reply: 'help me' },
+    { role: 'agent', reply: 'sure, here is help', error: false },
+  ];
+  assert.equal(computeShowDraftPrompt({
+    topicDraft: null, newTopicMode: true, topicWorthy: false, turns: readyTurns,
+  }), true);
+  assert.equal(computeShowDraftPrompt({
+    topicDraft: null, newTopicMode: true, topicWorthy: true, turns: [],
+  }), false);
+});

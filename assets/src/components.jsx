@@ -371,6 +371,54 @@ export function Thread({
   );
 }
 
+/**
+ * Pure reducer: fold one hub `topic_worthy`/`topic_drafted` signal onto
+ * ChatPanel's ordinary-chat affordance state. `topic_worthy` flips the
+ * "Create topic" affordance on; `topic_drafted` flips it back off and fills
+ * the draft outcome. Any other event type is a no-op (state passed through
+ * unchanged) — in practice `handleSignal` is only ever called with these two
+ * types (see sendTurn's onEvent short-circuit).
+ *
+ * Reads both `ev.data?.*` and a bare `ev.*` fallback for the drafted fields,
+ * because the SDK's two transports use different wire shapes for the same
+ * hub event: streaming spreads the event's fields onto the top level, the
+ * buffered fallback nests them under `data` (see sendTurn's fallback()).
+ * @param {{topicWorthy:boolean, topicDraft:object|null}} state Prior affordance state.
+ * @param {{type:string, data?:object, case_id?:string, title?:string, summary?:string, case_type?:string}} ev
+ * @returns {{topicWorthy:boolean, topicDraft:object|null}} Next affordance state.
+ */
+export function reduceSignal(state, ev) {
+  if (ev.type === 'topic_worthy') return { ...state, topicWorthy: true };
+  if (ev.type === 'topic_drafted') {
+    return {
+      topicWorthy: false,
+      topicDraft: {
+        id: ev.data?.case_id ?? ev.case_id,
+        title: ev.data?.title ?? ev.title,
+        summary: ev.data?.summary ?? ev.summary,
+        type: ev.data?.case_type ?? ev.case_type,
+      },
+    };
+  }
+  return state;
+}
+
+/**
+ * Whether the "Create topic" / "Turn into topic" affordance (DraftPrompt)
+ * should be visible. An existing draft always hides it. Otherwise, the
+ * "+ New topic" flow (`newTopicMode`) keeps its pre-E12 client-only
+ * `canDraftTopic()` heuristic over the visible turns, unchanged; ordinary
+ * chat is instead gated by the hub-driven `topicWorthy` signal (see
+ * `reduceSignal`).
+ * @param {{topicDraft:object|null, newTopicMode:boolean, topicWorthy:boolean, turns:Array}} state
+ * @returns {boolean}
+ */
+export function computeShowDraftPrompt({
+  topicDraft, newTopicMode, topicWorthy, turns,
+}) {
+  return !topicDraft && (newTopicMode ? canDraftTopic(turns) : topicWorthy);
+}
+
 export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [newTopicMode, setNewTopicMode] = useState(false);
   const [turns, setTurns] = useState([{
@@ -418,22 +466,14 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   }, [turns]);
 
   function handleSignal(ev) {
-    if (ev.type === 'topic_worthy') {
-      setTopicWorthy(true);
-    } else if (ev.type === 'topic_drafted') {
-      setTopicWorthy(false);
-      setTopicDraft({
-        id: ev.data?.case_id ?? ev.case_id,
-        title: ev.data?.title ?? ev.title,
-        summary: ev.data?.summary ?? ev.summary,
-        type: ev.data?.case_type ?? ev.case_type,
-      });
-    }
+    const next = reduceSignal({ topicWorthy, topicDraft }, ev);
+    setTopicWorthy(next.topicWorthy);
+    setTopicDraft(next.topicDraft);
   }
 
   async function send(textOverride) {
     const text = (textOverride ?? composer).trim();
-    if (!text || busy) return;
+    if (!text || busy || draftBusy) return;
     setComposer('');
     await sendTurn(text, { setTurns, setBusy, onSignal: handleSignal });
   }
@@ -491,7 +531,9 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
 
   const agentName = agentDisplayName();
   const composerPlaceholder = newTopicMode ? 'Describe your topic…' : `Message ${agentName}…`;
-  const showDraftPrompt = !topicDraft && (newTopicMode ? canDraftTopic(turns) : topicWorthy);
+  const showDraftPrompt = computeShowDraftPrompt({
+    topicDraft, newTopicMode, topicWorthy, turns,
+  });
 
   return (
     <div class="rt-panel">
@@ -523,7 +565,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
           <textarea ref={composerRef} rows="1" placeholder={composerPlaceholder} value={composer}
             onInput={(e) => setComposer(e.currentTarget.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
-          <button class="rt-send-icon" type="button" disabled={busy} onClick={() => send()} aria-label="Send">➤</button>
+          <button class="rt-send-icon" type="button" disabled={busy || draftBusy} onClick={() => send()} aria-label="Send">➤</button>
         </div>
         <div class="rt-chint">Enter to send · Shift+Enter for a new line</div>
       </div>
