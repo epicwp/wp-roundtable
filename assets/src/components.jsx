@@ -7,9 +7,9 @@ import { eventsToTurn } from './events.js';
 import { canDraftTopic, turnsToConversation } from './conversation.js';
 import { PublishDialog } from './publish-dialog.jsx';
 import { AgentAvatar } from './avatars.jsx';
-import { agentDisplayName, projectDisplayName } from './config.js';
+import { agentDisplayName, initialMessage, projectDisplayName } from './config.js';
 import { labelStep } from './steps.js';
-import { chatGreeting, NEW_TOPIC_INTRO, TOPIC_CHIPS } from './chat-copy.js';
+import { NEW_TOPIC_INTRO, resolveInitialMessage, TOPIC_CHIPS } from './chat-copy.js';
 
 const STREAM_FIRST_EVENT_TIMEOUT_MS = 15000;
 
@@ -366,7 +366,7 @@ export function Thread({
 export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [newTopicMode, setNewTopicMode] = useState(false);
   const [turns, setTurns] = useState([{
-    role: 'agent', reply: chatGreeting(agentDisplayName(), projectDisplayName()), steps: [], error: false, introChips: true,
+    role: 'agent', reply: resolveInitialMessage(initialMessage(), agentDisplayName(), projectDisplayName()), steps: [], error: false, introChips: true,
   }]);
   const [composer, setComposer] = useState('');
   const [busy, setBusy] = useState(false);
