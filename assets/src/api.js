@@ -49,10 +49,12 @@ async function get(path, query) {
 /**
  * Send one chat message.
  * @param {string} text
+ * @param {string} [trigger] E12: 'create_topic' for the "Create topic" click; omitted for an
+ *   ordinary message.
  * @returns {Promise<{events:Array}|{error:{kind:string}}>}
  */
-export function sendMessage(text) {
-  return post('/message', { message: text });
+export function sendMessage(text, trigger) {
+  return post('/message', trigger ? { message: text, trigger } : { message: text });
 }
 
 /** Start a fresh chat (clears server-side session). */
@@ -63,15 +65,17 @@ export function resetChat() {
 /**
  * Stream a chat turn. Calls onEvent per decoded event; onError on failure; onDone at end.
  * @param {string} text
- * @param {{onEvent:(e:object)=>void, onError:()=>void, onDone:()=>void, signal?:AbortSignal}} handlers
+ * @param {{onEvent:(e:object)=>void, onError:()=>void, onDone:()=>void, signal?:AbortSignal, trigger?:string}} handlers
  */
-export async function streamMessage(text, { onEvent, onError, onDone, signal }) {
+export async function streamMessage(text, {
+  onEvent, onError, onDone, signal, trigger,
+}) {
   let res;
   try {
     res = await fetch(restBase() + '/message/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': cfg().nonce },
-      body: JSON.stringify({ message: text }),
+      body: JSON.stringify(trigger ? { message: text, trigger } : { message: text }),
       signal,
     });
   } catch { onError(); return; }
