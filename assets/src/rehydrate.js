@@ -39,3 +39,18 @@ export function eventsToTurns(events) {
   flushAgent();
   return turns;
 }
+
+/**
+ * Compute the panel's initial turns from a /history response, or null to keep
+ * the default greeting. Non-empty history → the greeting (chips off) followed
+ * by the reconstructed turns; empty history or an error → null (no change).
+ * @param {object} greeting The default greeting turn.
+ * @param {{events?:Array, error?:object}} res The /history response.
+ * @returns {Array<object>|null}
+ */
+export function rehydratedTurns(greeting, res) {
+  if (!res || res.error) return null;
+  const turns = eventsToTurns(res.events);
+  if (!turns.length) return null;
+  return [{ ...greeting, introChips: false }, ...turns];
+}
