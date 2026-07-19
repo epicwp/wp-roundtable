@@ -26,6 +26,7 @@ final class Roundtable {
         \add_action( 'admin_enqueue_scripts', array( $page, 'enqueue' ) );
 
         $message       = new MessageController( $config, $hub );
+        $history       = new HistoryController( $config, $hub );
         $stream        = new StreamController( $config, $hub, new Http\CurlStreamingTransport() );
         $session       = new SessionController( $config );
         $cases         = new CasesController( $config, $hub );
@@ -36,6 +37,7 @@ final class Roundtable {
         $draft         = new CaseDraftController( $config, $hub );
         $publish       = new PublishController( $config, $hub );
         \add_action( 'rest_api_init', array( $message, 'register' ) );
+        \add_action( 'rest_api_init', array( $history, 'register' ) );
         \add_action( 'rest_api_init', array( $stream, 'register' ) );
         \add_action( 'rest_api_init', array( $session, 'register' ) );
         \add_action( 'rest_api_init', array( $cases, 'register' ) );
