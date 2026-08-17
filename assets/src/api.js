@@ -63,6 +63,14 @@ export function resetChat() {
 }
 
 /**
+ * Fetch the current chat's stored history for rehydrate.
+ * @returns {Promise<{events:Array}|{error:{kind:string}}>}
+ */
+export function fetchHistory() {
+  return get('/history');
+}
+
+/**
  * Stream a chat turn. Calls onEvent per decoded event; onError on failure; onDone at end.
  * @param {string} text
  * @param {{onEvent:(e:object)=>void, onError:()=>void, onDone:()=>void, signal?:AbortSignal, trigger?:string}} handlers

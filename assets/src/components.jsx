@@ -2,9 +2,12 @@
 import { h } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { renderMarkdown } from './markdown.js';
-import { streamMessage, sendMessage, resetChat, createDraft, publishCase } from './api.js';
+import {
+  streamMessage, sendMessage, resetChat, createDraft, publishCase, fetchHistory,
+} from './api.js';
 import { eventsToTurn } from './events.js';
 import { canDraftTopic, turnsToConversation } from './conversation.js';
+import { rehydratedTurns } from './rehydrate.js';
 import { PublishDialog } from './publish-dialog.jsx';
 import { AgentAvatar } from './avatars.jsx';
 import { agentDisplayName, initialMessage, projectDisplayName } from './config.js';
@@ -433,6 +436,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const composerRef = useRef(null);
   const threadRef = useRef(null);
   const stickToBottomRef = useRef(true);
+  const userInteractedRef = useRef(false);
 
   useEffect(() => {
     if (resetNonce > 0) newTopic();
@@ -465,6 +469,20 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight;
   }, [turns]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await fetchHistory();
+      if (cancelled) return;
+      if (userInteractedRef.current) return;
+      setTurns((cur) => {
+        const next = rehydratedTurns(cur[0], res);
+        return next ?? cur;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   function handleSignal(ev) {
     const next = reduceSignal({ topicWorthy, topicDraft }, ev);
     setTopicWorthy(next.topicWorthy);
@@ -472,6 +490,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   }
 
   async function send(textOverride) {
+    userInteractedRef.current = true;
     const text = (textOverride ?? composer).trim();
     if (!text || busy || draftBusy) return;
     setComposer('');
@@ -479,6 +498,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   }
 
   async function newTopic() {
+    userInteractedRef.current = true;
     if (busy || draftBusy) return;
     setBusy(true);
     const res = await resetChat();

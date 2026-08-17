@@ -128,6 +128,22 @@ final class HubClient {
     }
 
     /**
+     * Fetch a chat's stored history for rehydrate.
+     *
+     * @param string $chatId The consumer chat id (resumes/reads the hub chat).
+     *
+     * @return list<array{type: string, data: array<string, mixed>}> The events, in order.
+     *
+     * @throws \EpicWP\Roundtable\HubException On transport failure or a non-2xx response.
+     */
+    public function getHistory( string $chatId ): array {
+        $url    = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/chats/' . $chatId . '/messages';
+        $body   = $this->getJsonObject( $url );
+        $events = $body['events'] ?? array();
+        return \is_array( $events ) ? \array_values( $events ) : array();
+    }
+
+    /**
      * List public cases from the hub browse API.
      *
      * @param array<string, int|string> $query Optional hub query params: `type`, `q`, `sort`, `limit`, `offset`.
