@@ -624,6 +624,7 @@ final class HubClient {
                 'subject_id' => $this->config->consumer->subjectId(),
             ),
             $this->triggerField( $trigger ),
+            $this->licenceField(),
         );
         if ( $isFirstTurn ) {
             $metadata = $this->config->consumer->metadata();
@@ -652,5 +653,18 @@ final class HubClient {
             return array();
         }
         return array( 'trigger' => $trigger );
+    }
+
+    /**
+     * Optional `licence` field for a chat-turn body, when the consumer provides one.
+     *
+     * @return array<string, array{key: string, activation_id: string}> Zero or one keyed entry.
+     */
+    private function licenceField(): array {
+        $licence = $this->config->consumer->licence();
+        if ( null === $licence ) {
+            return array();
+        }
+        return array( 'licence' => $licence );
     }
 }

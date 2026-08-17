@@ -21,6 +21,7 @@ final class GateTest extends TestCase {
             public function subjectId(): string { return 's'; }
             public function metadata(): ?string { return null; }
             public function clientVersion(): ?string { return null; }
+            public function licence(): ?array { return null; }
         };
         return new Config( 'pk_secret', $consumer );
     }

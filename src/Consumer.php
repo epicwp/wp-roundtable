@@ -46,4 +46,16 @@ interface Consumer {
      * @return string|null The version string, or null.
      */
     public function clientVersion(): ?string;
+
+    /**
+     * The install's licence material, verified server-side by the hub.
+     *
+     * Sent with every chat turn as the `licence` body field. Hubs with licence
+     * verification enabled refuse chat turns without a valid payload; return null
+     * when the consumer has no licence system (the hub project must then run with
+     * verification disabled).
+     *
+     * @return array{key: string, activation_id: string}|null The licence material, or null.
+     */
+    public function licence(): ?array;
 }

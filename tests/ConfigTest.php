@@ -16,7 +16,7 @@ final class ConfigTest extends PHPUnitTestCase
 
         self::assertSame('pk_live_123', $config->projectApiKey);
         self::assertSame($consumer, $config->consumer);
-        self::assertSame('Roundtable', $config->agentName);
+        self::assertSame('Clara', $config->agentName);
         self::assertNull($config->agentAvatarUrl);
         self::assertSame(30, $config->timeoutSeconds);
         self::assertNull($config->hubBaseUrl);
