@@ -20,7 +20,7 @@ final class Config {
     public function __construct(
         public readonly string $projectApiKey,
         public readonly Consumer $consumer,
-        public readonly string $agentName = 'Roundtable',
+        public readonly string $agentName = 'Clara',
         public readonly ?string $agentAvatarUrl = null,
         public readonly int $timeoutSeconds = 30,
         public readonly ?string $hubBaseUrl = null,

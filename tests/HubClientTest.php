@@ -45,6 +45,29 @@ final class HubClientTest extends PHPUnitTestCase
         self::assertSame('1.2.3', $body['client_version']);
     }
 
+    public function test_body_carries_licence_on_every_turn_when_consumer_provides_one(): void
+    {
+        $transport = new FakeTransport(200, '');
+        $licence   = array('key' => 'lic-1', 'activation_id' => 'act-1');
+        $client    = new HubClient($this->config(new FakeConsumer(true, 'subj', null, null, $licence)), $transport);
+
+        $client->postMessage('chat-1', 'hello', false);
+
+        $body = \json_decode((string) $transport->lastBody, true);
+        self::assertSame($licence, $body['licence']);
+    }
+
+    public function test_body_omits_licence_when_consumer_has_none(): void
+    {
+        $transport = new FakeTransport(200, '');
+        $client    = new HubClient($this->config(new FakeConsumer()), $transport);
+
+        $client->postMessage('chat-1', 'hello', false);
+
+        $body = \json_decode((string) $transport->lastBody, true);
+        self::assertArrayNotHasKey('licence', $body);
+    }
+
     public function test_later_turn_body_omits_metadata_and_client_version(): void
     {
         $transport = new FakeTransport(200, '');
