@@ -218,6 +218,27 @@ test('sendTurn falls back to the buffered endpoint when onError fires before any
   assert.equal(getBusy(), false);
 });
 
+test('sendTurn recovers a tail-truncated reply from finalText when the stream ends (lost trailing deltas)', async () => {
+  const [getTurns, setTurns] = fakeState([]);
+  const [getBusy, setBusy] = fakeState(false);
+
+  const full = 'Of course! Go ahead — what would you like to know?';
+  const streamFn = async (text, { onEvent, onDone }) => {
+    onEvent({ type: 'guarded_text_delta', text: 'Of course! Go ahead — what would y' });
+    onEvent({ type: 'assistant_text', text: full });
+    onEvent({ type: 'result' });
+    onDone();
+  };
+
+  await sendTurn('Can I ask something else?', { setTurns, setBusy, streamFn, sendFn: async () => ({ events: [] }) });
+
+  const turns = getTurns();
+  const last = turns[turns.length - 1];
+  assert.equal(last.reply, full);
+  assert.equal(last.done, true);
+  assert.equal(getBusy(), false);
+});
+
 test('sendTurn does not fall back once a stream event already arrived — a later onError just ends the turn in error state', async () => {
   const [getTurns, setTurns] = fakeState([]);
   const [getBusy, setBusy] = fakeState(false);

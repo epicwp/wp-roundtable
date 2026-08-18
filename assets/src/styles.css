@@ -274,3 +274,18 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-field span { display:block; font-size:12px; font-weight:600; color:var(--rt-ink-soft); margin-bottom:6px; }
 #roundtable-app .rt-field input, #roundtable-app .rt-field textarea { width:100%; font:inherit; font-size:13.5px; border:1px solid var(--rt-line)!important; border-radius:8px; padding:8px 10px; box-shadow:none!important; background:#fff!important; }
 #roundtable-app .rt-modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
+
+.rt-modal-close {
+  margin-left: 8px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 20px;
+  line-height: 1;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.rt-modal-close:hover { background: #f3f4f6; color: #111827; }
