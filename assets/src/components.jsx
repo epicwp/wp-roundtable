@@ -25,7 +25,23 @@ const STREAM_FIRST_EVENT_TIMEOUT_MS = 15000;
  * @param {string} text
  * @param {{setTurns:Function, setBusy:Function, streamFn?:Function, sendFn?:Function, timeoutMs?:number, trigger?:string, onSignal?:(ev:object)=>void}} opts
  */
+/**
+ * Human-readable message for a failed turn, keyed by the error kind when known.
+ * @param {string|undefined} kind
+ * @returns {string}
+ */
+function errorText(kind) {
+  if (kind === 'licence_invalid' || kind === 'http_402') {
+    return 'Your product licence could not be verified. Check your licence in the plugin settings, then try again.';
+  }
+  if (kind === 'over_quota' || kind === 'http_429') {
+    return "You've reached the usage limit for now. Please try again in a little while.";
+  }
+  return 'Something went wrong. Please try again.';
+}
+
 export async function sendTurn(text, {
+
   setTurns, setBusy, streamFn = streamMessage, sendFn = sendMessage, timeoutMs = STREAM_FIRST_EVENT_TIMEOUT_MS,
   trigger, onSignal,
 }) {
@@ -48,7 +64,7 @@ export async function sendTurn(text, {
         setTurns((t) => {
           const next = t.slice();
           const i = next.length - 1;
-          next[i] = { ...next[i], error: true, done: true };
+          next[i] = { ...next[i], error: true, errorKind: res.error.kind, done: true };
           return next;
         });
         return;
@@ -151,7 +167,7 @@ export function applyStreamEvent(turns, ev, now) {
     patch = (turn.reply === '' && turn.finalText)
       ? { ...base, reply: turn.finalText }
       : base;
-  } else if (ev.type === 'error') patch = { error: true };
+  } else if (ev.type === 'error') patch = { error: true, errorKind: ev.message };
   else return turns;
   const next = turns.slice();
   next[i] = { ...turn, ...patch };
@@ -282,7 +298,7 @@ function TypedBubble({ turn, streaming }) {
   return (
     <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
          // eslint-disable-next-line react/no-danger
-         dangerouslySetInnerHTML={{ __html: turn.error ? 'Something went wrong. Please try again.' : renderMarkdown(text) }} />
+         dangerouslySetInnerHTML={{ __html: turn.error ? errorText(turn.errorKind) : renderMarkdown(text) }} />
   );
 }
 
@@ -320,7 +336,7 @@ function Bubble({ turn, onChipSend, chipDisabled }) {
         )}
         {turn.done && vsteps.length > 0 && (
           <details class="rt-activity">
-            <summary>Code doorzocht · {vsteps.length} {vsteps.length === 1 ? 'stap' : 'stappen'}</summary>
+            <summary>Searched the code · {vsteps.length} {vsteps.length === 1 ? 'step' : 'steps'}</summary>
             <ul>
               {vsteps.map((s, i) => {
                 const nextAt = i + 1 < vsteps.length ? vsteps[i + 1].at : turn.doneAt;

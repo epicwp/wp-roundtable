@@ -15,6 +15,8 @@ final class HubException extends \RuntimeException {
     public const BLOCKED = 'blocked';
     /** The subject is over its request quota (HTTP 429). */
     public const OVER_QUOTA = 'over_quota';
+
+    public const LICENCE_INVALID = 'licence_invalid';
     /** A transport-level failure (no HTTP response). */
     public const NETWORK = 'network';
     /** The hub returned a server error. */
@@ -30,6 +32,11 @@ final class HubException extends \RuntimeException {
     /** The subject is over its request quota (HTTP 429). */
     public static function overQuota(): self {
         return new self( self::OVER_QUOTA, 'The request was refused (over quota).' );
+    }
+
+    /** The install's licence failed hub-side verification (HTTP 402). */
+    public static function licenceInvalid(): self {
+        return new self( self::LICENCE_INVALID, 'The request was refused (licence invalid).' );
     }
 
     /**

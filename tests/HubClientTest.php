@@ -94,6 +94,7 @@ final class HubClientTest extends PHPUnitTestCase
     public static function errorStatuses(): array
     {
         return [
+            'licence'    => [402, HubException::LICENCE_INVALID],
             'blocked'    => [403, HubException::BLOCKED],
             'over quota' => [429, HubException::OVER_QUOTA],
             'server'     => [503, HubException::SERVER],

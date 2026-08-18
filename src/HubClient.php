@@ -449,6 +449,7 @@ final class HubClient {
             return;
         }
         throw match ( $status ) {
+            402 => \EpicWP\Roundtable\HubException::licenceInvalid(),
             403 => \EpicWP\Roundtable\HubException::blocked(),
             429 => \EpicWP\Roundtable\HubException::overQuota(),
             default => \EpicWP\Roundtable\HubException::server( $status ),
