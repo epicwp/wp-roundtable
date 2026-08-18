@@ -25,7 +25,13 @@ export function PublishDialog({ draft, busy, onCancel, onPublish }) {
   const activeType = TYPES.find((t) => t.id === type) || TYPES[0];
 
   return (
-    <div class="rt-modal-backdrop rt-pub-backdrop" role="dialog" aria-modal="true" aria-label="Review and publish topic">
+    <div
+      class="rt-modal-backdrop rt-pub-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Review and publish topic"
+      onClick={(e) => { if (e.target === e.currentTarget && !busy) onCancel(); }}
+    >
       <div class="rt-modal rt-pub-modal">
         <div class="rt-pub-head">
           <div>
@@ -33,6 +39,13 @@ export function PublishDialog({ draft, busy, onCancel, onPublish }) {
             <p class="rt-modal-sub">Edit the draft below. After you submit, a maintainer reviews it before it appears in the public list.</p>
           </div>
           <span class={'rt-badge ' + activeType.badgeClass}>{activeType.label}</span>
+          <button
+            type="button"
+            class="rt-modal-close"
+            aria-label="Close"
+            disabled={busy}
+            onClick={onCancel}
+          >×</button>
         </div>
         <div class="rt-pub-types" role="group" aria-label="Topic type">
           {TYPES.map((t) => (

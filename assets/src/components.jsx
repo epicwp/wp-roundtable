@@ -125,7 +125,7 @@ export async function sendTurn(text, {
       setTurns((t) => {
         if (!t.length) return t;
         const last = t[t.length - 1];
-        if (last.reply === '' && last.finalText) {
+        if (last.finalText && last.finalText.length > (last.reply || '').length) {
           const next = t.slice();
           next[next.length - 1] = { ...last, reply: last.finalText, done: true };
           return next;
@@ -158,7 +158,7 @@ export function applyStreamEvent(turns, ev, now) {
   const turn = turns[i];
   let patch;
   if (ev.type === 'guarded_text_delta') patch = { reply: turn.reply + (ev.text || '') };
-  else if (ev.type === 'assistant_text') patch = { finalText: ev.text };
+  else if (ev.type === 'assistant_text') patch = { finalText: (turn.finalText || '') + ev.text };
   else if (ev.type === 'progress') patch = { steps: [...turn.steps, { summary: ev.summary, at: now }] };
   else if (ev.type === 'result') {
     const base = ev.is_error === true
@@ -381,11 +381,12 @@ function DraftPrompt({ busy, drafting, onDraft }) {
 }
 
 export function Thread({
-  turns, onChipSend, chipDisabled, threadRef,
+  turns, onChipSend, chipDisabled, threadRef, bottomRef,
 }) {
   return (
     <div class="rt-thread" ref={threadRef}>
       {turns.map((t, i) => <Bubble key={i} turn={t} onChipSend={onChipSend} chipDisabled={chipDisabled} />)}
+      <div ref={bottomRef} aria-hidden="true" />
     </div>
   );
 }
@@ -452,6 +453,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const composerRef = useRef(null);
   const threadRef = useRef(null);
   const stickToBottomRef = useRef(true);
+  const bottomRef = useRef(null);
   const userInteractedRef = useRef(false);
 
   useEffect(() => {
@@ -482,7 +484,11 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   // up to read history.
   useEffect(() => {
     const el = threadRef.current;
-    if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight;
+    if (!el || !stickToBottomRef.current) return;
+    el.scrollTop = el.scrollHeight;
+    // The thread may not be the scrolling ancestor (e.g. the admin page body
+    // scrolls instead); a sentinel scrollIntoView follows whichever it is.
+    bottomRef.current?.scrollIntoView({ block: 'nearest' });
   }, [turns]);
 
   useEffect(() => {
@@ -582,7 +588,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
         <span class="rt-head-grow" />
         <button class="rt-iconbtn" type="button" onClick={newTopic} title="New conversation" aria-label="New conversation">+</button>
       </div>
-      <Thread turns={turns} chipDisabled={busy || draftBusy} onChipSend={(msg) => send(msg)} threadRef={threadRef} />
+      <Thread turns={turns} chipDisabled={busy || draftBusy} onChipSend={(msg) => send(msg)} threadRef={threadRef} bottomRef={bottomRef} />
       {topicDraft && (
         <div class="rt-thread-extras">
           <OutcomeCard

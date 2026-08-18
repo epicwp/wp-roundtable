@@ -122,6 +122,7 @@ export function mapCaseToTopic(row) {
   const isPending = visibility === 'pending';
   return {
     id: row.id,
+    type,
     title: row.title || '',
     snippet: summary,
     typeLabel: TYPE_LABELS[type] || type,

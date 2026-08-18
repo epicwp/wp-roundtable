@@ -60,10 +60,10 @@ export function CommunityApp() {
     setTabCounts(counts);
   }, []);
 
-  async function confirmPublish({ title, summary }) {
+  async function confirmPublish({ title, summary, type }) {
     if (!publishDraft?.id || publishBusy) return;
     setPublishBusy(true);
-    const res = await publishCase({ case_id: publishDraft.id, title, summary });
+    const res = await publishCase({ case_id: publishDraft.id, title, summary, type });
     setPublishBusy(false);
     if (res.error) return;
     setPublishDraft(null);
@@ -118,7 +118,7 @@ export function CommunityApp() {
               <StartedList
                 refreshNonce={listRefresh}
                 onSelectTopic={openTopic}
-                onReviewDraft={(topic) => setPublishDraft(topic)}
+                onReviewDraft={(topic) => setPublishDraft({ ...topic, summary: topic.snippet })}
                 onVoteChange={refreshTabCountsOnly}
               />
             )}
@@ -153,7 +153,10 @@ export function CommunityApp() {
           aria-label="Close chat"
           onClick={() => setChatOpen(false)}
         >×</button>
-        <ChatPanel resetNonce={resetNonce} onTopicPublished={bumpLists} />
+        <ChatPanel
+          resetNonce={resetNonce}
+          onTopicPublished={() => { bumpLists(); setActiveTab('started'); }}
+        />
       </aside>
       {publishDraft && (
         <PublishDialog
