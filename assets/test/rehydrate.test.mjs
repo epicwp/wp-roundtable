@@ -1,7 +1,7 @@
 // assets/test/rehydrate.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { eventsToTurns } from '../src/rehydrate.js';
+import {eventsToTurns, rehydratedTopicWorthy } from '../src/rehydrate.js';
 
 test('splits user_text and agent turns', () => {
   const turns = eventsToTurns([
@@ -30,4 +30,27 @@ test('trailing agent events without a result still form a turn', () => {
   ]);
   assert.equal(turns.length, 2);
   assert.equal(turns[1].reply, 'partial');
+});
+
+test('rehydratedTopicWorthy restores an un-drafted topic_worthy signal', () => {
+  const res = { events: [
+    { type: 'user_text', data: { text: 'bug!' } },
+    { type: 'topic_worthy', data: {} },
+    { type: 'result', data: {} },
+  ] };
+  assert.equal(rehydratedTopicWorthy(res), true);
+});
+
+test('rehydratedTopicWorthy is false when a later topic_drafted superseded it', () => {
+  const res = { events: [
+    { type: 'topic_worthy', data: {} },
+    { type: 'topic_drafted', data: { case_id: 'c1' } },
+  ] };
+  assert.equal(rehydratedTopicWorthy(res), false);
+});
+
+test('rehydratedTopicWorthy is false on empty or error responses', () => {
+  assert.equal(rehydratedTopicWorthy({ events: [] }), false);
+  assert.equal(rehydratedTopicWorthy({ error: { kind: 'http' } }), false);
+  assert.equal(rehydratedTopicWorthy(null), false);
 });

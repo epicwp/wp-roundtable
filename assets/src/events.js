@@ -10,7 +10,11 @@ export function eventsToTurn(events) {
   const turn = { reply: '', steps: [], outcome: null, error: false };
   const list = Array.isArray(events) ? events : [];
   for (const ev of list) {
-    if (ev.type === 'assistant_text' && typeof ev.data?.text === 'string') turn.reply += ev.data.text;
+    // Each assistant_text event is one complete text block; join blocks with a
+    // blank line so consecutive blocks never concatenate mid-sentence.
+    if (ev.type === 'assistant_text' && typeof ev.data?.text === 'string') {
+      turn.reply = turn.reply ? `${turn.reply}\n\n${ev.data.text}` : ev.data.text;
+    }
     else if (ev.type === 'error') turn.error = true;
     else if (ev.type === 'result') {
       turn.outcome = ev.data || null;

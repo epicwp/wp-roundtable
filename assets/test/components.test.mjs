@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { h } from 'preact';
 import { renderToString } from 'preact-render-to-string';
 import {
-  Thread, applyStreamEvent, sendTurn, visibleSteps, stepDuration, reduceSignal, computeShowDraftPrompt,
+  Thread, applyStreamEvent, sendTurn, visibleSteps, stepDuration, reduceSignal, computeShowDraftPrompt, reduceScrollEvent,
 } from '../src/components.jsx';
 
 // Node's test runner has no DOM; components.jsx reads window.RoundtableConfig
@@ -462,4 +462,26 @@ test('computeShowDraftPrompt in newTopicMode ignores topicWorthy and defers to c
   assert.equal(computeShowDraftPrompt({
     topicDraft: null, newTopicMode: true, topicWorthy: true, turns: [],
   }), false);
+});
+
+test('applyStreamEvent joins consecutive assistant_text blocks with a blank line in finalText', () => {
+  const turns = [{ role: 'agent', reply: '', steps: [], error: false }];
+  let t = applyStreamEvent(turns, { type: 'assistant_text', text: 'Part one.' }, 1000);
+  t = applyStreamEvent(t, { type: 'assistant_text', text: 'Part two.' }, 1010);
+  assert.equal(t[0].finalText, 'Part one.\n\nPart two.');
+});
+
+test('reduceScrollEvent consumes a pending programmatic scroll as still sticking', () => {
+  const next = reduceScrollEvent({ pending: 2, stick: true }, 500);
+  assert.deepEqual(next, { pending: 1, stick: true });
+});
+
+test('reduceScrollEvent re-sticks a user scroll near the bottom', () => {
+  const next = reduceScrollEvent({ pending: 0, stick: false }, 20);
+  assert.deepEqual(next, { pending: 0, stick: true });
+});
+
+test('reduceScrollEvent unsticks a user scroll away from the bottom', () => {
+  const next = reduceScrollEvent({ pending: 0, stick: true }, 300);
+  assert.deepEqual(next, { pending: 0, stick: false });
 });

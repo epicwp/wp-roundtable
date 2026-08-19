@@ -3,13 +3,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { eventsToTurn } from '../src/events.js';
 
-test('concatenates assistant_text into reply', () => {
+test('joins assistant_text blocks into reply with a blank line', () => {
   const turn = eventsToTurn([
-    { type: 'assistant_text', data: { text: 'Hello ' } },
+    { type: 'assistant_text', data: { text: 'Hello' } },
     { type: 'assistant_text', data: { text: 'world' } },
     { type: 'result', data: { subtype: 'success' } },
   ]);
-  assert.equal(turn.reply, 'Hello world');
+  assert.equal(turn.reply, 'Hello\n\nworld');
   assert.equal(turn.error, false);
 });
 
