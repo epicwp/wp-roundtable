@@ -119,15 +119,16 @@ export async function sendTurn(text, {
     onDone: () => {
       clearTimeout(timer);
       // Belt-and-suspenders: if the stream ended without a `result` event,
-      // applyStreamEvent never got a chance to fall back to a captured
-      // finalText (e.g. an assistant_text refusal). Reconcile here so the
-      // turn still shows something instead of rendering empty.
+      // applyStreamEvent never got a chance to fall back to the captured
+      // assistant_text blocks (e.g. a refusal). Reconcile here so the turn
+      // still shows something instead of rendering empty.
       setTurns((t) => {
         if (!t.length) return t;
         const last = t[t.length - 1];
-        if (last.finalText && last.finalText.length > (last.reply || '').length) {
+        const composed = composeFinal(last);
+        if (composed && composed.length > (last.reply || '').length) {
           const next = t.slice();
-          next[next.length - 1] = { ...last, reply: last.finalText, done: true };
+          next[next.length - 1] = { ...last, reply: composed, done: true };
           return next;
         }
         return t;
@@ -138,15 +139,45 @@ export async function sendTurn(text, {
 }
 
 /**
+ * Compose kept text segments plus the still-open one into the rendered reply.
+ * @param {Array<string>} kept Closed segments that survived (openers).
+ * @param {{text:string}|null} curSeg The segment currently accumulating, if any.
+ * @returns {string}
+ */
+function renderedReply(kept, curSeg) {
+  return [...kept, curSeg ? curSeg.text : ''].filter(Boolean).join('\n\n');
+}
+
+/**
+ * Compose the reply from a turn's complete `assistant_text` blocks, dropping
+ * interim ones. A block is interim when real steps happened both before it
+ * (`startStep > 0`) and after it (more steps than when it started) — that's
+ * research narration, which the agent's identity bar bans from replies. The
+ * opener (a block before any real step, e.g. an empathy acknowledgement) and
+ * the closing answer are kept.
+ * @param {{finalBlocks?:Array<{text:string,startStep:number}>, steps:Array}} turn
+ * @returns {string}
+ */
+export function composeFinal(turn) {
+  const total = visibleSteps(turn.steps).length;
+  return (turn.finalBlocks || [])
+    .filter((b) => b.startStep === 0 || b.startStep >= total)
+    .map((b) => b.text)
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+/**
  * Fold one streamed hub event onto the last (in-flight agent) turn.
- * guarded_text_delta keeps accumulating onto `reply` even after `result` —
- * the guard flushes a trailing delta after `result`, so accumulation must not
- * stop there. assistant_text is stored as `finalText` without touching
- * `reply`, so it never overwrites (and duplicates) a delta-built reply. On
- * `result`, if no deltas arrived (`reply` is still empty) but a `finalText`
- * was captured — e.g. an off-topic refusal, or a turn the model didn't
- * stream partial-message deltas for — it becomes the reply, so the turn
- * doesn't render as empty.
+ * guarded_text_delta accumulates into the current text segment (kept
+ * accumulating even after `result` — the guard flushes a trailing delta).
+ * A `progress` step closes the current segment: an opener (text streamed
+ * before any real step) is kept, a middle segment (thinking-out-loud between
+ * research steps) is dropped from the rendered reply. assistant_text blocks
+ * are collected as `finalBlocks` without touching `reply`; on `result`, if no
+ * deltas arrived (`reply` is empty) the same opener/closer composition of
+ * those blocks becomes the reply — e.g. an off-topic refusal, or a turn the
+ * model didn't stream partial-message deltas for.
  * @param {Array} turns
  * @param {{type:string, text?:string, summary?:string}} ev
  * @param {number} now current time (ms), used to stamp step/completion timestamps
@@ -156,21 +187,34 @@ export function applyStreamEvent(turns, ev, now) {
   if (!turns.length) return turns;
   const i = turns.length - 1;
   const turn = turns[i];
+  const kept = turn.keptSegs || [];
   let patch;
-  if (ev.type === 'guarded_text_delta') patch = { reply: turn.reply + (ev.text || '') };
-  else if (ev.type === 'assistant_text') {
-    // One event per complete text block: blocks join with a blank line so they
-    // never concatenate mid-sentence.
-    patch = { finalText: turn.finalText ? `${turn.finalText}\n\n${ev.text}` : ev.text };
-  }
-  else if (ev.type === 'progress') patch = { steps: [...turn.steps, { summary: ev.summary, at: now }] };
-  else if (ev.type === 'result') {
+  if (ev.type === 'guarded_text_delta') {
+    const curSeg = turn.curSeg
+      ? { ...turn.curSeg, text: turn.curSeg.text + (ev.text || '') }
+      : { text: ev.text || '', startStep: visibleSteps(turn.steps).length };
+    patch = { curSeg, reply: renderedReply(kept, curSeg) };
+  } else if (ev.type === 'assistant_text') {
+    patch = {
+      finalBlocks: [
+        ...(turn.finalBlocks || []),
+        { text: ev.text, startStep: visibleSteps(turn.steps).length },
+      ],
+    };
+  } else if (ev.type === 'progress') {
+    patch = { steps: [...turn.steps, { summary: ev.summary, at: now }] };
+    if (turn.curSeg) {
+      const keepIt = turn.curSeg.startStep === 0;
+      patch.keptSegs = keepIt ? [...kept, turn.curSeg.text] : kept;
+      patch.curSeg = null;
+      patch.reply = renderedReply(patch.keptSegs, null);
+    }
+  } else if (ev.type === 'result') {
     const base = ev.is_error === true
       ? { done: true, error: true, doneAt: now }
       : { done: true, doneAt: now };
-    patch = (turn.reply === '' && turn.finalText)
-      ? { ...base, reply: turn.finalText }
-      : base;
+    const fallback = turn.reply === '' ? composeFinal(turn) : '';
+    patch = fallback ? { ...base, reply: fallback } : base;
   } else if (ev.type === 'error') patch = { error: true, errorKind: ev.message };
   else return turns;
   const next = turns.slice();
