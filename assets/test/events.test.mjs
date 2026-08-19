@@ -34,3 +34,24 @@ test('flags an error turn', () => {
   const turn = eventsToTurn([{ type: 'error', data: { message: 'boom' } }]);
   assert.equal(turn.error, true);
 });
+
+test('drops assistant_text between tool activity, keeps opener and closing answer', () => {
+  const turn = eventsToTurn([
+    { type: 'assistant_text', data: { text: 'Opener.' } },
+    { type: 'tool_step', data: { name: 'read' } },
+    { type: 'assistant_text', data: { text: 'Interim narration.' } },
+    { type: 'progress', data: { summary: 'Reading a file' } },
+    { type: 'assistant_text', data: { text: 'The answer.' } },
+    { type: 'result', data: { subtype: 'success' } },
+  ]);
+  assert.equal(turn.reply, 'Opener.\n\nThe answer.');
+});
+
+test('the Working on it placeholder does not count as tool activity', () => {
+  const turn = eventsToTurn([
+    { type: 'progress', data: { summary: 'Working on it' } },
+    { type: 'assistant_text', data: { text: 'Only text.' } },
+    { type: 'result', data: { subtype: 'success' } },
+  ]);
+  assert.equal(turn.reply, 'Only text.');
+});

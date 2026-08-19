@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { h } from 'preact';
 import { renderToString } from 'preact-render-to-string';
 import {
-  Thread, applyStreamEvent, sendTurn, visibleSteps, stepDuration, reduceSignal, computeShowDraftPrompt, reduceScrollEvent,
+  Thread, applyStreamEvent, sendTurn, visibleSteps, stepDuration, reduceSignal, computeShowDraftPrompt, reduceScrollEvent, composeFinal,
 } from '../src/components.jsx';
 
 // Node's test runner has no DOM; components.jsx reads window.RoundtableConfig
@@ -131,7 +131,7 @@ test('applyStreamEvent marks done with doneAt on result without stopping later d
   turns = applyStreamEvent(turns, { type: 'result' }, 120);
   turns = applyStreamEvent(turns, { type: 'guarded_text_delta', text: ' run late' }, 130);
   assert.equal(turns[0].reply, 'because shortcodes run late');
-  assert.equal(turns[0].finalText, 'TOTALLY DIFFERENT TEXT');
+  assert.deepEqual(turns[0].finalBlocks, [{ text: 'TOTALLY DIFFERENT TEXT', startStep: 0 }]);
   assert.equal(turns[0].done, true);
   assert.equal(turns[0].doneAt, 120);
   assert.equal(turns[0].error, false);
@@ -142,7 +142,6 @@ test('applyStreamEvent falls back to assistant_text as reply when a turn ends wi
   turns = applyStreamEvent(turns, { type: 'assistant_text', text: 'I can only help with questions about this community.' }, 100);
   turns = applyStreamEvent(turns, { type: 'result' }, 110);
   assert.equal(turns[0].reply, 'I can only help with questions about this community.');
-  assert.equal(turns[0].reply, turns[0].finalText);
   assert.equal(turns[0].done, true);
   assert.equal(turns[0].doneAt, 110);
 });
@@ -464,11 +463,41 @@ test('computeShowDraftPrompt in newTopicMode ignores topicWorthy and defers to c
   }), false);
 });
 
-test('applyStreamEvent joins consecutive assistant_text blocks with a blank line in finalText', () => {
+test('applyStreamEvent joins consecutive assistant_text blocks with a blank line at result', () => {
   const turns = [{ role: 'agent', reply: '', steps: [], error: false }];
   let t = applyStreamEvent(turns, { type: 'assistant_text', text: 'Part one.' }, 1000);
   t = applyStreamEvent(t, { type: 'assistant_text', text: 'Part two.' }, 1010);
-  assert.equal(t[0].finalText, 'Part one.\n\nPart two.');
+  t = applyStreamEvent(t, { type: 'result' }, 1020);
+  assert.equal(t[0].reply, 'Part one.\n\nPart two.');
+});
+
+test('applyStreamEvent drops a mid-research text segment but keeps the opener and the answer', () => {
+  // Opener streams before any real step, narration streams between steps,
+  // the answer streams after the last step. Only the narration is dropped.
+  let t = [{ role: 'agent', reply: '', steps: [{ summary: 'Working on it', at: 1 }], done: false, error: false }];
+  t = applyStreamEvent(t, { type: 'guarded_text_delta', text: 'I hear you — on it.' }, 10);
+  t = applyStreamEvent(t, { type: 'progress', summary: 'Searching the code' }, 20);
+  t = applyStreamEvent(t, { type: 'guarded_text_delta', text: 'Good, that confirms it. Now let me check more.' }, 30);
+  t = applyStreamEvent(t, { type: 'progress', summary: 'Reading a file' }, 40);
+  t = applyStreamEvent(t, { type: 'guarded_text_delta', text: 'Here is the answer.' }, 50);
+  t = applyStreamEvent(t, { type: 'result' }, 60);
+  assert.equal(t[0].reply, 'I hear you — on it.\n\nHere is the answer.');
+});
+
+test('composeFinal drops interim assistant_text blocks the same way', () => {
+  const turn = {
+    steps: [
+      { summary: 'Working on it', at: 1 },
+      { summary: 'Searching the code', at: 2 },
+      { summary: 'Reading a file', at: 3 },
+    ],
+    finalBlocks: [
+      { text: 'Opener.', startStep: 0 },
+      { text: 'Interim narration.', startStep: 1 },
+      { text: 'The answer.', startStep: 2 },
+    ],
+  };
+  assert.equal(composeFinal(turn), 'Opener.\n\nThe answer.');
 });
 
 test('reduceScrollEvent consumes a pending programmatic scroll as still sticking', () => {

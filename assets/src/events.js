@@ -9,18 +9,26 @@ import { collectSteps } from './steps.js';
 export function eventsToTurn(events) {
   const turn = { reply: '', steps: [], outcome: null, error: false };
   const list = Array.isArray(events) ? events : [];
-  for (const ev of list) {
-    // Each assistant_text event is one complete text block; join blocks with a
-    // blank line so consecutive blocks never concatenate mid-sentence.
+  // Tool activity indices ("Working on it" is a placeholder frame, not a real
+  // step). An assistant_text block BETWEEN tool activity is interim research
+  // narration and is dropped; the opener (before any tool) and the closing
+  // answer (after the last tool) are kept, joined with a blank line.
+  const isTool = (ev) =>
+    ev.type === 'tool_step' || (ev.type === 'progress' && ev.data?.summary !== 'Working on it');
+  const toolIndices = list.flatMap((ev, i) => (isTool(ev) ? [i] : []));
+  const firstTool = toolIndices.length ? toolIndices[0] : Infinity;
+  const lastTool = toolIndices.length ? toolIndices[toolIndices.length - 1] : -1;
+  list.forEach((ev, i) => {
     if (ev.type === 'assistant_text' && typeof ev.data?.text === 'string') {
-      turn.reply = turn.reply ? `${turn.reply}\n\n${ev.data.text}` : ev.data.text;
-    }
-    else if (ev.type === 'error') turn.error = true;
+      if (i < firstTool || i > lastTool) {
+        turn.reply = turn.reply ? `${turn.reply}\n\n${ev.data.text}` : ev.data.text;
+      }
+    } else if (ev.type === 'error') turn.error = true;
     else if (ev.type === 'result') {
       turn.outcome = ev.data || null;
       if (ev.data?.is_error) turn.error = true;
     }
-  }
+  });
   turn.steps = collectSteps(list);
   return turn;
 }
