@@ -7,7 +7,7 @@ import {
 } from './api.js';
 import { eventsToTurn } from './events.js';
 import { canDraftTopic, turnsToConversation } from './conversation.js';
-import { rehydratedTurns } from './rehydrate.js';
+import { rehydratedTopicWorthy, rehydratedTurns } from './rehydrate.js';
 import { PublishDialog } from './publish-dialog.jsx';
 import { AgentAvatar } from './avatars.jsx';
 import { agentDisplayName, initialMessage, projectDisplayName } from './config.js';
@@ -547,6 +547,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
         const next = rehydratedTurns(cur[0], res);
         return next ?? cur;
       });
+      if (rehydratedTopicWorthy(res)) setTopicWorthy(true);
     })();
     return () => { cancelled = true; };
   }, []);

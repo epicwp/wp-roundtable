@@ -54,3 +54,23 @@ export function rehydratedTurns(greeting, res) {
   if (!turns.length) return null;
   return [{ ...greeting, introChips: false }, ...turns];
 }
+
+/**
+ * Whether the hub's topic-worthy affordance should be restored after a reload.
+ * The signal is a recorded chat event; without restoring it, a refresh silently
+ * drops the "Turn into topic" bar while the agent's reply still points at it —
+ * a dead end (persona-loop run 4). A later `topic_drafted` supersedes it (the
+ * draft was already made), so only an un-drafted signal restores.
+ * @param {{events?:Array, error?:object}} res The /history response.
+ * @returns {boolean}
+ */
+export function rehydratedTopicWorthy(res) {
+  if (!res || res.error) return false;
+  const list = Array.isArray(res.events) ? res.events : [];
+  let worthy = false;
+  for (const ev of list) {
+    if (ev.type === 'topic_worthy') worthy = true;
+    else if (ev.type === 'topic_drafted') worthy = false;
+  }
+  return worthy;
+}
