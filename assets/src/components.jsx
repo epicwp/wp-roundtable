@@ -561,6 +561,9 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
     userInteractedRef.current = true;
     const text = (textOverride ?? composer).trim();
     if (!text || busy || draftBusy) return;
+    // Sending a message is an unambiguous "I want to see the reply": re-stick
+    // regardless of any stale unstick from an earlier turn's scrolling.
+    stickToBottomRef.current = { pending: 0, stick: true };
     setComposer('');
     await sendTurn(text, { setTurns, setBusy, onSignal: handleSignal });
   }
@@ -568,6 +571,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   async function newTopic() {
     userInteractedRef.current = true;
     if (busy || draftBusy) return;
+    stickToBottomRef.current = { pending: 0, stick: true };
     setBusy(true);
     const res = await resetChat();
     setBusy(false);
