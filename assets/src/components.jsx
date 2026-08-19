@@ -158,7 +158,11 @@ export function applyStreamEvent(turns, ev, now) {
   const turn = turns[i];
   let patch;
   if (ev.type === 'guarded_text_delta') patch = { reply: turn.reply + (ev.text || '') };
-  else if (ev.type === 'assistant_text') patch = { finalText: (turn.finalText || '') + ev.text };
+  else if (ev.type === 'assistant_text') {
+    // One event per complete text block: blocks join with a blank line so they
+    // never concatenate mid-sentence.
+    patch = { finalText: turn.finalText ? `${turn.finalText}\n\n${ev.text}` : ev.text };
+  }
   else if (ev.type === 'progress') patch = { steps: [...turn.steps, { summary: ev.summary, at: now }] };
   else if (ev.type === 'result') {
     const base = ev.is_error === true
@@ -172,6 +176,26 @@ export function applyStreamEvent(turns, ev, now) {
   const next = turns.slice();
   next[i] = { ...turn, ...patch };
   return next;
+}
+
+/**
+ * Reduce one thread scroll event onto the stick-to-bottom state.
+ *
+ * Scroll events fire asynchronously, after paint: when streamed content grows
+ * the thread between our own programmatic bottom-scroll and that scroll's
+ * event, a naive "near the bottom?" recompute reads the already-grown height
+ * and wrongly concludes the user scrolled away — freezing follow for the rest
+ * of the turn. Programmatic scrolls are therefore counted (`pending`) and
+ * their events consumed as "still sticking"; only genuinely user-initiated
+ * scroll events recompute stickiness from the distance to the bottom.
+ *
+ * @param {{pending:number, stick:boolean}} state Current stick state.
+ * @param {number} distanceFromBottom scrollHeight - scrollTop - clientHeight at event time.
+ * @returns {{pending:number, stick:boolean}} The next state.
+ */
+export function reduceScrollEvent(state, distanceFromBottom) {
+  if (state.pending > 0) return { pending: state.pending - 1, stick: true };
+  return { pending: 0, stick: distanceFromBottom < 80 };
 }
 
 /**
@@ -452,7 +476,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   const [draftBusy, setDraftBusy] = useState(false);
   const composerRef = useRef(null);
   const threadRef = useRef(null);
-  const stickToBottomRef = useRef(true);
+  const stickToBottomRef = useRef({ pending: 0, stick: true });
   const bottomRef = useRef(null);
   const userInteractedRef = useRef(false);
 
@@ -470,22 +494,44 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   // Track whether the user is parked near the bottom, via real scroll events
   // rather than recomputing from post-update scrollHeight (which would
   // already reflect newly streamed content and read as "far from bottom").
+  // Programmatic bottom-scrolls are counted and consumed by reduceScrollEvent
+  // so a delta rendering between our scroll and its (async) event can't read
+  // as "the user scrolled away" and freeze follow mid-turn.
   useEffect(() => {
     const el = threadRef.current;
     if (!el) return undefined;
     const onScroll = () => {
-      stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      stickToBottomRef.current = reduceScrollEvent(
+        stickToBottomRef.current,
+        el.scrollHeight - el.scrollTop - el.clientHeight,
+      );
+    };
+    // A wheel gesture is unambiguously the user: drop queued programmatic
+    // consumptions so the scroll event that follows recomputes stickiness.
+    const onWheel = () => {
+      stickToBottomRef.current = { ...stickToBottomRef.current, pending: 0 };
     };
     el.addEventListener('scroll', onScroll);
-    return () => el.removeEventListener('scroll', onScroll);
+    el.addEventListener('wheel', onWheel, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      el.removeEventListener('wheel', onWheel);
+    };
   }, []);
 
   // Stick to the bottom as new turns/deltas arrive, unless the user scrolled
   // up to read history.
   useEffect(() => {
     const el = threadRef.current;
-    if (!el || !stickToBottomRef.current) return;
-    el.scrollTop = el.scrollHeight;
+    if (!el || !stickToBottomRef.current.stick) return;
+    const target = el.scrollHeight - el.clientHeight;
+    if (target - el.scrollTop > 1) {
+      stickToBottomRef.current = {
+        ...stickToBottomRef.current,
+        pending: stickToBottomRef.current.pending + 1,
+      };
+      el.scrollTop = target;
+    }
     // The thread may not be the scrolling ancestor (e.g. the admin page body
     // scrolls instead); a sentinel scrollIntoView follows whichever it is.
     bottomRef.current?.scrollIntoView({ block: 'nearest' });
