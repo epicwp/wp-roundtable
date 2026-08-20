@@ -51,3 +51,13 @@ test('chatDisabled is true when the hub paused the chat', () => {
   globalThis.window = { RoundtableConfig: { chatDisabled: true } };
   assert.equal(chatDisabled(), true);
 });
+
+test('betaEnabled and chatDisabled accept wp_localize_script stringified booleans', async () => {
+  const { betaEnabled, chatDisabled } = await import('../src/config.js');
+  globalThis.window = { RoundtableConfig: { beta: '1', chatDisabled: '' } };
+  assert.equal(betaEnabled(), true);
+  assert.equal(chatDisabled(), false);
+  globalThis.window = { RoundtableConfig: { beta: '', chatDisabled: '1' } };
+  assert.equal(betaEnabled(), false);
+  assert.equal(chatDisabled(), true);
+});

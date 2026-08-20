@@ -30,11 +30,22 @@ export function initialMessage() {
 }
 
 /**
+ * Read a boolean config flag. wp_localize_script stringifies scalars (true
+ * becomes "1", false becomes ""), so a strict === true check silently fails
+ * against a real WordPress payload; accept the stringified truthy forms too.
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+function flag(value) {
+  return value === true || value === 1 || value === '1' || value === 'true';
+}
+
+/**
  * Whether the consuming plugin flagged this integration as beta ("Beta" pill in the UI).
  * @returns {boolean}
  */
 export function betaEnabled() {
-  return cfg().beta === true;
+  return flag(cfg().beta);
 }
 
 /**
@@ -42,5 +53,5 @@ export function betaEnabled() {
  * @returns {boolean}
  */
 export function chatDisabled() {
-  return cfg().chatDisabled === true;
+  return flag(cfg().chatDisabled);
 }
