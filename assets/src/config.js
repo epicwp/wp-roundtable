@@ -1,6 +1,6 @@
 // assets/src/config.js — the names localized by src/Admin/Page.php.
 
-/** @returns {{agentName?:string, projectName?:string, initialMessage?:string}} */
+/** @returns {{agentName?:string, projectName?:string, initialMessage?:string, beta?:boolean}} */
 function cfg() {
   return (typeof window !== 'undefined' && window.RoundtableConfig) || {};
 }
@@ -27,4 +27,12 @@ export function projectDisplayName() {
  */
 export function initialMessage() {
   return cfg().initialMessage || '';
+}
+
+/**
+ * Whether the consuming plugin flagged this integration as beta ("Beta" pill in the UI).
+ * @returns {boolean}
+ */
+export function betaEnabled() {
+  return cfg().beta === true;
 }

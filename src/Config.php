@@ -16,6 +16,8 @@ final class Config {
      * @param int         $timeoutSeconds HTTP timeout for a buffered turn.
      * @param string|null $hubBaseUrl     Dev/staging override ONLY; null uses the baked-in SaaS URL.
      * @param string      $projectName    The consuming product's display name; '' hides it in the UI.
+     * @param bool        $beta           Whether the UI shows a "Beta" label next to the agent name
+     *                                    and the Community heading.
      */
     public function __construct(
         public readonly string $projectApiKey,
@@ -25,6 +27,7 @@ final class Config {
         public readonly int $timeoutSeconds = 30,
         public readonly ?string $hubBaseUrl = null,
         public readonly string $projectName = '',
+        public readonly bool $beta = false,
     ) {
     }
 }

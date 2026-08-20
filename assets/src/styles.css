@@ -126,6 +126,7 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-cm-who { font-size:13px; margin-bottom:5px; }
 #roundtable-app .rt-cm-who b { color:var(--rt-ink); font-weight:600; }
 #roundtable-app .rt-role-badge { font-size:11px; font-weight:600; color:var(--rt-accent-ink); background:#eceffe; border-radius:6px; padding:1px 7px; margin-left:6px; }
+#roundtable-app .rt-beta-pill { display:inline-block; font-size:10.5px; font-weight:650; line-height:1.4; letter-spacing:.02em; color:var(--rt-accent-ink); background:#eceffe; border:1px solid rgba(56,88,233,.2); border-radius:999px; padding:1px 8px; margin-left:7px; vertical-align:middle; }
 #roundtable-app .rt-cm-time { color:var(--rt-ink-faint); margin-left:6px; }
 #roundtable-app .rt-cm-txt { font-size:14px; line-height:1.55; color:var(--rt-ink); }
 #roundtable-app .rt-cm-tomb { font-size:13px; color:var(--rt-ink-faint); font-style:italic; margin:0; }

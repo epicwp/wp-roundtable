@@ -10,7 +10,7 @@ import { canDraftTopic, turnsToConversation } from './conversation.js';
 import { rehydratedTopicWorthy, rehydratedTurns } from './rehydrate.js';
 import { PublishDialog } from './publish-dialog.jsx';
 import { AgentAvatar } from './avatars.jsx';
-import { agentDisplayName, initialMessage, projectDisplayName } from './config.js';
+import { agentDisplayName, betaEnabled, initialMessage, projectDisplayName } from './config.js';
 import { labelStep } from './steps.js';
 import { NEW_TOPIC_INTRO, resolveInitialMessage, TOPIC_CHIPS } from './chat-copy.js';
 
@@ -677,7 +677,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
       <div class="rt-head">
         <AgentAvatar class="rt-avatar" />
         <div class="rt-head-text">
-          <b>{agentName}</b>
+          <b>{agentName}{betaEnabled() && <span class="rt-beta-pill">Beta</span>}</b>
           <span>Community assistant</span>
         </div>
         <span class="rt-head-grow" />

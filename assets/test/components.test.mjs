@@ -32,6 +32,20 @@ test('ChatPanel renders the configured agent name in header, greeting and compos
   assert.match(html, /Report a bug/);
 });
 
+test('ChatPanel renders a Beta pill next to the agent name when beta is configured', async () => {
+  const { ChatPanel } = await import('../src/components.jsx');
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova', beta: true } };
+  const html = renderToString(h(ChatPanel, {}));
+  assert.match(html, /<b>Nova<span class="rt-beta-pill">Beta<\/span><\/b>/);
+});
+
+test('ChatPanel renders no Beta pill when beta is absent', async () => {
+  const { ChatPanel } = await import('../src/components.jsx');
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova' } };
+  const html = renderToString(h(ChatPanel, {}));
+  assert.doesNotMatch(html, /rt-beta-pill/);
+});
+
 test('ChatPanel renders the configured initial message instead of the generated greeting when set', async () => {
   const { ChatPanel } = await import('../src/components.jsx');
   globalThis.window = {

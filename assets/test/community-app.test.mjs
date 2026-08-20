@@ -18,3 +18,15 @@ test('CommunityApp renders no sub-line when no project name is configured', () =
   const html = renderToString(h(CommunityApp, {}));
   assert.doesNotMatch(html, /rt-sub/);
 });
+
+test('CommunityApp renders a Beta pill next to the Community heading when beta is configured', () => {
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova', beta: true } };
+  const html = renderToString(h(CommunityApp, {}));
+  assert.match(html, /rt-title[^>]*>Community<span class="rt-beta-pill">Beta<\/span><\/h1>/);
+});
+
+test('CommunityApp renders no Beta pill when beta is absent', () => {
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova' } };
+  const html = renderToString(h(CommunityApp, {}));
+  assert.doesNotMatch(html, /rt-beta-pill/);
+});

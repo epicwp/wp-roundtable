@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { agentDisplayName, initialMessage, projectDisplayName } from '../src/config.js';
+import { agentDisplayName, betaEnabled, initialMessage, projectDisplayName } from '../src/config.js';
 
 test('agentDisplayName falls back to the SDK default', () => {
   globalThis.window = {};
@@ -30,4 +30,14 @@ test('initialMessage is empty when not configured', () => {
 test('initialMessage returns the configured message', () => {
   globalThis.window = { RoundtableConfig: { initialMessage: 'Welcome! Ask me anything.' } };
   assert.equal(initialMessage(), 'Welcome! Ask me anything.');
+});
+
+test('betaEnabled is false when not configured', () => {
+  globalThis.window = { RoundtableConfig: { agentName: 'Sage' } };
+  assert.equal(betaEnabled(), false);
+});
+
+test('betaEnabled is true when the config flags beta', () => {
+  globalThis.window = { RoundtableConfig: { beta: true } };
+  assert.equal(betaEnabled(), true);
 });

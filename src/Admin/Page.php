@@ -56,6 +56,7 @@ final class Page {
             'RoundtableConfig',
             array(
                 'agentName'      => $display['agentName'],
+                'beta'           => $this->config->beta,
                 'initialMessage' => $display['initialMessage'],
                 'nonce'          => \wp_create_nonce( 'wp_rest' ),
                 'projectName'    => $display['projectName'],

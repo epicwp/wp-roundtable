@@ -21,6 +21,7 @@ final class ConfigTest extends PHPUnitTestCase
         self::assertSame(30, $config->timeoutSeconds);
         self::assertNull($config->hubBaseUrl);
         self::assertSame('', $config->projectName);
+        self::assertFalse($config->beta);
     }
 
     public function test_accepts_overrides(): void
@@ -38,5 +39,12 @@ final class ConfigTest extends PHPUnitTestCase
 
         self::assertSame('Sage', $config->agentName);
         self::assertSame('Polylang AI Automatic Translation', $config->projectName);
+    }
+
+    public function test_accepts_a_beta_flag(): void
+    {
+        $config = new Config('pk', new FakeConsumer(), beta: true);
+
+        self::assertTrue($config->beta);
     }
 }
