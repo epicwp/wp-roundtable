@@ -329,7 +329,17 @@ function useTypewriter(text, active) {
   textRef.current = text;
 
   useEffect(() => {
-    if (!animateRef.current) return undefined;
+    if (!animateRef.current) {
+      // A non-animating bubble must always show its full text. When the panel
+      // swaps the text on a reused component (the "+ New topic" reset replaces
+      // the greeting in place), the stale `shown` from the previous text would
+      // otherwise clip the new one mid-sentence.
+      if (shownRef.current !== text.length) {
+        shownRef.current = text.length;
+        setShown(text.length);
+      }
+      return undefined;
+    }
     if (rafRef.current != null || shownRef.current >= text.length) return undefined;
 
     let lastTime = null;
