@@ -54,3 +54,26 @@ test('TopicDetail renders title and back link', () => {
   assert.match(html, /rt-ed-top/);
   assert.match(html, /rt-ed-tools/);
 });
+
+test('TopicDetail renders the topic body as full markdown', () => {
+  const html = renderToString(h(TopicDetail, {
+    topic: {
+      id: 'c3',
+      title: 'Broken sync',
+      snippet: '## Steps to reproduce\n\n1. Enable **sync**\n2. Run `wp cron`',
+      typeLabel: 'Bug',
+      typeClass: 'rt-b-bug',
+      statusLabel: 'Open',
+      statusClass: 'rt-s-open',
+      handle: 'teal-owl',
+      initials: 'TO',
+      net: 0,
+      age: '1d',
+    },
+    onBack: () => {},
+  }));
+  assert.match(html, /<h2>Steps to reproduce<\/h2>/);
+  assert.match(html, /<ol>/);
+  assert.match(html, /<strong>sync<\/strong>/);
+  assert.match(html, /<code>wp cron<\/code>/);
+});

@@ -54,3 +54,28 @@ const md = new MarkdownIt({
 export function renderMarkdown(src) {
   return md.render(typeof src === 'string' ? src : '');
 }
+
+/**
+ * Reduce markdown to a plain-text excerpt for list cards: drops structural
+ * markers (heading hashes, emphasis, code fences/backticks, list markers,
+ * blockquotes, horizontal rules), keeps link/image text, and collapses all
+ * whitespace into single spaces.
+ * @param {string} src markdown source
+ * @returns {string} plain text
+ */
+export function markdownToPlainText(src) {
+  const text = typeof src === 'string' ? src : '';
+  return text
+    .replace(/^```[^\n]*$/gm, '') // code fence open/close lines (content is kept)
+    .replace(/^#{1,6}\s+/gm, '') // heading markers
+    .replace(/^\s*>\s?/gm, '') // blockquote markers
+    .replace(/^\s*([-*_]\s*){3,}$/gm, '') // horizontal rules
+    .replace(/^\s*(?:[-*+]|\d{1,3}[.)])\s+/gm, '') // list markers
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1') // images -> alt text
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // links -> link text
+    .replace(/(\*\*|__)(.*?)\1/g, '$2') // bold markers
+    .replace(/(\*|_)(.*?)\1/g, '$2') // italic markers
+    .replace(/`([^`]*)`/g, '$1') // inline code backticks
+    .replace(/\s+/g, ' ')
+    .trim();
+}

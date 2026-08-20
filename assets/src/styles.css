@@ -81,7 +81,7 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-post-who span { color:var(--rt-ink-faint); }
 #roundtable-app .rt-prose p { margin:0 0 10px; font-size:14.5px; line-height:1.6; }
 #roundtable-app .rt-prose p:last-child { margin-bottom:0; }
-#roundtable-app .rt-prose ul { margin:4px 0 10px; padding-left:18px; font-size:14.5px; }
+#roundtable-app .rt-prose ul, #roundtable-app .rt-prose ol { margin:4px 0 10px; padding-left:18px; font-size:14.5px; }
 #roundtable-app .rt-prose li { margin:3px 0; }
 #roundtable-app .rt-csec { margin-top:22px; background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.04); padding:20px; }
 #roundtable-app .rt-csec-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:16px; }
@@ -198,6 +198,11 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-ab { background:#f2f3fd; border:1px solid #eef1f5; border-radius:3px 12px 12px 12px; padding:11px 13px; line-height:1.5; font-size:13.5px; min-width:0; max-width:100%; overflow-wrap:anywhere; word-break:break-word; }
 #roundtable-app .rt-ab-error { background:#fbeee9; border-color:#f3d9cf; }
 #roundtable-app .rt-ab p { margin:0 0 7px; } #roundtable-app .rt-ab p:last-child { margin:0; }
+#roundtable-app .rt-ab h1, #roundtable-app .rt-ab h2, #roundtable-app .rt-ab h3, #roundtable-app .rt-ab h4, #roundtable-app .rt-ab h5, #roundtable-app .rt-ab h6 { font-size:13.5px; font-weight:650; line-height:1.4; margin:10px 0 5px; padding:0; color:inherit; }
+#roundtable-app .rt-ab h1:first-child, #roundtable-app .rt-ab h2:first-child, #roundtable-app .rt-ab h3:first-child, #roundtable-app .rt-ab h4:first-child, #roundtable-app .rt-ab h5:first-child, #roundtable-app .rt-ab h6:first-child { margin-top:0; }
+#roundtable-app .rt-ab ul, #roundtable-app .rt-ab ol { margin:0 0 7px; padding-left:18px; }
+#roundtable-app .rt-ab ul:last-child, #roundtable-app .rt-ab ol:last-child { margin-bottom:0; }
+#roundtable-app .rt-ab li { margin:3px 0; }
 #roundtable-app .rt-ab code { overflow-wrap:anywhere; word-break:break-word; }
 #roundtable-app .rt-ab pre { overflow-x:auto; max-width:100%; }
 #roundtable-app .rt-ab pre code { white-space:pre; overflow-wrap:normal; word-break:normal; }

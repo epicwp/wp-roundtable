@@ -2,6 +2,7 @@
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { fetchCases } from './api.js';
+import { markdownToPlainText } from './markdown.js';
 import { mapCaseToTopic } from './topics.js';
 import { VoteControl } from './vote-control.jsx';
 
@@ -24,7 +25,7 @@ export function TopicRow({ topic, onSelect, hideStatus = false, onVoteChange }) 
         }}
       >
         <span class="rt-ctitle">{topic.title}</span>
-        <div class="rt-csnip">{topic.snippet}</div>
+        <div class="rt-csnip">{markdownToPlainText(topic.snippet)}</div>
         <div class="rt-cmeta">
           <span class={'rt-badge ' + topic.typeClass}>{topic.typeLabel}</span>
           {!hideStatus && <span class={'rt-status ' + topic.statusClass}>{topic.statusLabel}</span>}

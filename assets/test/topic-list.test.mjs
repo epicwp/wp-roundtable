@@ -32,3 +32,22 @@ test('TopicRow renders title and interactive vote control', () => {
   assert.match(html, /Upvote/);
   assert.match(html, /27/);
 });
+
+test('TopicRow renders a markdown summary as a plain-text excerpt', () => {
+  const html = renderToString(h(TopicRow, {
+    topic: {
+      id: 'c1',
+      title: 'Broken sync',
+      snippet: '## Steps to reproduce\n\n1. Enable **sync**\n2. Run `wp cron`',
+      typeLabel: 'Bug',
+      typeClass: 'rt-b-bug',
+      statusLabel: 'Open',
+      statusClass: 'rt-s-open',
+      handle: 'teal-owl',
+      net: 0,
+      age: '1d',
+    },
+  }));
+  assert.match(html, /Steps to reproduce Enable sync Run wp cron/);
+  assert.doesNotMatch(html, /##|<h2|\*\*|`/);
+});
