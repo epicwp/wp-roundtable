@@ -65,7 +65,7 @@ final class HubClient {
             throw \EpicWP\Roundtable\HubException::network( $e->getMessage() );
         }
 
-        $this->guardStatus( $response->status );
+        $this->guardMessageStatus( $response->status, $response->body );
 
         return new TurnResult( SseParser::parse( $response->body ) );
     }
@@ -87,6 +87,7 @@ final class HubClient {
     public function streamMessage( string $chatId, string $message, bool $isFirstTurn, \EpicWP\Roundtable\Http\StreamingTransport $transport, callable $onEvent, ?string $trigger = null ): void {
         $url  = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/chats/' . $chatId . '/messages';
         $body = $this->buildBody( $message, $isFirstTurn, $trigger );
+        $raw  = '';
         try {
             $status = $transport->stream(
                 $url,
@@ -97,7 +98,10 @@ final class HubClient {
                 ),
                 $body,
                 $this->config->timeoutSeconds,
-                static function ( string $frame ) use ( $onEvent ): void {
+                static function ( string $frame ) use ( $onEvent, &$raw ): void {
+                    // A refused turn's JSON error body arrives through the frame
+                    // callback too; keep it so guardMessageStatus can read its code.
+                    $raw  .= $frame;
                     $event = \EpicWP\Roundtable\Chat\SseParser::parse( $frame );
                     foreach ( $event as $e ) {
                         $onEvent( $e );
@@ -108,7 +112,7 @@ final class HubClient {
             // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- internal transport error string, never rendered as HTML.
             throw \EpicWP\Roundtable\HubException::network( $e->getMessage() );
         }
-        $this->guardStatus( $status );
+        $this->guardMessageStatus( $status, $raw );
     }
 
     /**
@@ -454,6 +458,39 @@ final class HubClient {
             429 => \EpicWP\Roundtable\HubException::overQuota(),
             default => \EpicWP\Roundtable\HubException::server( $status ),
         };
+    }
+
+    /**
+     * Guards a chat-message response status. The hub refuses a paused chat with a
+     * 403 whose body carries the `chat_disabled` code — surface that as its own
+     * kind so the UI can show a calm "paused" notice instead of a generic error.
+     *
+     * @param int    $status The HTTP status code returned by the transport.
+     * @param string $body   The raw response body (the refusal's JSON error body).
+     *
+     * @throws \EpicWP\Roundtable\HubException When the status is not a success.
+     */
+    private function guardMessageStatus( int $status, string $body ): void {
+        if ( 403 === $status && $this->bodyCarriesChatDisabled( $body ) ) {
+            throw \EpicWP\Roundtable\HubException::chatDisabled();
+        }
+        $this->guardStatus( $status );
+    }
+
+    /**
+     * Whether a refusal body carries the hub's `chat_disabled` code — at the top
+     * level, as the FastAPI `detail` string, or nested under `detail`.
+     *
+     * @param string $body The raw response body.
+     */
+    private function bodyCarriesChatDisabled( string $body ): bool {
+        $decoded = \json_decode( $body, true );
+        if ( ! \is_array( $decoded ) ) {
+            return false;
+        }
+        $detail = $decoded['detail'] ?? null;
+        $code   = $decoded['code'] ?? ( \is_array( $detail ) ? ( $detail['code'] ?? null ) : $detail );
+        return \EpicWP\Roundtable\HubException::CHAT_DISABLED === $code;
     }
 
     /**

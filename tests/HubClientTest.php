@@ -114,6 +114,41 @@ final class HubClientTest extends PHPUnitTestCase
         }
     }
 
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function chatDisabledBodies(): array
+    {
+        return [
+            'top-level code' => ['{"code":"chat_disabled"}'],
+            'detail string'  => ['{"detail":"chat_disabled"}'],
+            'detail object'  => ['{"detail":{"code":"chat_disabled"}}'],
+        ];
+    }
+
+    /** @dataProvider chatDisabledBodies */
+    public function test_maps_a_403_with_the_chat_disabled_code_to_chat_disabled(string $body): void
+    {
+        $client = new HubClient($this->config(new FakeConsumer()), new FakeTransport(403, $body));
+        try {
+            $client->postMessage('c', 'm', false);
+            self::fail('expected HubException');
+        } catch (HubException $e) {
+            self::assertSame(HubException::CHAT_DISABLED, $e->kind());
+        }
+    }
+
+    public function test_maps_a_403_with_an_unrelated_body_to_blocked(): void
+    {
+        $client = new HubClient($this->config(new FakeConsumer()), new FakeTransport(403, '{"detail":"subject blocked"}'));
+        try {
+            $client->postMessage('c', 'm', false);
+            self::fail('expected HubException');
+        } catch (HubException $e) {
+            self::assertSame(HubException::BLOCKED, $e->kind());
+        }
+    }
+
     public function test_maps_transport_exception_to_network_hub_error(): void
     {
         $client = new HubClient(

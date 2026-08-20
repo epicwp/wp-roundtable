@@ -11,6 +11,7 @@ final class HubExceptionTest extends PHPUnitTestCase
     public function test_factories_carry_their_kind(): void
     {
         self::assertSame(HubException::BLOCKED, HubException::blocked()->kind());
+        self::assertSame(HubException::CHAT_DISABLED, HubException::chatDisabled()->kind());
         self::assertSame(HubException::OVER_QUOTA, HubException::overQuota()->kind());
         self::assertSame(HubException::NETWORK, HubException::network('dns')->kind());
         self::assertSame(HubException::SERVER, HubException::server(503)->kind());

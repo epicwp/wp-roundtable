@@ -50,7 +50,7 @@ final class PageTest extends TestCase
     public function test_enqueue_uses_hub_display_config_when_available(): void
     {
         $this->expectNotToPerformAssertions();
-        $body = '{"agent_name":"HubSage","project_name":"Hub Project","initial_message":"Hi from the hub."}';
+        $body = '{"agent_name":"HubSage","project_name":"Hub Project","initial_message":"Hi from the hub.","chat_disabled":true}';
         $hub  = new HubClient($this->config(), new FakeTransport(200, $body));
         Functions\when('wp_enqueue_style')->justReturn(true);
         Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
@@ -64,7 +64,8 @@ final class PageTest extends TestCase
                 && 'HubSage' === $d['agentName']
                 && 'Hub Project' === $d['projectName']
                 && 'Hi from the hub.' === $d['initialMessage']
-                && false === $d['beta']),
+                && false === $d['beta']
+                && true === $d['chatDisabled']),
         );
         $this->page($hub)->enqueue('tools_page_roundtable-community');
     }
@@ -101,7 +102,8 @@ final class PageTest extends TestCase
             'RoundtableConfig',
             \Mockery::on(static fn ($d) => 'Sage' === $d['agentName']
                 && 'Polylang AI Automatic Translation' === $d['projectName']
-                && '' === $d['initialMessage']),
+                && '' === $d['initialMessage']
+                && false === $d['chatDisabled']),
         );
         $this->page($hub)->enqueue('tools_page_roundtable-community');
     }

@@ -13,6 +13,8 @@ namespace EpicWP\Roundtable;
 final class HubException extends \RuntimeException {
     /** The gate refused the request (HTTP 403). */
     public const BLOCKED = 'blocked';
+    /** The project's community chat is paused hub-side (HTTP 403, code `chat_disabled`). */
+    public const CHAT_DISABLED = 'chat_disabled';
     /** The subject is over its request quota (HTTP 429). */
     public const OVER_QUOTA = 'over_quota';
 
@@ -27,6 +29,11 @@ final class HubException extends \RuntimeException {
     /** The request was refused by the gate (HTTP 403). */
     public static function blocked(): self {
         return new self( self::BLOCKED, 'The request was refused (blocked).' );
+    }
+
+    /** The project's community chat is paused hub-side (HTTP 403, code `chat_disabled`). */
+    public static function chatDisabled(): self {
+        return new self( self::CHAT_DISABLED, 'The community chat is paused for this project.' );
     }
 
     /** The subject is over its request quota (HTTP 429). */

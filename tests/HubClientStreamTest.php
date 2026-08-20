@@ -36,6 +36,18 @@ final class HubClientStreamTest extends PHPUnitTestCase
             function (Event $e) { /* never called */ });
     }
 
+    public function test_stream_message_maps_a_403_chat_disabled_body_to_chat_disabled(): void
+    {
+        $client = new HubClient(new Config('pk', new FakeConsumer()), new FakeTransport());
+        try {
+            $client->streamMessage('c', 'hi', false, new FakeStreamingTransport(403, ['{"detail":{"code":"chat_disabled"}}']),
+                function (Event $e) { /* never called */ });
+            self::fail('expected HubException');
+        } catch (HubException $e) {
+            self::assertSame(HubException::CHAT_DISABLED, $e->kind());
+        }
+    }
+
     public function test_stream_message_includes_trigger_in_body_when_given(): void
     {
         $client    = new HubClient(new Config('pk', new FakeConsumer()), new FakeTransport());

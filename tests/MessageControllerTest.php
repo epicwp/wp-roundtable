@@ -150,6 +150,19 @@ final class MessageControllerTest extends TestCase
         self::assertStringNotContainsString('pk_secret_test', (string) json_encode($response->get_data()));
     }
 
+    public function test_handle_surfaces_a_chat_disabled_refusal_as_its_own_kind(): void
+    {
+        $this->mockCurrentUser(7);
+        $this->mockSessionMeta(chatId: 'chat-1', primed: '1');
+
+        [$controller] = $this->controllerWithFakeTransport(new FakeConsumer(), 403, '{"code":"chat_disabled"}');
+
+        $response = $controller->handle($this->request());
+
+        self::assertSame(403, $response->get_status());
+        self::assertSame(HubException::CHAT_DISABLED, $response->get_data()['error']['kind']);
+    }
+
     public function test_register_registers_the_rest_route(): void
     {
         $this->expectNotToPerformAssertions();

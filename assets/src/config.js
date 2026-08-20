@@ -1,6 +1,6 @@
 // assets/src/config.js — the names localized by src/Admin/Page.php.
 
-/** @returns {{agentName?:string, projectName?:string, initialMessage?:string, beta?:boolean}} */
+/** @returns {{agentName?:string, projectName?:string, initialMessage?:string, beta?:boolean, chatDisabled?:boolean}} */
 function cfg() {
   return (typeof window !== 'undefined' && window.RoundtableConfig) || {};
 }
@@ -35,4 +35,12 @@ export function initialMessage() {
  */
 export function betaEnabled() {
   return cfg().beta === true;
+}
+
+/**
+ * Whether the hub reported the community chat as paused for this project.
+ * @returns {boolean}
+ */
+export function chatDisabled() {
+  return cfg().chatDisabled === true;
 }
