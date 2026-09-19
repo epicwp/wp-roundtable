@@ -50,7 +50,7 @@ final class PageTest extends TestCase
     public function test_enqueue_uses_hub_display_config_when_available(): void
     {
         $this->expectNotToPerformAssertions();
-        $body = '{"agent_name":"HubSage","project_name":"Hub Project","initial_message":"Hi from the hub."}';
+        $body = '{"agent_name":"HubSage","project_name":"Hub Project","initial_message":"Hi from the hub.","chat_disabled":true}';
         $hub  = new HubClient($this->config(), new FakeTransport(200, $body));
         Functions\when('wp_enqueue_style')->justReturn(true);
         Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
@@ -63,9 +63,29 @@ final class PageTest extends TestCase
             \Mockery::on(static fn ($d) => 'nonce123' === $d['nonce']
                 && 'HubSage' === $d['agentName']
                 && 'Hub Project' === $d['projectName']
-                && 'Hi from the hub.' === $d['initialMessage']),
+                && 'Hi from the hub.' === $d['initialMessage']
+                && false === $d['beta']
+                && true === $d['chatDisabled']),
         );
         $this->page($hub)->enqueue('tools_page_roundtable-community');
+    }
+
+    public function test_enqueue_passes_the_beta_flag_through_when_configured(): void
+    {
+        $this->expectNotToPerformAssertions();
+        $config = new Config('pk_secret', new FakeConsumer(), 'Sage', beta: true);
+        $hub    = new HubClient($config, new FakeTransport(200, '{}'));
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
+        Functions\when('rest_url')->justReturn('http://x/wp-json/roundtable/v1');
+        Functions\when('wp_create_nonce')->justReturn('nonce123');
+        Functions\expect('wp_enqueue_script')->once();
+        Functions\expect('wp_localize_script')->once()->with(
+            'roundtable',
+            'RoundtableConfig',
+            \Mockery::on(static fn ($d) => true === $d['beta']),
+        );
+        (new Page($config, 'tools.php', $hub))->enqueue('tools_page_roundtable-community');
     }
 
     public function test_enqueue_falls_back_to_local_config_when_hub_call_fails(): void
@@ -82,7 +102,8 @@ final class PageTest extends TestCase
             'RoundtableConfig',
             \Mockery::on(static fn ($d) => 'Sage' === $d['agentName']
                 && 'Polylang AI Automatic Translation' === $d['projectName']
-                && '' === $d['initialMessage']),
+                && '' === $d['initialMessage']
+                && false === $d['chatDisabled']),
         );
         $this->page($hub)->enqueue('tools_page_roundtable-community');
     }

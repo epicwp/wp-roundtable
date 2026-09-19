@@ -1,6 +1,6 @@
 // assets/src/config.js — the names localized by src/Admin/Page.php.
 
-/** @returns {{agentName?:string, projectName?:string, initialMessage?:string}} */
+/** @returns {{agentName?:string, projectName?:string, initialMessage?:string, beta?:boolean, chatDisabled?:boolean}} */
 function cfg() {
   return (typeof window !== 'undefined' && window.RoundtableConfig) || {};
 }
@@ -27,4 +27,31 @@ export function projectDisplayName() {
  */
 export function initialMessage() {
   return cfg().initialMessage || '';
+}
+
+/**
+ * Read a boolean config flag. wp_localize_script stringifies scalars (true
+ * becomes "1", false becomes ""), so a strict === true check silently fails
+ * against a real WordPress payload; accept the stringified truthy forms too.
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+function flag(value) {
+  return value === true || value === 1 || value === '1' || value === 'true';
+}
+
+/**
+ * Whether the consuming plugin flagged this integration as beta ("Beta" pill in the UI).
+ * @returns {boolean}
+ */
+export function betaEnabled() {
+  return flag(cfg().beta);
+}
+
+/**
+ * Whether the hub reported the community chat as paused for this project.
+ * @returns {boolean}
+ */
+export function chatDisabled() {
+  return flag(cfg().chatDisabled);
 }

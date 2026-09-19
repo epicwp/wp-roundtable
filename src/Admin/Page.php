@@ -56,6 +56,8 @@ final class Page {
             'RoundtableConfig',
             array(
                 'agentName'      => $display['agentName'],
+                'beta'           => $this->config->beta,
+                'chatDisabled'   => $display['chatDisabled'],
                 'initialMessage' => $display['initialMessage'],
                 'nonce'          => \wp_create_nonce( 'wp_rest' ),
                 'projectName'    => $display['projectName'],
@@ -75,19 +77,21 @@ final class Page {
      * local `Config` (and an empty initial message) on any hub/transport failure — the hub
      * is the primary source (E11 §5), local `Config` stays a safety-net fallback.
      *
-     * @return array{agentName: string, projectName: string, initialMessage: string}
+     * @return array{agentName: string, projectName: string, initialMessage: string, chatDisabled: bool}
      */
     private function resolveDisplayConfig(): array {
         try {
             $remote = $this->hub->getProjectConfig();
             return array(
                 'agentName'      => (string) ( $remote['agent_name'] ?? $this->config->agentName ),
+                'chatDisabled'   => true === ( $remote['chat_disabled'] ?? false ),
                 'initialMessage' => (string) ( $remote['initial_message'] ?? '' ),
                 'projectName'    => (string) ( $remote['project_name'] ?? $this->config->projectName ),
             );
         } catch ( \EpicWP\Roundtable\HubException ) {
             return array(
                 'agentName'      => $this->config->agentName,
+                'chatDisabled'   => false,
                 'initialMessage' => '',
                 'projectName'    => $this->config->projectName,
             );

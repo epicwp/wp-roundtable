@@ -10,9 +10,9 @@ import { canDraftTopic, turnsToConversation } from './conversation.js';
 import { rehydratedTopicWorthy, rehydratedTurns } from './rehydrate.js';
 import { PublishDialog } from './publish-dialog.jsx';
 import { AgentAvatar } from './avatars.jsx';
-import { agentDisplayName, initialMessage, projectDisplayName } from './config.js';
+import { agentDisplayName, betaEnabled, chatDisabled, initialMessage, projectDisplayName } from './config.js';
 import { labelStep } from './steps.js';
-import { NEW_TOPIC_INTRO, resolveInitialMessage, TOPIC_CHIPS } from './chat-copy.js';
+import { CHAT_PAUSED_NOTICE, NEW_TOPIC_INTRO, resolveInitialMessage, TOPIC_CHIPS } from './chat-copy.js';
 
 const STREAM_FIRST_EVENT_TIMEOUT_MS = 15000;
 
@@ -31,6 +31,9 @@ const STREAM_FIRST_EVENT_TIMEOUT_MS = 15000;
  * @returns {string}
  */
 function errorText(kind) {
+  if (kind === 'chat_disabled') {
+    return CHAT_PAUSED_NOTICE;
+  }
   if (kind === 'licence_invalid' || kind === 'http_402') {
     return 'Your product licence could not be verified. Check your licence in the plugin settings, then try again.';
   }
@@ -326,7 +329,17 @@ function useTypewriter(text, active) {
   textRef.current = text;
 
   useEffect(() => {
-    if (!animateRef.current) return undefined;
+    if (!animateRef.current) {
+      // A non-animating bubble must always show its full text. When the panel
+      // swaps the text on a reused component (the "+ New topic" reset replaces
+      // the greeting in place), the stale `shown` from the previous text would
+      // otherwise clip the new one mid-sentence.
+      if (shownRef.current !== text.length) {
+        shownRef.current = text.length;
+        setShown(text.length);
+      }
+      return undefined;
+    }
     if (rafRef.current != null || shownRef.current >= text.length) return undefined;
 
     let lastTime = null;
@@ -363,8 +376,11 @@ function useTypewriter(text, active) {
 function TypedBubble({ turn, streaming }) {
   const shown = useTypewriter(turn.reply, streaming);
   const text = turn.reply.slice(0, shown);
+  // A paused chat is not the user's fault: keep the calm agent-bubble look,
+  // not the error styling.
+  const paused = turn.errorKind === 'chat_disabled';
   return (
-    <div class={'rt-ab' + (turn.error ? ' rt-ab-error' : '')}
+    <div class={'rt-ab' + (turn.error && !paused ? ' rt-ab-error' : '')}
          // eslint-disable-next-line react/no-danger
          dangerouslySetInnerHTML={{ __html: turn.error ? errorText(turn.errorKind) : renderMarkdown(text) }} />
   );
@@ -508,10 +524,15 @@ export function computeShowDraftPrompt({
 }
 
 export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
+  // Config-driven pause: the hub's /project/config said the chat is off. Show
+  // the calm notice as the only bubble and keep the composer inert.
+  const paused = chatDisabled();
   const [newTopicMode, setNewTopicMode] = useState(false);
-  const [turns, setTurns] = useState([{
-    role: 'agent', reply: resolveInitialMessage(initialMessage(), agentDisplayName(), projectDisplayName()), steps: [], error: false, introChips: true,
-  }]);
+  const [turns, setTurns] = useState([paused
+    ? { role: 'agent', reply: CHAT_PAUSED_NOTICE, steps: [], error: false }
+    : {
+      role: 'agent', reply: resolveInitialMessage(initialMessage(), agentDisplayName(), projectDisplayName()), steps: [], error: false, introChips: true,
+    }]);
   const [composer, setComposer] = useState('');
   const [busy, setBusy] = useState(false);
   const [topicDraft, setTopicDraft] = useState(null);
@@ -582,6 +603,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   }, [turns]);
 
   useEffect(() => {
+    if (paused) return undefined;
     let cancelled = false;
     (async () => {
       const res = await fetchHistory();
@@ -605,7 +627,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
   async function send(textOverride) {
     userInteractedRef.current = true;
     const text = (textOverride ?? composer).trim();
-    if (!text || busy || draftBusy) return;
+    if (!text || busy || draftBusy || paused) return;
     // Sending a message is an unambiguous "I want to see the reply": re-stick
     // regardless of any stale unstick from an earlier turn's scrolling.
     stickToBottomRef.current = { pending: 0, stick: true };
@@ -615,7 +637,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
 
   async function newTopic() {
     userInteractedRef.current = true;
-    if (busy || draftBusy) return;
+    if (busy || draftBusy || paused) return;
     stickToBottomRef.current = { pending: 0, stick: true };
     setBusy(true);
     const res = await resetChat();
@@ -677,7 +699,7 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
       <div class="rt-head">
         <AgentAvatar class="rt-avatar" />
         <div class="rt-head-text">
-          <b>{agentName}</b>
+          <b>{agentName}{betaEnabled() && <span class="rt-beta-pill">Beta</span>}</b>
           <span>Community assistant</span>
         </div>
         <span class="rt-head-grow" />
@@ -699,10 +721,10 @@ export function ChatPanel({ resetNonce = 0, onTopicPublished }) {
       )}
       <div class="rt-composer">
         <div class="rt-cbox">
-          <textarea ref={composerRef} rows="1" placeholder={composerPlaceholder} value={composer}
+          <textarea ref={composerRef} rows="1" placeholder={composerPlaceholder} value={composer} disabled={paused}
             onInput={(e) => setComposer(e.currentTarget.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
-          <button class="rt-send-icon" type="button" disabled={busy || draftBusy} onClick={() => send()} aria-label="Send">➤</button>
+          <button class="rt-send-icon" type="button" disabled={busy || draftBusy || paused} onClick={() => send()} aria-label="Send">➤</button>
         </div>
         <div class="rt-chint">Enter to send · Shift+Enter for a new line</div>
       </div>

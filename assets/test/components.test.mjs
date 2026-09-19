@@ -32,6 +32,20 @@ test('ChatPanel renders the configured agent name in header, greeting and compos
   assert.match(html, /Report a bug/);
 });
 
+test('ChatPanel renders a Beta pill next to the agent name when beta is configured', async () => {
+  const { ChatPanel } = await import('../src/components.jsx');
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova', beta: true } };
+  const html = renderToString(h(ChatPanel, {}));
+  assert.match(html, /<b>Nova<span class="rt-beta-pill">Beta<\/span><\/b>/);
+});
+
+test('ChatPanel renders no Beta pill when beta is absent', async () => {
+  const { ChatPanel } = await import('../src/components.jsx');
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova' } };
+  const html = renderToString(h(ChatPanel, {}));
+  assert.doesNotMatch(html, /rt-beta-pill/);
+});
+
 test('ChatPanel renders the configured initial message instead of the generated greeting when set', async () => {
   const { ChatPanel } = await import('../src/components.jsx');
   globalThis.window = {
@@ -40,6 +54,45 @@ test('ChatPanel renders the configured initial message instead of the generated 
   const html = renderToString(h(ChatPanel, {}));
   assert.match(html, /Welcome to Acme support!/);
   assert.doesNotMatch(html, /Ask how Acme Plugin works/);
+});
+
+test('ChatPanel with chatDisabled shows the paused notice and an inert composer', async () => {
+  const { ChatPanel } = await import('../src/components.jsx');
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova', chatDisabled: true } };
+  const html = renderToString(h(ChatPanel, {}));
+  assert.match(html, /The community chat is temporarily paused\./);
+  assert.match(html, /rt-ab/);
+  assert.doesNotMatch(html, /rt-ab-error/);
+  assert.doesNotMatch(html, /rt-chips/);
+  assert.doesNotMatch(html, /Ask how/);
+  assert.match(html, /<textarea[^>]*\bdisabled\b/);
+  assert.match(html, /aria-label="Send"[^>]*\bdisabled\b|\bdisabled\b[^>]*aria-label="Send"/);
+});
+
+test('ChatPanel without chatDisabled keeps the composer enabled and shows no paused notice', async () => {
+  const { ChatPanel } = await import('../src/components.jsx');
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova' } };
+  const html = renderToString(h(ChatPanel, {}));
+  assert.doesNotMatch(html, /temporarily paused/);
+  assert.doesNotMatch(html, /<textarea[^>]*\bdisabled\b/);
+});
+
+test('Thread renders the chat_disabled error kind as the calm paused notice without error styling', () => {
+  const turns = [{
+    role: 'agent', reply: '', steps: [], error: true, errorKind: 'chat_disabled', done: true,
+  }];
+  const html = renderToString(h(Thread, { turns }));
+  assert.match(html, /The community chat is temporarily paused\./);
+  assert.doesNotMatch(html, /rt-ab-error/);
+});
+
+test('Thread keeps the error styling for a generic failed turn', () => {
+  const turns = [{
+    role: 'agent', reply: '', steps: [], error: true, done: true,
+  }];
+  const html = renderToString(h(Thread, { turns }));
+  assert.match(html, /rt-ab-error/);
+  assert.match(html, /Something went wrong/);
 });
 
 test('Thread renders agent turn with agent avatar', () => {

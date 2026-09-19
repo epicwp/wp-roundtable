@@ -11,7 +11,7 @@ import { TopicDetail } from './topic-detail.jsx';
 import { PublishDialog } from './publish-dialog.jsx';
 import { publishCase } from './api.js';
 import { fetchTabCounts } from './tab-counts.js';
-import { agentDisplayName, projectDisplayName } from './config.js';
+import { agentDisplayName, betaEnabled, projectDisplayName } from './config.js';
 
 const TABS = [
   { id: 'all', label: 'All', enabled: true },
@@ -80,7 +80,7 @@ export function CommunityApp() {
           <div class="rt-list-shell">
             <div class="rt-pagehead">
               <div>
-                <h1 class="rt-title">Community</h1>
+                <h1 class="rt-title">Community{betaEnabled() && <span class="rt-beta-pill">Beta</span>}</h1>
                 {projectName && <p class="rt-sub">{projectName}</p>}
               </div>
               <button class="rt-newtopic-head" type="button" onClick={requestNewTopic}>+ New topic</button>
