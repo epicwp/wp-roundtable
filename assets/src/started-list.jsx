@@ -6,7 +6,7 @@ import { filterTopics } from './list-filters.js';
 import { ListToolbar } from './list-toolbar.jsx';
 import { mapCaseToTopic } from './topics.js';
 import { TopicRow } from './topic-list.jsx';
-import { agentDisplayName } from './config.js';
+import { agentDisplayName, chatEnabled } from './config.js';
 
 function DraftRow({ topic, onReview }) {
   return (
@@ -28,6 +28,19 @@ function DraftRow({ topic, onReview }) {
   );
 }
 
+/**
+ * The started-list's empty-state message: points at the chat panel when chat is
+ * enabled, or the "+ New topic" button when it's the only way to start a topic.
+ * @param {boolean} chatOn
+ * @param {string} agentName
+ * @returns {string}
+ */
+export function emptyStateMessage(chatOn, agentName) {
+  return chatOn
+    ? `No topics started yet. Use ${agentName} on the right to draft one.`
+    : 'No topics started yet. Click "+ New topic" to submit one.';
+}
+
 function SectionHead({ title, hint }) {
   return (
     <div class="rt-sechead">
@@ -47,6 +60,7 @@ export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft, on
   const [q, setQ] = useState('');
   const [type, setType] = useState('');
   const agentName = agentDisplayName();
+  const chatOn = chatEnabled();
 
   useEffect(() => {
     let cancelled = false;
@@ -89,7 +103,7 @@ export function StartedList({ refreshNonce = 0, onSelectTopic, onReviewDraft, on
       {loading && <div class="rt-list-msg">Loading your topics…</div>}
       {!loading && error && <div class="rt-list-msg rt-list-error">Could not load your topics. Try again.</div>}
       {!loading && !error && total === 0 && (
-        <div class="rt-list-msg">{`No topics started yet. Use ${agentName} on the right to draft one.`}</div>
+        <div class="rt-list-msg">{emptyStateMessage(chatOn, agentName)}</div>
       )}
       {!loading && !error && total > 0 && filteredTotal === 0 && (
         <div class="rt-list-msg">No matching topics in your started list.</div>
