@@ -22,6 +22,7 @@ final class ConfigTest extends PHPUnitTestCase
         self::assertNull($config->hubBaseUrl);
         self::assertSame('', $config->projectName);
         self::assertFalse($config->beta);
+        self::assertFalse($config->enableChat);
     }
 
     public function test_accepts_overrides(): void
@@ -46,5 +47,12 @@ final class ConfigTest extends PHPUnitTestCase
         $config = new Config('pk', new FakeConsumer(), beta: true);
 
         self::assertTrue($config->beta);
+    }
+
+    public function test_accepts_an_enable_chat_flag(): void
+    {
+        $config = new Config('pk', new FakeConsumer(), enableChat: true);
+
+        self::assertTrue($config->enableChat);
     }
 }

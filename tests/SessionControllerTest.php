@@ -21,6 +21,7 @@ final class SessionControllerTest extends TestCase {
             public function metadata(): ?string { return null; }
             public function clientVersion(): ?string { return null; }
             public function licence(): ?array { return null; }
+            public function email(): ?string { return null; }
         };
         return new SessionController( new Config( 'pk_secret', $consumer ) );
     }

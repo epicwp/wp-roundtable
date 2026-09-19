@@ -18,6 +18,8 @@ final class Config {
      * @param string      $projectName    The consuming product's display name; '' hides it in the UI.
      * @param bool        $beta           Whether the UI shows a "Beta" label next to the agent name
      *                                    and the Community heading.
+     * @param bool        $enableChat     Whether the AI chat is available. False (the default) hides
+     *                                    the chat UI and unregisters the chat/message REST routes.
      */
     public function __construct(
         public readonly string $projectApiKey,
@@ -28,6 +30,7 @@ final class Config {
         public readonly ?string $hubBaseUrl = null,
         public readonly string $projectName = '',
         public readonly bool $beta = false,
+        public readonly bool $enableChat = false,
     ) {
     }
 }

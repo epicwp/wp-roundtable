@@ -15,6 +15,7 @@ final class FakeConsumer implements Consumer
         private ?string $metadata = null,
         private ?string $clientVersion = null,
         private ?array $licence = null,
+        private ?string $email = null,
     ) {}
 
     public function isUserAllowed(): bool { return $this->allowed; }
@@ -23,4 +24,5 @@ final class FakeConsumer implements Consumer
     public function clientVersion(): ?string { return $this->clientVersion; }
     /** @return array{key: string, activation_id: string}|null */
     public function licence(): ?array { return $this->licence; }
+    public function email(): ?string { return $this->email; }
 }
