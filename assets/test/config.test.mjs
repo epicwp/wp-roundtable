@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { agentDisplayName, betaEnabled, chatDisabled, initialMessage, projectDisplayName } from '../src/config.js';
+import {
+  agentDisplayName, betaEnabled, chatDisabled, chatEnabled, initialMessage, projectDisplayName,
+} from '../src/config.js';
 
 test('agentDisplayName falls back to the SDK default', () => {
   globalThis.window = {};
@@ -60,4 +62,21 @@ test('betaEnabled and chatDisabled accept wp_localize_script stringified boolean
   globalThis.window = { RoundtableConfig: { beta: '', chatDisabled: '1' } };
   assert.equal(betaEnabled(), false);
   assert.equal(chatDisabled(), true);
+});
+
+test('chatEnabled is false when not configured (the v1 default)', () => {
+  globalThis.window = { RoundtableConfig: { agentName: 'Sage' } };
+  assert.equal(chatEnabled(), false);
+});
+
+test('chatEnabled is true when the boot payload flags it', () => {
+  globalThis.window = { RoundtableConfig: { chatEnabled: true } };
+  assert.equal(chatEnabled(), true);
+});
+
+test('chatEnabled accepts wp_localize_script stringified booleans', () => {
+  globalThis.window = { RoundtableConfig: { chatEnabled: '1' } };
+  assert.equal(chatEnabled(), true);
+  globalThis.window = { RoundtableConfig: { chatEnabled: '' } };
+  assert.equal(chatEnabled(), false);
 });
