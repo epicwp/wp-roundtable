@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace EpicWP\Roundtable;
 
+use EpicWP\Roundtable\Html\HtmlToMarkdown;
 use EpicWP\Roundtable\Rest\Gate;
 
 /** REST proxy to submit a topic directly to hub moderation: `POST /roundtable/v1/topics`. */
@@ -70,7 +71,7 @@ final class TopicController {
         }
 
         try {
-            $case = $this->hubClient->submitTopic( $type, $title, $body );
+            $case = $this->hubClient->submitTopic( $type, $title, HtmlToMarkdown::convert( $body ) );
         } catch ( \EpicWP\Roundtable\HubException $e ) {
             return new \WP_REST_Response(
                 array( 'error' => array( 'kind' => $e->kind() ) ),

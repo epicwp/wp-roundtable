@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace EpicWP\Roundtable;
 
+use EpicWP\Roundtable\Html\HtmlToMarkdown;
 use EpicWP\Roundtable\Rest\Gate;
 
 /** REST proxy for case comments: `GET|POST /roundtable/v1/cases/{case_id}/comments`. */
@@ -103,7 +104,7 @@ final class CommentsController {
         }
 
         try {
-            $comment = $this->hubClient->createComment( $caseId, $body );
+            $comment = $this->hubClient->createComment( $caseId, HtmlToMarkdown::convert( $body ) );
         } catch ( \EpicWP\Roundtable\HubException $e ) {
             return new \WP_REST_Response(
                 array( 'error' => array( 'kind' => $e->kind() ) ),
