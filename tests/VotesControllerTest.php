@@ -57,6 +57,20 @@ final class VotesControllerTest extends TestCase
         self::assertSame( 400, $response->get_status() );
     }
 
+    public function test_handle_cast_maps_a_licence_refusal_to_402(): void
+    {
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $controller = $this->controller( new FakeTransport( 402, '' ) );
+        $request    = $this->request( array( 'case_id' => 'c1', 'value' => 1 ) );
+
+        $response = $controller->handleCast( $request );
+
+        self::assertSame( 402, $response->get_status() );
+        self::assertSame( array( 'kind' => HubException::LICENCE_INVALID ), $response->get_data()['error'] );
+    }
+
     public function test_handle_retract_returns_tally_on_success(): void
     {
         Functions\when( 'wp_verify_nonce' )->justReturn( 1 );

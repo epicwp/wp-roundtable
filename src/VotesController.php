@@ -159,6 +159,7 @@ final class VotesController {
      */
     private function statusFor( \EpicWP\Roundtable\HubException $error ): int {
         return match ( $error->kind() ) {
+            \EpicWP\Roundtable\HubException::LICENCE_INVALID => 402,
             \EpicWP\Roundtable\HubException::BLOCKED => 403,
             \EpicWP\Roundtable\HubException::OVER_QUOTA => 429,
             default => 502,

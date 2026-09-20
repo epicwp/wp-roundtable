@@ -66,6 +66,21 @@ final class CommentsControllerTest extends TestCase
         self::assertSame('cm2', $response->get_data()['comment']['id']);
     }
 
+    public function test_handle_create_maps_a_licence_refusal_to_402(): void
+    {
+        Functions\when('wp_verify_nonce')->justReturn(1);
+        Functions\when('current_user_can')->justReturn(true);
+
+        $controller = $this->controller(new FakeTransport(402, ''));
+        $req        = $this->request('c1');
+        $req->allows('get_param')->with('body')->andReturn('Reply');
+
+        $response = $controller->handleCreate($req);
+
+        self::assertSame(402, $response->get_status());
+        self::assertSame(['kind' => HubException::LICENCE_INVALID], $response->get_data()['error']);
+    }
+
     public function test_handle_create_rejects_empty_body(): void
     {
         Functions\when('wp_verify_nonce')->justReturn(1);

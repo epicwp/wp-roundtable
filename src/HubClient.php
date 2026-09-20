@@ -262,18 +262,22 @@ final class HubClient {
      *
      * @return array<string, mixed> The hub CommentResponse object.
      *
-     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     * @throws \EpicWP\Roundtable\HubException On a licence refusal (402), a gate refusal
+     *                  (403/429), a server error (5xx), a malformed response, or a network
+     *                  failure. The project key is never in the message.
      */
     public function createComment( string $caseId, string $body ): array {
         $url     = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/cases/' . $caseId . '/comments';
-        $payload = $this->encodeJson(
+        $payload = \array_merge(
             array(
                 'body'       => $body,
                 'subject_id' => $this->config->consumer->subjectId(),
             ),
+            $this->emailField(),
+            $this->licenceField(),
         );
 
-        return $this->postJsonObject( $url, $payload );
+        return $this->postJsonObject( $url, $this->encodeJson( $payload ) );
     }
 
     /**
@@ -284,20 +288,24 @@ final class HubClient {
      *
      * @return array<string, mixed> The hub TallyResponse object.
      *
-     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     * @throws \EpicWP\Roundtable\HubException On a licence refusal (402), a gate refusal
+     *                  (403/429), a server error (5xx), a malformed response, or a network
+     *                  failure. The project key is never in the message.
      */
     public function castVote( string $caseId, int $value ): array {
         $url     = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/cases/' . \rawurlencode(
             $caseId,
         ) . '/votes';
-        $payload = $this->encodeJson(
+        $payload = \array_merge(
             array(
                 'subject_id' => $this->config->consumer->subjectId(),
                 'value'      => $value,
             ),
+            $this->emailField(),
+            $this->licenceField(),
         );
 
-        return $this->postJsonObject( $url, $payload );
+        return $this->postJsonObject( $url, $this->encodeJson( $payload ) );
     }
 
     /**
