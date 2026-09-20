@@ -73,3 +73,17 @@ export function VoteControl({ caseId, net: initialNet, onChange }) {
     </div>
   );
 }
+
+/**
+ * Non-interactive vote count for a case the hub won't accept votes on (e.g.
+ * pending review) — renders in VoteControl's place without its per-case
+ * fetchVoteTally() call, so it triggers no hub request that would 403.
+ * @param {{net:number}} props
+ */
+export function StaticVote({ net }) {
+  return (
+    <div class="rt-vote">
+      <span class="rt-vote-n">{net}</span>
+    </div>
+  );
+}

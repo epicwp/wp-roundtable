@@ -33,6 +33,27 @@ test('TopicRow renders title and interactive vote control', () => {
   assert.match(html, /27/);
 });
 
+test('TopicRow shows a static vote count (no interactive control) for a pending topic', () => {
+  const html = renderToString(h(TopicRow, {
+    topic: {
+      id: 'c1',
+      title: 'Awaiting review',
+      snippet: 'Body',
+      typeLabel: 'Bug',
+      typeClass: 'rt-b-bug',
+      statusLabel: 'Pending approval',
+      statusClass: 'rt-s-pending',
+      handle: 'teal-owl',
+      net: 4,
+      age: '1d',
+      isPending: true,
+    },
+  }));
+  assert.doesNotMatch(html, /Upvote/);
+  assert.doesNotMatch(html, /Downvote/);
+  assert.match(html, /rt-vote-n">4</);
+});
+
 test('TopicRow renders a markdown summary as a plain-text excerpt', () => {
   const html = renderToString(h(TopicRow, {
     topic: {

@@ -26,6 +26,32 @@ test('TopicDetail shows pending approval banner', () => {
   assert.match(html, /rt-banner-pending/);
 });
 
+test('TopicDetail hides the vote control and comment editor for a pending topic (the hub 403s both)', () => {
+  const html = renderToString(h(TopicDetail, {
+    topic: {
+      id: 'c2',
+      title: 'Awaiting review',
+      snippet: 'Body',
+      typeLabel: 'Bug',
+      typeClass: 'rt-b-bug',
+      statusLabel: 'Pending approval',
+      statusClass: 'rt-s-pending',
+      handle: 'teal-owl',
+      initials: 'TO',
+      net: 3,
+      age: '1d',
+      isPending: true,
+    },
+    onBack: () => {},
+  }));
+  assert.doesNotMatch(html, /Upvote/);
+  assert.doesNotMatch(html, /Downvote/);
+  assert.match(html, /rt-vote-n">3</);
+  assert.doesNotMatch(html, /rt-cm-composer/);
+  assert.doesNotMatch(html, /Add a comment/);
+  assert.match(html, /Comments open once this topic is approved\./);
+});
+
 test('TopicDetail renders title and back link', () => {
   const html = renderToString(h(TopicDetail, {
     topic: {

@@ -2,7 +2,6 @@
 import { h } from 'preact';
 import { useRef, useState } from 'preact/hooks';
 import { renderMarkdown } from './markdown.js';
-import { PersonAvatar } from './avatars.jsx';
 
 const TOOLS = [
   { id: 'bold', title: 'Bold', wrap: ['**', '**'], label: <b>B</b> },
@@ -92,8 +91,7 @@ export function CommentEditor({ value, onInput, onSubmit, posting, error }) {
   }
 
   return (
-    <div class="rt-addwrap rt-cm-composer">
-      <PersonAvatar initials="Y" size="sm" class="rt-you-ava" />
+    <div class="rt-cm-composer">
       <div class="rt-editor rt-mdeditor">
         <div class="rt-ed-top">
           <div class="rt-ed-tabs">
