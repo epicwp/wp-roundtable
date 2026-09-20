@@ -134,11 +134,6 @@ export function CommunityApp() {
               ))}
             </nav>
             {activeTab === 'all' && (
-              <div class="rt-banner">
-                <b>Public &amp; anonymous.</b> Only community handles are shown, never real names.
-              </div>
-            )}
-            {activeTab === 'all' && (
               <TopicList refreshNonce={listRefresh} onSelectTopic={openTopic} onVoteChange={refreshTabCountsOnly} />
             )}
             {activeTab === 'participating' && (
