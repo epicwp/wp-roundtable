@@ -194,7 +194,7 @@ export function fetchComments(caseId) {
 /**
  * Post a comment on a public topic.
  * @param {string} caseId
- * @param {string} body markdown comment body
+ * @param {string} body HTML comment body (the proxy converts it to markdown server-side)
  * @returns {Promise<{comment:object}|{error:{kind:string}}>}
  */
 export function postComment(caseId, body) {

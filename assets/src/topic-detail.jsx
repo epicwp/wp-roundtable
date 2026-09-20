@@ -9,6 +9,7 @@ import { mapCommentToView } from './topics.js';
 import { DisabledVote, VoteControl } from './vote-control.jsx';
 import { CommentEditor } from './comment-editor.jsx';
 import { CommentActions } from './comment-actions.jsx';
+import { htmlHasText } from './wysiwyg-editor.jsx';
 
 function CommentRow({ comment }) {
   const Ava = comment.isAgent ? AgentAvatar : PersonAvatar;
@@ -42,20 +43,20 @@ function CommentComposer({ caseId, onPosted, disabled = false }) {
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState(false);
+  const [resetNonce, setResetNonce] = useState(0);
 
   const submit = async () => {
-    if (disabled) return;
-    const body = text.trim();
-    if (!body || posting) return;
+    if (disabled || posting || !htmlHasText(text)) return;
     setPosting(true);
     setError(false);
-    const res = await postComment(caseId, body);
+    const res = await postComment(caseId, text.trim());
     setPosting(false);
     if (res.error) {
       setError(true);
       return;
     }
     setText('');
+    setResetNonce((n) => n + 1);
     onPosted();
   };
 
@@ -67,6 +68,7 @@ function CommentComposer({ caseId, onPosted, disabled = false }) {
       posting={posting}
       error={error}
       submitDisabled={disabled}
+      resetNonce={resetNonce}
     />
   );
 }
