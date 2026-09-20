@@ -1,12 +1,12 @@
 /** @jsx h */
-import { h } from 'preact';
+import { Fragment, h } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { fetchComments, postComment } from './api.js';
 import { renderMarkdown } from './markdown.js';
 import { AgentAvatar, PersonAvatar } from './avatars.jsx';
 import { agentDisplayName } from './config.js';
 import { mapCommentToView } from './topics.js';
-import { VoteControl } from './vote-control.jsx';
+import { DisabledVote, VoteControl } from './vote-control.jsx';
 import { CommentEditor } from './comment-editor.jsx';
 import { CommentActions } from './comment-actions.jsx';
 
@@ -38,12 +38,13 @@ function repliesTitle(count, loading, error) {
   return count + ' replies';
 }
 
-function CommentComposer({ caseId, onPosted }) {
+function CommentComposer({ caseId, onPosted, disabled = false }) {
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState(false);
 
   const submit = async () => {
+    if (disabled) return;
     const body = text.trim();
     if (!body || posting) return;
     setPosting(true);
@@ -65,6 +66,7 @@ function CommentComposer({ caseId, onPosted }) {
       onSubmit={submit}
       posting={posting}
       error={error}
+      submitDisabled={disabled}
     />
   );
 }
@@ -92,10 +94,13 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
   }, [topic.id, agentName]);
 
   useEffect(() => {
+    // Pending cases 403 comments (and votes) hub-side — skip the fetch entirely
+    // rather than surface an error state for a call we know will fail.
+    if (topic.isPending) return undefined;
     const cancelledRef = { cancelled: false };
     loadComments(cancelledRef);
     return () => { cancelledRef.cancelled = true; };
-  }, [loadComments, refreshNonce]);
+  }, [loadComments, refreshNonce, topic.isPending]);
 
   return (
     <div class="rt-detail-area">
@@ -107,7 +112,9 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
       )}
       <div class="rt-detail-card rt-card">
         <div class="rt-th">
-          <VoteControl caseId={topic.id} net={topic.net} onChange={onVoteChange} />
+          {topic.isPending
+            ? <DisabledVote net={topic.net} />
+            : <VoteControl caseId={topic.id} net={topic.net} onChange={onVoteChange} />}
           <div class="rt-thd">
             <h2 class="rt-dtitle">{topic.title}</h2>
             <div class="rt-cmeta">
@@ -128,19 +135,26 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
         </div>
       </div>
       <div class="rt-csec rt-card">
-        <div class="rt-csec-head">
-          <h2 class="rt-csec-title">{repliesTitle(comments.length, loading, error)}</h2>
-          {!loading && !error && comments.length > 0
-            ? <span class="rt-csec-sort">Newest first</span>
-            : null}
-        </div>
-        {loading && <p class="rt-csec-cnt">Loading…</p>}
-        {error && <p class="rt-csec-cnt rt-list-error">Could not load comments.</p>}
-        {!loading && !error && comments.length === 0 && <p class="rt-csec-empty">No comments yet.</p>}
-        {!loading && !error && comments.length > 0 && (
-          <div class="rt-cm-thread">
-            {comments.map((c) => <CommentRow key={c.id} comment={c} />)}
-          </div>
+        {!topic.isPending && (
+          <Fragment>
+            <div class="rt-csec-head">
+              <h2 class="rt-csec-title">{repliesTitle(comments.length, loading, error)}</h2>
+              {!loading && !error && comments.length > 0
+                ? <span class="rt-csec-sort">Newest first</span>
+                : null}
+            </div>
+            {loading && <p class="rt-csec-cnt">Loading…</p>}
+            {error && <p class="rt-csec-cnt rt-list-error">Could not load comments.</p>}
+            {!loading && !error && comments.length === 0 && <p class="rt-csec-empty">No comments yet.</p>}
+            {!loading && !error && comments.length > 0 && (
+              <div class="rt-cm-thread">
+                {comments.map((c) => <CommentRow key={c.id} comment={c} />)}
+              </div>
+            )}
+          </Fragment>
+        )}
+        {topic.isPending && (
+          <p class="rt-csec-empty">Comments open once this topic is approved.</p>
         )}
         <CommentComposer
           caseId={topic.id}
@@ -148,6 +162,7 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
             setRefreshNonce((n) => n + 1);
             onVoteChange && onVoteChange();
           }}
+          disabled={topic.isPending}
         />
       </div>
     </div>

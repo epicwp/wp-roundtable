@@ -10,7 +10,8 @@ use EpicWP\Roundtable\Http\WpHttpTransport;
  *
  * A consuming plugin calls {@see Roundtable::mount()} once with its {@see Config} and the
  * parent admin menu slug the "Community" submenu attaches to. This wires the admin page
- * and both REST routes.
+ * and the REST routes; the chat/message routes register only when {@see Config::$enableChat}
+ * is true.
  */
 final class Roundtable {
     /**
@@ -25,27 +26,34 @@ final class Roundtable {
         \add_action( 'admin_menu', array( $page, 'registerMenu' ) );
         \add_action( 'admin_enqueue_scripts', array( $page, 'enqueue' ) );
 
-        $message       = new MessageController( $config, $hub );
-        $history       = new HistoryController( $config, $hub );
-        $stream        = new StreamController( $config, $hub, new Http\CurlStreamingTransport() );
-        $session       = new SessionController( $config );
         $cases         = new CasesController( $config, $hub );
         $myCases       = new MyCasesController( $config, $hub );
         $participating = new ParticipatingCasesController( $config, $hub );
         $comments      = new CommentsController( $config, $hub );
         $votes         = new VotesController( $config, $hub );
-        $draft         = new CaseDraftController( $config, $hub );
         $publish       = new PublishController( $config, $hub );
-        \add_action( 'rest_api_init', array( $message, 'register' ) );
-        \add_action( 'rest_api_init', array( $history, 'register' ) );
-        \add_action( 'rest_api_init', array( $stream, 'register' ) );
-        \add_action( 'rest_api_init', array( $session, 'register' ) );
+        $topics        = new TopicController( $config, $hub );
         \add_action( 'rest_api_init', array( $cases, 'register' ) );
         \add_action( 'rest_api_init', array( $myCases, 'register' ) );
         \add_action( 'rest_api_init', array( $participating, 'register' ) );
         \add_action( 'rest_api_init', array( $comments, 'register' ) );
         \add_action( 'rest_api_init', array( $votes, 'register' ) );
-        \add_action( 'rest_api_init', array( $draft, 'register' ) );
         \add_action( 'rest_api_init', array( $publish, 'register' ) );
+        \add_action( 'rest_api_init', array( $topics, 'register' ) );
+
+        if ( ! $config->enableChat ) {
+            return;
+        }
+
+        $message = new MessageController( $config, $hub );
+        $history = new HistoryController( $config, $hub );
+        $stream  = new StreamController( $config, $hub, new Http\CurlStreamingTransport() );
+        $session = new SessionController( $config );
+        $draft   = new CaseDraftController( $config, $hub );
+        \add_action( 'rest_api_init', array( $message, 'register' ) );
+        \add_action( 'rest_api_init', array( $history, 'register' ) );
+        \add_action( 'rest_api_init', array( $stream, 'register' ) );
+        \add_action( 'rest_api_init', array( $session, 'register' ) );
+        \add_action( 'rest_api_init', array( $draft, 'register' ) );
     }
 }

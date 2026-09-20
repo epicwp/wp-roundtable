@@ -58,6 +58,7 @@ final class Page {
                 'agentName'      => $display['agentName'],
                 'beta'           => $this->config->beta,
                 'chatDisabled'   => $display['chatDisabled'],
+                'chatEnabled'    => $this->config->enableChat,
                 'initialMessage' => $display['initialMessage'],
                 'nonce'          => \wp_create_nonce( 'wp_rest' ),
                 'projectName'    => $display['projectName'],

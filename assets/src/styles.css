@@ -92,9 +92,7 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-cm-thread { display:flex; flex-direction:column; margin-bottom:0; }
 #roundtable-app .rt-cm-thread .rt-cm { padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid #eef1f5; }
 #roundtable-app .rt-cm-thread .rt-cm:last-child { padding-bottom:0; margin-bottom:0; border-bottom:none; }
-#roundtable-app .rt-addwrap { display:grid; grid-template-columns:32px 1fr; gap:12px; }
 #roundtable-app .rt-cm-composer { margin-top:22px; padding-top:22px; border-top:1px solid var(--rt-line); }
-#roundtable-app .rt-you-ava { background:linear-gradient(160deg,#5a6b86,#3a4761)!important; }
 #roundtable-app .rt-editor { background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:10px; overflow:hidden; min-width:0; }
 #roundtable-app .rt-ed-top { display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid #eef1f5; background:#fafbfd; }
 #roundtable-app .rt-ed-tabs { display:flex; gap:2px; }
@@ -261,6 +259,8 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-pub-textarea { display:block; width:100%; border:none!important; background:transparent!important; resize:vertical; font:inherit; font-size:14px; line-height:1.6; color:var(--rt-ink); outline:none; padding:16px 18px; min-height:280px; box-shadow:none!important; margin:0; flex:1; }
 #roundtable-app .rt-pub-preview { padding:16px 18px; overflow-y:auto; min-height:280px; max-height:50vh; font-size:14.5px; line-height:1.6; }
 #roundtable-app .rt-pub-modal .rt-modal-actions { padding:16px 20px 20px; margin-top:0; border-top:1px solid #eef1f5; background:#fafbfd; }
+#roundtable-app .rt-pub-notice { margin:14px 20px 0; padding:12px 14px; background:#fafbfd; border:1px solid #eef1f5; border-radius:10px; font-size:12.5px; color:var(--rt-ink-soft); }
+#roundtable-app .rt-pub-notice-error { background:#fbeee9; border-color:#f3d9cf; color:#c23a26; }
 #roundtable-app .rt-thread-extras { padding:0 16px 8px; }
 #roundtable-app .rt-btn-primary { font:inherit; font-size:13px; font-weight:600; color:#fff; background:var(--rt-accent); border:1px solid var(--rt-accent); border-radius:8px; padding:8px 14px; cursor:pointer; box-shadow:none; min-height:0; }
 #roundtable-app .rt-btn-primary:hover { background:var(--rt-accent-ink); border-color:var(--rt-accent-ink); }

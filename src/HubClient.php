@@ -262,18 +262,22 @@ final class HubClient {
      *
      * @return array<string, mixed> The hub CommentResponse object.
      *
-     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     * @throws \EpicWP\Roundtable\HubException On a licence refusal (402), a gate refusal
+     *                  (403/429), a server error (5xx), a malformed response, or a network
+     *                  failure. The project key is never in the message.
      */
     public function createComment( string $caseId, string $body ): array {
         $url     = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/cases/' . $caseId . '/comments';
-        $payload = $this->encodeJson(
+        $payload = \array_merge(
             array(
                 'body'       => $body,
                 'subject_id' => $this->config->consumer->subjectId(),
             ),
+            $this->emailField(),
+            $this->licenceField(),
         );
 
-        return $this->postJsonObject( $url, $payload );
+        return $this->postJsonObject( $url, $this->encodeJson( $payload ) );
     }
 
     /**
@@ -284,20 +288,24 @@ final class HubClient {
      *
      * @return array<string, mixed> The hub TallyResponse object.
      *
-     * @throws \EpicWP\Roundtable\HubException On hub or transport failure.
+     * @throws \EpicWP\Roundtable\HubException On a licence refusal (402), a gate refusal
+     *                  (403/429), a server error (5xx), a malformed response, or a network
+     *                  failure. The project key is never in the message.
      */
     public function castVote( string $caseId, int $value ): array {
         $url     = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/cases/' . \rawurlencode(
             $caseId,
         ) . '/votes';
-        $payload = $this->encodeJson(
+        $payload = \array_merge(
             array(
                 'subject_id' => $this->config->consumer->subjectId(),
                 'value'      => $value,
             ),
+            $this->emailField(),
+            $this->licenceField(),
         );
 
-        return $this->postJsonObject( $url, $payload );
+        return $this->postJsonObject( $url, $this->encodeJson( $payload ) );
     }
 
     /**
@@ -382,6 +390,38 @@ final class HubClient {
         );
 
         return $this->postJsonObject( $url, $body );
+    }
+
+    /**
+     * Submit a topic directly to the hub's moderation queue — no chat, no draft/publish
+     * step. The created case lands with `visibility=pending` until a human approves it.
+     *
+     * @param string $type  One of `question`, `bug`, `feature_request`.
+     * @param string $title The topic title (1..200 chars).
+     * @param string $body  The topic body (1..10000 chars, free text).
+     *
+     * @return array<string, mixed> The hub CaseResponse object.
+     *
+     * @throws \EpicWP\Roundtable\HubException On a licence refusal (402), a gate refusal
+     *                  (403/429), a server error (5xx), a malformed response, or a network
+     *                  failure. The project key is never in the message.
+     */
+    public function submitTopic( string $type, string $title, string $body ): array {
+        $url     = ( $this->config->hubBaseUrl ?? self::HUB_URL ) . '/cases/direct';
+        $payload = \array_merge(
+            array(
+                'body'       => $body,
+                'subject_id' => $this->config->consumer->subjectId(),
+                'title'      => $title,
+                'type'       => $type,
+            ),
+            $this->emailField(),
+            $this->metadataField(),
+            $this->clientVersionField(),
+            $this->licenceField(),
+        );
+
+        return $this->postJsonObject( $url, $this->encodeJson( $payload ) );
     }
 
     /**
@@ -599,6 +639,32 @@ final class HubClient {
         }
 
         return $decoded;
+    }
+
+    /**
+     * Optional `email` field from the consumer, when set.
+     *
+     * @return array<string, string> Zero or one keyed entry.
+     */
+    private function emailField(): array {
+        $email = $this->config->consumer->email();
+        if ( null === $email ) {
+            return array();
+        }
+        return array( 'email' => $email );
+    }
+
+    /**
+     * Optional `metadata` field from the consumer, when set.
+     *
+     * @return array<string, string> Zero or one keyed entry.
+     */
+    private function metadataField(): array {
+        $metadata = $this->config->consumer->metadata();
+        if ( null === $metadata ) {
+            return array();
+        }
+        return array( 'metadata' => $metadata );
     }
 
     /**

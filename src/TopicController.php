@@ -5,12 +5,14 @@ namespace EpicWP\Roundtable;
 
 use EpicWP\Roundtable\Rest\Gate;
 
-/** REST proxy for case comments: `GET|POST /roundtable/v1/cases/{case_id}/comments`. */
-final class CommentsController {
+/** REST proxy to submit a topic directly to hub moderation: `POST /roundtable/v1/topics`. */
+final class TopicController {
     /** The REST route namespace. */
     public const ROUTE_NAMESPACE = 'roundtable/v1';
     /** The REST route path (under the namespace). */
-    public const ROUTE = '/cases/(?P<case_id>[a-zA-Z0-9_-]+)/comments';
+    public const ROUTE = '/topics';
+    /** The hub-allowed topic types. */
+    private const TYPES = array( 'question', 'bug', 'feature_request' );
 
     /**
      * Creates the controller.
@@ -30,16 +32,7 @@ final class CommentsController {
             self::ROUTE_NAMESPACE,
             self::ROUTE,
             array(
-                'callback'            => array( $this, 'handleList' ),
-                'methods'             => 'GET',
-                'permission_callback' => array( $this, 'permission' ),
-            ),
-        );
-        \register_rest_route(
-            self::ROUTE_NAMESPACE,
-            self::ROUTE,
-            array(
-                'callback'            => array( $this, 'handleCreate' ),
+                'callback'            => array( $this, 'handle' ),
                 'methods'             => 'POST',
                 'permission_callback' => array( $this, 'permission' ),
             ),
@@ -60,50 +53,24 @@ final class CommentsController {
     }
 
     /**
-     * List comments for a public case from the hub.
+     * Submit a topic directly to the hub's moderation queue.
      *
      * @param \WP_REST_Request<array<string, mixed>> $request The incoming request.
      *
-     * @return \WP_REST_Response The comments array, or a structured error.
+     * @return \WP_REST_Response The created case, or a structured error.
      */
-    public function handleList( // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- `\WP_REST_Request<array<string, mixed>>` is a PHPStan generic; the native param type stays `\WP_REST_Request`.
+    public function handle( // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- `\WP_REST_Request<array<string, mixed>>` is a PHPStan generic; the native param type stays `\WP_REST_Request`.
         \WP_REST_Request $request,
     ): \WP_REST_Response {
-        $caseId = (string) $request->get_param( 'case_id' );
-        if ( '' === $caseId ) {
-            return new \WP_REST_Response( array( 'error' => array( 'kind' => 'bad_request' ) ), 400 );
-        }
-
-        try {
-            $comments = $this->hubClient->listComments( $caseId );
-        } catch ( \EpicWP\Roundtable\HubException $e ) {
-            return new \WP_REST_Response(
-                array( 'error' => array( 'kind' => $e->kind() ) ),
-                $this->statusFor( $e ),
-            );
-        }
-
-        return new \WP_REST_Response( array( 'comments' => $comments ), 200 );
-    }
-
-    /**
-     * Post a new comment on a public case.
-     *
-     * @param \WP_REST_Request<array<string, mixed>> $request The incoming request.
-     *
-     * @return \WP_REST_Response The created comment, or a structured error.
-     */
-    public function handleCreate( // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint -- `\WP_REST_Request<array<string, mixed>>` is a PHPStan generic; the native param type stays `\WP_REST_Request`.
-        \WP_REST_Request $request,
-    ): \WP_REST_Response {
-        $caseId = (string) $request->get_param( 'case_id' );
-        $body   = \trim( (string) $request->get_param( 'body' ) );
-        if ( '' === $caseId || '' === $body ) {
+        $type  = (string) $request->get_param( 'type' );
+        $title = \trim( (string) $request->get_param( 'title' ) );
+        $body  = \trim( (string) $request->get_param( 'body' ) );
+        if ( ! \in_array( $type, self::TYPES, true ) || '' === $title || '' === $body ) {
             return new \WP_REST_Response( array( 'error' => array( 'kind' => 'invalid_request' ) ), 400 );
         }
 
         try {
-            $comment = $this->hubClient->createComment( $caseId, $body );
+            $case = $this->hubClient->submitTopic( $type, $title, $body );
         } catch ( \EpicWP\Roundtable\HubException $e ) {
             return new \WP_REST_Response(
                 array( 'error' => array( 'kind' => $e->kind() ) ),
@@ -111,7 +78,7 @@ final class CommentsController {
             );
         }
 
-        return new \WP_REST_Response( array( 'comment' => $comment ), 200 );
+        return new \WP_REST_Response( array( 'case' => $case ), 200 );
     }
 
     /**

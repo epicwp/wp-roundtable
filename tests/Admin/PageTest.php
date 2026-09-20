@@ -65,7 +65,8 @@ final class PageTest extends TestCase
                 && 'Hub Project' === $d['projectName']
                 && 'Hi from the hub.' === $d['initialMessage']
                 && false === $d['beta']
-                && true === $d['chatDisabled']),
+                && true === $d['chatDisabled']
+                && false === $d['chatEnabled']),
         );
         $this->page($hub)->enqueue('tools_page_roundtable-community');
     }
@@ -88,6 +89,24 @@ final class PageTest extends TestCase
         (new Page($config, 'tools.php', $hub))->enqueue('tools_page_roundtable-community');
     }
 
+    public function test_enqueue_passes_the_chat_enabled_flag_through_when_configured(): void
+    {
+        $this->expectNotToPerformAssertions();
+        $config = new Config('pk_secret', new FakeConsumer(), 'Sage', enableChat: true);
+        $hub    = new HubClient($config, new FakeTransport(200, '{}'));
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
+        Functions\when('rest_url')->justReturn('http://x/wp-json/roundtable/v1');
+        Functions\when('wp_create_nonce')->justReturn('nonce123');
+        Functions\expect('wp_enqueue_script')->once();
+        Functions\expect('wp_localize_script')->once()->with(
+            'roundtable',
+            'RoundtableConfig',
+            \Mockery::on(static fn ($d) => true === $d['chatEnabled']),
+        );
+        (new Page($config, 'tools.php', $hub))->enqueue('tools_page_roundtable-community');
+    }
+
     public function test_enqueue_falls_back_to_local_config_when_hub_call_fails(): void
     {
         $this->expectNotToPerformAssertions();
@@ -103,7 +122,8 @@ final class PageTest extends TestCase
             \Mockery::on(static fn ($d) => 'Sage' === $d['agentName']
                 && 'Polylang AI Automatic Translation' === $d['projectName']
                 && '' === $d['initialMessage']
-                && false === $d['chatDisabled']),
+                && false === $d['chatDisabled']
+                && false === $d['chatEnabled']),
         );
         $this->page($hub)->enqueue('tools_page_roundtable-community');
     }

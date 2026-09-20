@@ -58,4 +58,15 @@ interface Consumer {
      * @return array{key: string, activation_id: string}|null The licence material, or null.
      */
     public function licence(): ?array;
+
+    /**
+     * The current user's email address, sent to the hub as direct-submission subject
+     * identity so moderation notifications can reach them.
+     *
+     * Stored dashboard-side only; never returned in any public hub API response.
+     * Return null when unknown.
+     *
+     * @return string|null The email address, or null.
+     */
+    public function email(): ?string;
 }

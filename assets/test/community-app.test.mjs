@@ -5,7 +5,7 @@ import { renderToString } from 'preact-render-to-string';
 import { CommunityApp } from '../src/community-app.jsx';
 
 test('CommunityApp shows the project name under the Community title', () => {
-  globalThis.window = { RoundtableConfig: { agentName: 'Nova', projectName: 'Acme Plugin' } };
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova', projectName: 'Acme Plugin', chatEnabled: true } };
   const html = renderToString(h(CommunityApp, {}));
   assert.match(html, /rt-title[^>]*>Community</);
   assert.match(html, /rt-sub[^>]*>Acme Plugin</);
@@ -29,4 +29,20 @@ test('CommunityApp renders no Beta pill when beta is absent', () => {
   globalThis.window = { RoundtableConfig: { agentName: 'Nova' } };
   const html = renderToString(h(CommunityApp, {}));
   assert.doesNotMatch(html, /rt-beta-pill/);
+});
+
+test('CommunityApp hides all chat UI when chatEnabled is false (the v1 default)', () => {
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova' } };
+  const html = renderToString(h(CommunityApp, {}));
+  assert.doesNotMatch(html, /rt-aside/);
+  assert.doesNotMatch(html, /rt-chat-launch/);
+  assert.doesNotMatch(html, /rt-chat-backdrop/);
+  assert.match(html, /rt-newtopic-head[^>]*>\+ New topic</);
+});
+
+test('CommunityApp shows the chat panel when chatEnabled is true', () => {
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova', chatEnabled: true } };
+  const html = renderToString(h(CommunityApp, {}));
+  assert.match(html, /rt-aside/);
+  assert.match(html, /rt-chat-launch/);
 });

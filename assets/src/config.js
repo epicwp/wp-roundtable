@@ -1,6 +1,6 @@
 // assets/src/config.js — the names localized by src/Admin/Page.php.
 
-/** @returns {{agentName?:string, projectName?:string, initialMessage?:string, beta?:boolean, chatDisabled?:boolean}} */
+/** @returns {{agentName?:string, projectName?:string, initialMessage?:string, beta?:boolean, chatDisabled?:boolean, chatEnabled?:boolean}} */
 function cfg() {
   return (typeof window !== 'undefined' && window.RoundtableConfig) || {};
 }
@@ -54,4 +54,14 @@ export function betaEnabled() {
  */
 export function chatDisabled() {
   return flag(cfg().chatDisabled);
+}
+
+/**
+ * Whether the AI chat is enabled for this install (boot flag from Task 3's PHP
+ * plumbing). False (the default) hides all chat UI and gives the topics feed the
+ * full width of the container.
+ * @returns {boolean}
+ */
+export function chatEnabled() {
+  return flag(cfg().chatEnabled);
 }

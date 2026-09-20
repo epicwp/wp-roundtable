@@ -174,6 +174,15 @@ export function publishCase(body) {
 }
 
 /**
+ * Submit a topic directly to hub moderation, bypassing chat/AI drafting.
+ * @param {{type:string, title:string, body:string}} payload
+ * @returns {Promise<{case:object}|{error:{kind:string}}>}
+ */
+export function submitTopic(payload) {
+  return post('/topics', payload);
+}
+
+/**
  * List comments on a public topic.
  * @param {string} caseId
  * @returns {Promise<{comments:Array}|{error:{kind:string}}>}

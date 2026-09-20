@@ -13,9 +13,9 @@ use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 
 final class HubClientCreateCommentTest extends PHPUnitTestCase
 {
-    private function config(): Config
+    private function config(?FakeConsumer $consumer = null): Config
     {
-        return new Config('pk_secret', new FakeConsumer());
+        return new Config('pk_secret', $consumer ?? new FakeConsumer());
     }
 
     public function test_posts_comment_with_subject_id(): void
@@ -35,6 +35,32 @@ final class HubClientCreateCommentTest extends PHPUnitTestCase
         self::assertSame('cm1', $comment['id']);
     }
 
+    public function test_includes_email_and_licence_when_the_consumer_provides_them(): void
+    {
+        $transport = new FakeTransport(200, '{}');
+        $licence   = array('key' => 'lic-1', 'activation_id' => 'act-1');
+        $consumer  = new FakeConsumer(true, 'subj-1', null, null, $licence, 'user@example.com');
+        $client    = new HubClient($this->config($consumer), $transport);
+
+        $client->createComment('c1', 'Hello');
+
+        $body = \json_decode((string) $transport->lastBody, true);
+        self::assertSame('user@example.com', $body['email']);
+        self::assertSame($licence, $body['licence']);
+    }
+
+    public function test_omits_email_and_licence_when_the_consumer_has_none(): void
+    {
+        $transport = new FakeTransport(200, '{}');
+        $client    = new HubClient($this->config(), $transport);
+
+        $client->createComment('c1', 'Hello');
+
+        $body = \json_decode((string) $transport->lastBody, true);
+        self::assertArrayNotHasKey('email', $body);
+        self::assertArrayNotHasKey('licence', $body);
+    }
+
     public function test_maps_forbidden_to_blocked(): void
     {
         $client = new HubClient($this->config(), new FakeTransport(403, ''));
@@ -44,6 +70,19 @@ final class HubClientCreateCommentTest extends PHPUnitTestCase
             $client->createComment('c1', 'Hi');
         } catch (HubException $e) {
             self::assertSame(HubException::BLOCKED, $e->kind());
+            throw $e;
+        }
+    }
+
+    public function test_maps_a_402_to_licence_invalid(): void
+    {
+        $client = new HubClient($this->config(), new FakeTransport(402, ''));
+
+        $this->expectException(HubException::class);
+        try {
+            $client->createComment('c1', 'Hi');
+        } catch (HubException $e) {
+            self::assertSame(HubException::LICENCE_INVALID, $e->kind());
             throw $e;
         }
     }

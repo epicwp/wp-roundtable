@@ -1,5 +1,5 @@
 /** @jsx h */
-import { h } from 'preact';
+import { Fragment, h } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { ChatPanel } from './components.jsx';
 import { AgentAvatar } from './avatars.jsx';
@@ -9,9 +9,11 @@ import { RoadmapList } from './roadmap-list.jsx';
 import { ParticipatingList } from './participating-list.jsx';
 import { TopicDetail } from './topic-detail.jsx';
 import { PublishDialog } from './publish-dialog.jsx';
-import { publishCase } from './api.js';
+import { publishCase, submitTopic } from './api.js';
 import { fetchTabCounts } from './tab-counts.js';
-import { agentDisplayName, betaEnabled, projectDisplayName } from './config.js';
+import {
+  agentDisplayName, betaEnabled, chatEnabled, projectDisplayName,
+} from './config.js';
 
 const TABS = [
   { id: 'all', label: 'All', enabled: true },
@@ -30,6 +32,10 @@ export function CommunityApp() {
   const [publishBusy, setPublishBusy] = useState(false);
   const [tabCounts, setTabCounts] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [newTopicOpen, setNewTopicOpen] = useState(false);
+  const [newTopicBusy, setNewTopicBusy] = useState(false);
+  const [newTopicErrorKind, setNewTopicErrorKind] = useState(null);
+  const chatOn = chatEnabled();
   const agentName = agentDisplayName();
   const projectName = projectDisplayName();
 
@@ -43,8 +49,17 @@ export function CommunityApp() {
   }, [listRefresh]);
 
   const requestNewTopic = () => {
-    setResetNonce((n) => n + 1);
-    setChatOpen(true);
+    if (chatOn) {
+      setResetNonce((n) => n + 1);
+      setChatOpen(true);
+    } else {
+      setNewTopicErrorKind(null);
+      setNewTopicOpen(true);
+    }
+  };
+  const closeNewTopic = () => {
+    setNewTopicOpen(false);
+    setNewTopicErrorKind(null);
   };
   const openTopic = (topic) => {
     setSelectedTopic(topic);
@@ -71,8 +86,23 @@ export function CommunityApp() {
     if (activeTab !== 'started') setActiveTab('started');
   }
 
+  async function confirmDirectSubmit({ title, summary, type }) {
+    if (newTopicBusy) return;
+    setNewTopicBusy(true);
+    setNewTopicErrorKind(null);
+    const res = await submitTopic({ type, title, body: summary });
+    setNewTopicBusy(false);
+    if (res.error) {
+      setNewTopicErrorKind(res.error.kind);
+      return;
+    }
+    setNewTopicOpen(false);
+    bumpLists();
+    setActiveTab('started');
+  }
+
   return (
-    <div class={'rt-layout' + (chatOpen ? ' rt-chat-open' : '')}>
+    <div class={'rt-layout' + (chatOn && chatOpen ? ' rt-chat-open' : '')}>
       <main class="rt-main">
         {view === 'detail' && selectedTopic ? (
           <TopicDetail topic={selectedTopic} onBack={backToList} onVoteChange={refreshTabCountsOnly} />
@@ -104,11 +134,6 @@ export function CommunityApp() {
               ))}
             </nav>
             {activeTab === 'all' && (
-              <div class="rt-banner">
-                <b>Public &amp; anonymous.</b> Only community handles are shown, never real names.
-              </div>
-            )}
-            {activeTab === 'all' && (
               <TopicList refreshNonce={listRefresh} onSelectTopic={openTopic} onVoteChange={refreshTabCountsOnly} />
             )}
             {activeTab === 'participating' && (
@@ -128,42 +153,55 @@ export function CommunityApp() {
           </div>
         )}
       </main>
-      {!chatOpen && (
-        <button
-          type="button"
-          class="rt-chat-launch"
-          aria-label={`Open ${agentName} chat`}
-          onClick={() => setChatOpen(true)}
-        >
-          <AgentAvatar size="sm" />
-        </button>
+      {chatOn && (
+        <Fragment>
+          {!chatOpen && (
+            <button
+              type="button"
+              class="rt-chat-launch"
+              aria-label={`Open ${agentName} chat`}
+              onClick={() => setChatOpen(true)}
+            >
+              <AgentAvatar size="sm" />
+            </button>
+          )}
+          {chatOpen && (
+            <button
+              type="button"
+              class="rt-chat-backdrop"
+              aria-label="Close chat"
+              onClick={() => setChatOpen(false)}
+            />
+          )}
+          <aside class={'rt-aside' + (chatOpen ? ' is-open' : '')}>
+            <button
+              type="button"
+              class="rt-chat-close"
+              aria-label="Close chat"
+              onClick={() => setChatOpen(false)}
+            >×</button>
+            <ChatPanel
+              resetNonce={resetNonce}
+              onTopicPublished={() => { bumpLists(); setActiveTab('started'); }}
+            />
+          </aside>
+        </Fragment>
       )}
-      {chatOpen && (
-        <button
-          type="button"
-          class="rt-chat-backdrop"
-          aria-label="Close chat"
-          onClick={() => setChatOpen(false)}
-        />
-      )}
-      <aside class={'rt-aside' + (chatOpen ? ' is-open' : '')}>
-        <button
-          type="button"
-          class="rt-chat-close"
-          aria-label="Close chat"
-          onClick={() => setChatOpen(false)}
-        >×</button>
-        <ChatPanel
-          resetNonce={resetNonce}
-          onTopicPublished={() => { bumpLists(); setActiveTab('started'); }}
-        />
-      </aside>
       {publishDraft && (
         <PublishDialog
           draft={publishDraft}
           busy={publishBusy}
           onCancel={() => setPublishDraft(null)}
           onPublish={confirmPublish}
+        />
+      )}
+      {newTopicOpen && (
+        <PublishDialog
+          variant="direct"
+          busy={newTopicBusy}
+          errorKind={newTopicErrorKind}
+          onCancel={closeNewTopic}
+          onPublish={confirmDirectSubmit}
         />
       )}
     </div>
