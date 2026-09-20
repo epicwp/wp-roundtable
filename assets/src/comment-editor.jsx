@@ -61,9 +61,11 @@ function applyPrefix(el, prefix, value) {
 
 /**
  * Full markdown comment composer with Write/Preview and toolbar.
- * @param {{value:string, onInput:(v:string)=>void, onSubmit:()=>void, posting:boolean, error:boolean}} props
+ * @param {{value:string, onInput:(v:string)=>void, onSubmit:()=>void, posting:boolean, error:boolean, submitDisabled?:boolean}} props
  */
-export function CommentEditor({ value, onInput, onSubmit, posting, error }) {
+export function CommentEditor({
+  value, onInput, onSubmit, posting, error, submitDisabled = false,
+}) {
   const [mode, setMode] = useState('write');
   const areaRef = useRef(null);
 
@@ -83,7 +85,7 @@ export function CommentEditor({ value, onInput, onSubmit, posting, error }) {
   }
 
   function onKeyDown(e) {
-    if (mode !== 'write' || posting) return;
+    if (mode !== 'write' || posting || submitDisabled) return;
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (value.trim()) onSubmit();
@@ -133,7 +135,7 @@ export function CommentEditor({ value, onInput, onSubmit, posting, error }) {
             <svg viewBox="0 0 16 16" fill="currentColor"><path d="M14.85 3H1.15C.52 3 0 3.52 0 4.15v7.69C0 12.48.52 13 1.15 13h13.69c.64 0 1.15-.52 1.15-1.15v-7.7C16 3.52 15.48 3 14.85 3ZM9 11H7V8L5.5 9.92 4 8v3H2V5h2l1.5 2L7 5h2v6Zm2.99.5L9.5 8H11V5h2v3h1.5l-2.51 3.5Z" /></svg>
           </span>
           {error ? <span class="rt-ed-error">Could not post. Try again.</span> : <span class="rt-ed-spacer" />}
-          <button type="button" class="rt-post-btn" disabled={posting || !value.trim() || mode !== 'write'} onClick={onSubmit}>
+          <button type="button" class="rt-post-btn" disabled={posting || !value.trim() || mode !== 'write' || submitDisabled} onClick={onSubmit}>
             {posting ? 'Posting…' : 'Comment'}
           </button>
         </div>

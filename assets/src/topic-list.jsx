@@ -4,14 +4,14 @@ import { useEffect, useState } from 'preact/hooks';
 import { fetchCases } from './api.js';
 import { markdownToPlainText } from './markdown.js';
 import { mapCaseToTopic } from './topics.js';
-import { StaticVote, VoteControl } from './vote-control.jsx';
+import { DisabledVote, VoteControl } from './vote-control.jsx';
 
 export function TopicRow({ topic, onSelect, hideStatus = false, onVoteChange }) {
   const open = () => onSelect && onSelect(topic);
   return (
     <div class="rt-case">
       {topic.isPending
-        ? <StaticVote net={topic.net} />
+        ? <DisabledVote net={topic.net} />
         : <VoteControl caseId={topic.id} net={topic.net} onChange={onVoteChange} />}
       <div
         class="rt-cmain rt-case-click"

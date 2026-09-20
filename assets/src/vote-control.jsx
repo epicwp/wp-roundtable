@@ -75,15 +75,19 @@ export function VoteControl({ caseId, net: initialNet, onChange }) {
 }
 
 /**
- * Non-interactive vote count for a case the hub won't accept votes on (e.g.
- * pending review) — renders in VoteControl's place without its per-case
- * fetchVoteTally() call, so it triggers no hub request that would 403.
+ * Same up/down/count visual as VoteControl, but fully inert: disabled
+ * buttons, no click handlers, and no fetchVoteTally() call. Used in
+ * VoteControl's place for a case the hub won't accept votes on (pending
+ * review), so pending rows look structurally identical to published ones —
+ * just non-interactive — instead of a bare number.
  * @param {{net:number}} props
  */
-export function StaticVote({ net }) {
+export function DisabledVote({ net }) {
   return (
     <div class="rt-vote">
+      <button type="button" class="rt-vote-btn" disabled aria-disabled="true" aria-label="Upvote">▲</button>
       <span class="rt-vote-n">{net}</span>
+      <button type="button" class="rt-vote-btn" disabled aria-disabled="true" aria-label="Downvote">▼</button>
     </div>
   );
 }

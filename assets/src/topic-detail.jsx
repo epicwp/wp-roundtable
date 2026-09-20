@@ -6,7 +6,7 @@ import { renderMarkdown } from './markdown.js';
 import { AgentAvatar, PersonAvatar } from './avatars.jsx';
 import { agentDisplayName } from './config.js';
 import { mapCommentToView } from './topics.js';
-import { StaticVote, VoteControl } from './vote-control.jsx';
+import { DisabledVote, VoteControl } from './vote-control.jsx';
 import { CommentEditor } from './comment-editor.jsx';
 import { CommentActions } from './comment-actions.jsx';
 
@@ -38,12 +38,13 @@ function repliesTitle(count, loading, error) {
   return count + ' replies';
 }
 
-function CommentComposer({ caseId, onPosted }) {
+function CommentComposer({ caseId, onPosted, disabled = false }) {
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState(false);
 
   const submit = async () => {
+    if (disabled) return;
     const body = text.trim();
     if (!body || posting) return;
     setPosting(true);
@@ -65,6 +66,7 @@ function CommentComposer({ caseId, onPosted }) {
       onSubmit={submit}
       posting={posting}
       error={error}
+      submitDisabled={disabled}
     />
   );
 }
@@ -111,7 +113,7 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
       <div class="rt-detail-card rt-card">
         <div class="rt-th">
           {topic.isPending
-            ? <StaticVote net={topic.net} />
+            ? <DisabledVote net={topic.net} />
             : <VoteControl caseId={topic.id} net={topic.net} onChange={onVoteChange} />}
           <div class="rt-thd">
             <h2 class="rt-dtitle">{topic.title}</h2>
@@ -133,9 +135,7 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
         </div>
       </div>
       <div class="rt-csec rt-card">
-        {topic.isPending ? (
-          <p class="rt-csec-empty">Comments open once this topic is approved.</p>
-        ) : (
+        {!topic.isPending && (
           <Fragment>
             <div class="rt-csec-head">
               <h2 class="rt-csec-title">{repliesTitle(comments.length, loading, error)}</h2>
@@ -151,15 +151,19 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
                 {comments.map((c) => <CommentRow key={c.id} comment={c} />)}
               </div>
             )}
-            <CommentComposer
-              caseId={topic.id}
-              onPosted={() => {
-                setRefreshNonce((n) => n + 1);
-                onVoteChange && onVoteChange();
-              }}
-            />
           </Fragment>
         )}
+        {topic.isPending && (
+          <p class="rt-csec-empty">Comments open once this topic is approved.</p>
+        )}
+        <CommentComposer
+          caseId={topic.id}
+          onPosted={() => {
+            setRefreshNonce((n) => n + 1);
+            onVoteChange && onVoteChange();
+          }}
+          disabled={topic.isPending}
+        />
       </div>
     </div>
   );

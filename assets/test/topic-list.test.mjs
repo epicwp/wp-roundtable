@@ -33,7 +33,7 @@ test('TopicRow renders title and interactive vote control', () => {
   assert.match(html, /27/);
 });
 
-test('TopicRow shows a static vote count (no interactive control) for a pending topic', () => {
+test('TopicRow shows the vote arrows disabled (not hidden) for a pending topic', () => {
   const html = renderToString(h(TopicRow, {
     topic: {
       id: 'c1',
@@ -49,9 +49,9 @@ test('TopicRow shows a static vote count (no interactive control) for a pending 
       isPending: true,
     },
   }));
-  assert.doesNotMatch(html, /Upvote/);
-  assert.doesNotMatch(html, /Downvote/);
   assert.match(html, /rt-vote-n">4</);
+  assert.match(html, /<button[^>]*\bdisabled\b[^>]*aria-label="Upvote"/);
+  assert.match(html, /<button[^>]*\bdisabled\b[^>]*aria-label="Downvote"/);
 });
 
 test('TopicRow renders a markdown summary as a plain-text excerpt', () => {
