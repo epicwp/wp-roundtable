@@ -25,6 +25,7 @@ final class Roundtable {
         $page = new Admin\Page( $config, $menuSlug, $hub );
         \add_action( 'admin_menu', array( $page, 'registerMenu' ) );
         \add_action( 'admin_enqueue_scripts', array( $page, 'enqueue' ) );
+        \add_action( 'in_admin_header', array( $page, 'suppressAdminNotices' ) );
 
         $cases         = new CasesController( $config, $hub );
         $myCases       = new MyCasesController( $config, $hub );

@@ -116,7 +116,7 @@ export function CommunityApp() {
               </div>
               <button class="rt-newtopic-head" type="button" onClick={requestNewTopic}>+ New topic</button>
             </div>
-            {attributionText && <p class="rt-sub rt-attribution">{attributionText}</p>}
+            {attributionText && <div class="rt-banner rt-banner-info rt-attribution">{attributionText}</div>}
             <nav class="rt-tabs" aria-label="Community views">
               {TABS.map((tab) => (
                 <button

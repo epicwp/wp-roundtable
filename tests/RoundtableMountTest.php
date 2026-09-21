@@ -31,6 +31,7 @@ final class RoundtableMountTest extends TestCase {
         $hooks = \array_column( $added, 'hook' );
         self::assertContains( 'admin_menu', $hooks );
         self::assertContains( 'admin_enqueue_scripts', $hooks );
+        self::assertContains( 'in_admin_header', $hooks );
         self::assertContains( 'rest_api_init', $hooks );
 
         $registered = $this->registeredControllerClasses( $added );
