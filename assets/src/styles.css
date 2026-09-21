@@ -96,22 +96,11 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-editor { background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:10px; overflow:hidden; min-width:0; }
 #roundtable-app .rt-ed-top { display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid #eef1f5; background:#fafbfd; }
 #roundtable-app .rt-ed-tabs { display:flex; gap:2px; }
-#roundtable-app .rt-ed-grow { flex:1; }
 #roundtable-app .rt-ed-tab { font:inherit; font-size:12.5px; font-weight:600; color:var(--rt-ink-faint); background:transparent; border:1px solid transparent; border-radius:7px; padding:5px 11px; cursor:pointer; box-shadow:none; min-height:0; }
 #roundtable-app .rt-ed-tab.on { color:var(--rt-ink); background:var(--rt-panel); border-color:var(--rt-line); }
 #roundtable-app .rt-ed-tab:hover:not(.on):not(:disabled) { color:var(--rt-ink); }
-#roundtable-app .rt-ed-tools { display:flex; align-items:center; flex-wrap:wrap; gap:1px; }
-#roundtable-app .rt-ed-tool { width:29px; height:29px; font:inherit; font-size:14px; font-weight:800; line-height:1; color:var(--rt-ink-soft); background:transparent; border:none; border-radius:7px; padding:0; cursor:pointer; box-shadow:none; min-height:0; display:grid; place-items:center; }
-#roundtable-app .rt-ed-tool b, #roundtable-app .rt-ed-tool i { font-weight:600; }
-#roundtable-app .rt-ed-tool svg { width:16px; height:16px; display:block; }
-#roundtable-app .rt-ed-tool:hover:not(:disabled) { background:#eef1f5; color:var(--rt-ink); }
-#roundtable-app .rt-ed-sep { width:1px; height:18px; background:var(--rt-line); margin:0 5px; flex:none; }
-#roundtable-app .rt-ed-preview { padding:14px 16px; min-height:96px; font-size:14px; line-height:1.55; }
 #roundtable-app .rt-ed-preview-empty { margin:0; color:var(--rt-ink-faint); font-style:italic; }
 #roundtable-app .rt-ed-spacer { flex:1; }
-#roundtable-app .rt-ed-md { display:inline-flex; align-items:center; color:var(--rt-ink-faint); }
-#roundtable-app .rt-ed-md svg { width:16px; height:16px; opacity:.75; display:block; }
-#roundtable-app .rt-ed-md:hover { color:var(--rt-ink-soft); }
 #roundtable-app .rt-editor:focus-within { border-color:var(--rt-accent); box-shadow:0 0 0 3px #eceffe; }
 #roundtable-app .rt-ed-input { display:block; width:100%; border:none!important; background:transparent!important; resize:vertical; font:inherit; font-size:14px; line-height:1.55; color:var(--rt-ink); outline:none; padding:14px 16px; min-height:96px; box-shadow:none!important; margin:0; }
 #roundtable-app .rt-ed-input::placeholder { color:var(--rt-ink-faint); }
@@ -273,6 +262,13 @@ body.wp-admin .rt-community-wrap > h1 { display:none; }
 #roundtable-app .rt-outcome-sub { font-size:11.8px; color:var(--rt-ink-soft); }
 #roundtable-app .rt-outcome-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
 #roundtable-app .rt-modal-backdrop { position:fixed; inset:0; background:rgba(15,18,24,.45); display:grid; place-items:center; z-index:100000; padding:20px; }
+/* TinyMCE renders its floating menus and the "Insert/edit link" dialog as direct
+   children of <body>, outside #roundtable-app, so they can't be scoped like the
+   rest of this stylesheet — bump them above our modal (z-index:100000) so they
+   aren't hidden behind the New-topic dialog. Covers TinyMCE 4 (mce-*, bundled
+   with WordPress today) and 5/6 (tox-*) skins. */
+.mce-floatpanel, .mce-window, .mce-notification,
+.tox .tox-dialog-wrap, .tox .tox-tinymce-aux { z-index: 100200 !important; }
 #roundtable-app .rt-modal { width:min(800px,100%); background:var(--rt-panel); border:1px solid var(--rt-line); border-radius:12px; padding:20px; box-shadow:0 10px 34px -14px rgba(0,0,0,.35); }
 #roundtable-app .rt-modal-title { margin:0 0 4px; font-size:18px; font-weight:650; }
 #roundtable-app .rt-modal-sub { margin:0 0 16px; color:var(--rt-ink-soft); font-size:13px; }

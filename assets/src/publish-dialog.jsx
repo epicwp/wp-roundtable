@@ -2,6 +2,7 @@
 import { Fragment, h } from 'preact';
 import { useState } from 'preact/hooks';
 import { renderMarkdown } from './markdown.js';
+import { htmlHasText, uniqueEditorId, WysiwygEditor } from './wysiwyg-editor.jsx';
 
 const TYPES = [
   { id: 'question', label: 'Question', badgeClass: 'rt-b-q' },
@@ -47,9 +48,10 @@ export function PublishDialog({
   const [summary, setSummary] = useState(draft?.summary || '');
   const [type, setType] = useState(isDirect ? '' : normalizeType(draft?.type));
   const [mode, setMode] = useState('write');
+  const [editorId] = useState(() => uniqueEditorId('rt-topic-body'));
   const activeType = TYPES.find((t) => t.id === type) || TYPES[0];
   const canSubmit = isDirect
-    ? Boolean(type) && title.trim() && summary.trim()
+    ? Boolean(type) && title.trim() && htmlHasText(summary)
     : title.trim() && summary.trim() && mode === 'write';
 
   return (
@@ -94,13 +96,17 @@ export function PublishDialog({
         </label>
         <div class="rt-pub-body">
           {isDirect ? (
-            <textarea
-              class="rt-pub-textarea"
-              rows="14"
+            <WysiwygEditor
+              id={editorId}
               value={summary}
+              onInput={setSummary}
               disabled={busy}
+              toolbar1="formatselect bold italic bullist numlist link code"
+              blockFormats="Paragraph=p;Heading=h3;Subheading=h4"
+              height={220}
+              rows={14}
               placeholder="Describe your question, bug, or feature idea…"
-              onInput={(e) => setSummary(e.currentTarget.value)}
+              className="rt-pub-textarea"
             />
           ) : (
             <Fragment>

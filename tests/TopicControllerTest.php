@@ -64,6 +64,46 @@ final class TopicControllerTest extends TestCase
         self::assertSame('pending', $response->get_data()['case']['visibility']);
     }
 
+    public function test_handle_converts_the_body_html_to_markdown_before_calling_the_hub(): void
+    {
+        Functions\when('wp_verify_nonce')->justReturn(1);
+        Functions\when('current_user_can')->justReturn(true);
+
+        $transport  = new FakeTransport(200, '{"id":"c1"}');
+        $config     = new Config('pk', new FakeConsumer());
+        $controller = new TopicController($config, new HubClient($config, $transport));
+
+        $controller->handle($this->request([
+            'type'  => 'bug',
+            'title' => 'Broken thing',
+            'body'  => '<p>It is <strong>broken</strong>.</p>',
+        ]));
+
+        $payload = \json_decode((string) $transport->lastBody, true);
+        self::assertSame('It is **broken**.', $payload['body']);
+    }
+
+    public function test_handle_validates_the_original_html_non_emptiness_not_the_converted_markdown(): void
+    {
+        Functions\when('wp_verify_nonce')->justReturn(1);
+        Functions\when('current_user_can')->justReturn(true);
+
+        $transport  = new FakeTransport(200, '{"id":"c1"}');
+        $config     = new Config('pk', new FakeConsumer());
+        $controller = new TopicController($config, new HubClient($config, $transport));
+
+        $response = $controller->handle($this->request([
+            'type'  => 'bug',
+            'title' => 'Broken thing',
+            // Non-empty raw HTML that converts to an empty markdown string.
+            'body'  => '<p></p>',
+        ]));
+
+        self::assertSame(200, $response->get_status());
+        $payload = \json_decode((string) $transport->lastBody, true);
+        self::assertSame('', $payload['body']);
+    }
+
     public function test_handle_maps_a_licence_refusal_to_402(): void
     {
         Functions\when('wp_verify_nonce')->justReturn(1);

@@ -47,11 +47,25 @@ final class PageTest extends TestCase
         $this->page()->enqueue('edit.php');
     }
 
+    public function test_enqueue_enqueues_the_wp_editor(): void
+    {
+        $this->expectNotToPerformAssertions();
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
+        Functions\when('rest_url')->justReturn('http://x/wp-json/roundtable/v1');
+        Functions\when('wp_create_nonce')->justReturn('nonce123');
+        Functions\when('wp_enqueue_script')->justReturn(true);
+        Functions\when('wp_localize_script')->justReturn(true);
+        Functions\expect('wp_enqueue_editor')->once();
+        $this->page()->enqueue('tools_page_roundtable-community');
+    }
+
     public function test_enqueue_uses_hub_display_config_when_available(): void
     {
         $this->expectNotToPerformAssertions();
         $body = '{"agent_name":"HubSage","project_name":"Hub Project","initial_message":"Hi from the hub.","chat_disabled":true}';
         $hub  = new HubClient($this->config(), new FakeTransport(200, $body));
+        Functions\when('wp_enqueue_editor')->justReturn(null);
         Functions\when('wp_enqueue_style')->justReturn(true);
         Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
         Functions\when('rest_url')->justReturn('http://x/wp-json/roundtable/v1');
@@ -76,6 +90,7 @@ final class PageTest extends TestCase
         $this->expectNotToPerformAssertions();
         $config = new Config('pk_secret', new FakeConsumer(), 'Sage', beta: true);
         $hub    = new HubClient($config, new FakeTransport(200, '{}'));
+        Functions\when('wp_enqueue_editor')->justReturn(null);
         Functions\when('wp_enqueue_style')->justReturn(true);
         Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
         Functions\when('rest_url')->justReturn('http://x/wp-json/roundtable/v1');
@@ -94,6 +109,7 @@ final class PageTest extends TestCase
         $this->expectNotToPerformAssertions();
         $config = new Config('pk_secret', new FakeConsumer(), 'Sage', enableChat: true);
         $hub    = new HubClient($config, new FakeTransport(200, '{}'));
+        Functions\when('wp_enqueue_editor')->justReturn(null);
         Functions\when('wp_enqueue_style')->justReturn(true);
         Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
         Functions\when('rest_url')->justReturn('http://x/wp-json/roundtable/v1');
@@ -111,6 +127,7 @@ final class PageTest extends TestCase
     {
         $this->expectNotToPerformAssertions();
         $hub = new HubClient($this->config(), new FakeTransport(throw: new TransportException('timeout')));
+        Functions\when('wp_enqueue_editor')->justReturn(null);
         Functions\when('wp_enqueue_style')->justReturn(true);
         Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
         Functions\when('rest_url')->justReturn('http://x/wp-json/roundtable/v1');

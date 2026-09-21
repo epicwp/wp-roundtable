@@ -49,6 +49,7 @@ final class Page {
             return;
         }
         $display = $this->resolveDisplayConfig();
+        \wp_enqueue_editor();
         \wp_enqueue_style( self::HANDLE, $this->assetUrl( 'roundtable.css' ), array(), $this->version() );
         \wp_enqueue_script( self::HANDLE, $this->assetUrl( 'roundtable.js' ), array(), $this->version(), true );
         \wp_localize_script(

@@ -66,6 +66,44 @@ final class CommentsControllerTest extends TestCase
         self::assertSame('cm2', $response->get_data()['comment']['id']);
     }
 
+    public function test_handle_create_converts_the_body_html_to_markdown_before_calling_the_hub(): void
+    {
+        Functions\when('wp_verify_nonce')->justReturn(1);
+        Functions\when('current_user_can')->justReturn(true);
+
+        $transport  = new FakeTransport(200, '{"id":"cm1"}');
+        $config     = new Config('pk', new FakeConsumer());
+        $controller = new CommentsController($config, new HubClient($config, $transport));
+
+        $req = $this->request('c1');
+        $req->allows('get_param')->with('body')->andReturn('<p>Reply with <em>emphasis</em>.</p>');
+
+        $controller->handleCreate($req);
+
+        $payload = \json_decode((string) $transport->lastBody, true);
+        self::assertSame('Reply with *emphasis*.', $payload['body']);
+    }
+
+    public function test_handle_create_validates_the_original_html_non_emptiness_not_the_converted_markdown(): void
+    {
+        Functions\when('wp_verify_nonce')->justReturn(1);
+        Functions\when('current_user_can')->justReturn(true);
+
+        $transport  = new FakeTransport(200, '{"id":"cm1"}');
+        $config     = new Config('pk', new FakeConsumer());
+        $controller = new CommentsController($config, new HubClient($config, $transport));
+
+        $req = $this->request('c1');
+        // Non-empty raw HTML that converts to an empty markdown string (an empty <p>).
+        $req->allows('get_param')->with('body')->andReturn('<p></p>');
+
+        $response = $controller->handleCreate($req);
+
+        self::assertSame(200, $response->get_status());
+        $payload = \json_decode((string) $transport->lastBody, true);
+        self::assertSame('', $payload['body']);
+    }
+
     public function test_handle_create_maps_a_licence_refusal_to_402(): void
     {
         Functions\when('wp_verify_nonce')->justReturn(1);

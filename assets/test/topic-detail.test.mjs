@@ -80,12 +80,12 @@ test('TopicDetail renders title and back link', () => {
   assert.match(html, /All topics/);
   assert.match(html, /Comments/);
   assert.match(html, /Add a comment/);
-  assert.match(html, /Write/);
-  assert.match(html, /Preview/);
   assert.match(html, /Comment/);
   assert.match(html, /rt-cm-composer/);
-  assert.match(html, /rt-ed-top/);
-  assert.match(html, /rt-ed-tools/);
+  // The comment composer is now a WYSIWYG editor (wp.editor) — the old
+  // hand-rolled Write/Preview tabs and B/I toolbar are gone.
+  assert.doesNotMatch(html, /rt-ed-top/);
+  assert.doesNotMatch(html, /rt-ed-tools/);
 });
 
 test('TopicDetail renders the topic body as full markdown', () => {
