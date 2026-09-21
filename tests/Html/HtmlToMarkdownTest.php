@@ -222,4 +222,128 @@ final class HtmlToMarkdownTest extends PHPUnitTestCase
 
         self::assertIsString($result);
     }
+
+    // -- Markdown-escaping of plain-text runs (the "what you typed is what you see" contract) --
+
+    public function test_leading_dash_in_plain_text_is_escaped_not_a_bullet(): void
+    {
+        $html = '<p>- I tried updating and it broke my site.</p>';
+
+        self::assertSame(
+            '\\- I tried updating and it broke my site.',
+            HtmlToMarkdown::convert($html),
+        );
+    }
+
+    public function test_leading_heading_marker_in_plain_text_is_escaped_not_a_heading(): void
+    {
+        $html = '<p># 1 priority</p>';
+
+        self::assertSame('\\# 1 priority', HtmlToMarkdown::convert($html));
+    }
+
+    public function test_leading_ordered_marker_in_plain_text_is_escaped_not_a_list(): void
+    {
+        $html = '<p>1. First try clearing cache.</p>';
+
+        self::assertSame('1\\. First try clearing cache.', HtmlToMarkdown::convert($html));
+    }
+
+    public function test_leading_ordered_marker_with_parenthesis_is_escaped(): void
+    {
+        self::assertSame('1\\) First step.', HtmlToMarkdown::convert('<p>1) First step.</p>'));
+    }
+
+    public function test_leading_plus_marker_in_plain_text_is_escaped(): void
+    {
+        self::assertSame('\\+1 to that', HtmlToMarkdown::convert('<p>+1 to that</p>'));
+    }
+
+    public function test_leading_blockquote_marker_in_plain_text_is_escaped(): void
+    {
+        self::assertSame('\\> not a quote', HtmlToMarkdown::convert('<p>&gt; not a quote</p>'));
+    }
+
+    public function test_inline_backtick_in_plain_text_is_escaped_not_code(): void
+    {
+        $html = '<p>Run `npm install` first.</p>';
+
+        self::assertSame('Run \\`npm install\\` first.', HtmlToMarkdown::convert($html));
+    }
+
+    public function test_inline_asterisk_and_underscore_in_plain_text_are_escaped(): void
+    {
+        self::assertSame(
+            '5 \\* 3 and file\\_name.txt',
+            HtmlToMarkdown::convert('<p>5 * 3 and file_name.txt</p>'),
+        );
+    }
+
+    public function test_square_brackets_in_plain_text_are_escaped(): void
+    {
+        self::assertSame('See \\[note 1\\] below.', HtmlToMarkdown::convert('<p>See [note 1] below.</p>'));
+    }
+
+    public function test_backslash_in_plain_text_is_escaped(): void
+    {
+        self::assertSame('C:\\\\Users\\\\me', HtmlToMarkdown::convert('<p>C:\\Users\\me</p>'));
+    }
+
+    public function test_a_non_leading_dash_is_not_escaped(): void
+    {
+        self::assertSame('well-known issue', HtmlToMarkdown::convert('<p>well-known issue</p>'));
+    }
+
+    public function test_fast_path_without_any_html_also_escapes_markdown_significant_text(): void
+    {
+        self::assertSame(
+            '\\- I tried updating and it broke my site.',
+            HtmlToMarkdown::convert('- I tried updating and it broke my site.'),
+        );
+    }
+
+    public function test_code_tag_content_is_not_escaped(): void
+    {
+        $html = '<p>Run <code>`npm install`</code> first.</p>';
+
+        self::assertSame('Run ``npm install`` first.', HtmlToMarkdown::convert($html));
+    }
+
+    public function test_pre_tag_content_is_not_escaped(): void
+    {
+        $html = "<pre>- item\n# heading\n1. step\n*star*</pre>";
+
+        self::assertSame(
+            "```\n- item\n# heading\n1. step\n*star*\n```",
+            HtmlToMarkdown::convert($html),
+        );
+    }
+
+    public function test_malformed_html_fallback_also_escapes(): void
+    {
+        // Unclosed tag forces the DOM's best-effort path; the leading dash in the
+        // recovered text must still be escaped, not left free to render as a bullet.
+        $html = '<p><strong>- unclosed bold, still starts with a dash';
+
+        $result = HtmlToMarkdown::convert($html);
+
+        self::assertStringContainsString('\\-', $result);
+    }
+
+    public function test_toolbar_bold_list_and_link_output_still_convert_normally(): void
+    {
+        self::assertSame('**bold**', HtmlToMarkdown::convert('<strong>bold</strong>'));
+        self::assertSame("- One\n- Two", HtmlToMarkdown::convert('<ul><li>One</li><li>Two</li></ul>'));
+        self::assertSame(
+            '[Example](https://example.com/page)',
+            HtmlToMarkdown::convert('<a href="https://example.com/page">Example</a>'),
+        );
+    }
+
+    public function test_a_list_items_own_text_starting_with_a_dash_is_still_escaped(): void
+    {
+        $html = '<ul><li>- not a nested list, just a dash</li></ul>';
+
+        self::assertSame('- \\- not a nested list, just a dash', HtmlToMarkdown::convert($html));
+    }
 }

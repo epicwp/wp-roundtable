@@ -14,8 +14,18 @@ namespace EpicWP\Roundtable\Html;
  * except `script`/`style`, whose content is not user-facing text and is dropped entirely.
  *
  * Pure PHP ({@see \DOMDocument}, ships with PHP; no Composer dependency). Deterministic and
- * never fatals: malformed input falls back to its plain-text content, and input with no `<`
- * at all (no HTML) is returned trimmed but otherwise byte-for-byte unchanged.
+ * never fatals: malformed input falls back to its plain-text content.
+ *
+ * **Escaping contract**: every literal text run — whether it arrives inside an allowed or
+ * disallowed HTML tag, as the malformed-input fallback, or as bare input with no markup at
+ * all — is escaped so markdown-significant characters render as the literal characters the
+ * user typed, not as reinterpreted syntax. Turndown-style: a leading `#{1,6} ` (heading),
+ * `-`/`+`/`>` (list/quote marker), or `digit.`/`digit)` (ordered-list marker) is escaped only
+ * at the very start of a text node; a backtick, `*`, `_`, `[`, `]`, or `\` is escaped wherever
+ * it appears. The one exception is text inside `code`/`pre` — already protected by their own
+ * backticks/fence — which is never escaped. This makes `convert()`'s result consistent no
+ * matter which of its internal paths produced it (DOM render, malformed-input fallback, or
+ * the no-markup-to-parse fast path).
  */
 final class HtmlToMarkdown {
     /** Link URL schemes kept as a markdown link; any other scheme keeps the text only. */
@@ -35,10 +45,13 @@ final class HtmlToMarkdown {
      */
     public static function convert( string $html ): string {
         $trimmed = \trim( $html );
-        if ( '' === $trimmed || ( false === \strpos( $trimmed, '<' ) && false === \strpos( $trimmed, '&' ) ) ) {
-            // No tags and no entities: nothing to convert — return as-is (trimmed) so
-            // plain text is never altered by the HTML pipeline.
-            return $trimmed;
+        if ( '' === $trimmed ) {
+            return '';
+        }
+        if ( false === \strpos( $trimmed, '<' ) && false === \strpos( $trimmed, '&' ) ) {
+            // No tags and no entities: nothing to parse, but the text still needs the
+            // same markdown-escaping the DOM path applies (see the class docblock).
+            return self::escapeMarkdown( $trimmed );
         }
 
         try {
@@ -79,16 +92,18 @@ final class HtmlToMarkdown {
     }
 
     /**
-     * The safe, deterministic fallback: strip all tags and decode entities.
+     * The safe, deterministic fallback: strip all tags, decode entities, and escape.
      *
      * @param string $html The raw (possibly malformed) HTML.
      *
-     * @return string The plain-text content, whitespace-normalized and trimmed.
+     * @return string The plain-text content, whitespace-normalized, trimmed, and
+     *                 markdown-escaped (see the class docblock's escaping contract).
      */
     private static function plainTextFallback( string $html ): string {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- pure-PHP core function, no WordPress dependency by design (this class is testable without WordPress booted).
         $text = \html_entity_decode( \strip_tags( $html ), \ENT_QUOTES, 'UTF-8' );
-        return \trim( (string) \preg_replace( '/\s+/', ' ', $text ) );
+        $text = \trim( (string) \preg_replace( '/\s+/', ' ', $text ) );
+        return self::escapeMarkdown( $text );
     }
 
     /**
@@ -352,7 +367,8 @@ final class HtmlToMarkdown {
      * Renders a text node: whitespace-only text between block-level tags is pure HTML
      * source formatting and contributes nothing; whitespace-only text between inline
      * content (e.g. between two `<a>` tags) is a real word separator and becomes a single
-     * space. Non-whitespace text has its internal whitespace runs collapsed.
+     * space. Non-whitespace text has its internal whitespace runs collapsed, then is
+     * markdown-escaped (see the class docblock) unless it sits inside `code`/`pre`.
      *
      * @param \DOMText $node The text node.
      *
@@ -363,7 +379,77 @@ final class HtmlToMarkdown {
         if ( '' === \trim( $value ) ) {
             return self::isBetweenInlineContent( $node ) ? ' ' : '';
         }
-        return self::normalizeText( $value );
+        $normalized = self::normalizeText( $value );
+        return self::hasCodeAncestor( $node ) ? $normalized : self::escapeMarkdown( $normalized );
+    }
+
+    /**
+     * Whether a node has a `code` or `pre` ancestor — such text is already protected by
+     * its own backticks/fence and must not be markdown-escaped on top of that.
+     *
+     * @param \DOMNode $node The node to check.
+     *
+     * @return bool True if any ancestor is a `code` or `pre` element.
+     */
+    private static function hasCodeAncestor( \DOMNode $node ): bool {
+        for ( $parent = $node->parentNode; null !== $parent; $parent = $parent->parentNode ) {
+            if ( self::isCodeOrPre( $parent ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether a node is a `code` or `pre` element.
+     *
+     * @param \DOMNode $node The node to check.
+     *
+     * @return bool True if the node is a `code` or `pre` element.
+     */
+    private static function isCodeOrPre( \DOMNode $node ): bool {
+        if ( ! $node instanceof \DOMElement ) {
+            return false;
+        }
+        return \in_array( \strtolower( $node->tagName ), array( 'code', 'pre' ), true );
+    }
+
+    /**
+     * Escapes markdown-significant characters in a literal text run (Turndown-style), so
+     * the hub's markdown renderer shows exactly what the user typed. See the class
+     * docblock's escaping contract for which characters are escaped, and where.
+     *
+     * @param string $text The already whitespace-normalized text.
+     *
+     * @return string The escaped text.
+     */
+    private static function escapeMarkdown( string $text ): string {
+        // Backslash first, so it is never re-escaped by the substitutions below.
+        $text = \str_replace( '\\', '\\\\', $text );
+        // Inline constructs: significant wherever they appear (this also covers a
+        // leading `*`, so no separate leading-of-line rule for it is needed).
+        $text = \str_replace(
+            array( '`', '*', '_', '[', ']' ),
+            array( '\\`', '\\*', '\\_', '\\[', '\\]' ),
+            $text,
+        );
+        // Leading-of-line constructs: only significant as the very first character(s) of
+        // the (already-trimmed) text run.
+        $text = (string) \preg_replace_callback(
+            '/^(#{1,6}) /',
+            static fn( array $m ): string => '\\' . $m[1] . ' ',
+            $text,
+        );
+        $text = (string) \preg_replace_callback(
+            '/^([-+>])/',
+            static fn( array $m ): string => '\\' . $m[1],
+            $text,
+        );
+        return (string) \preg_replace_callback(
+            '/^(\d+)([.)])/',
+            static fn( array $m ): string => $m[1] . '\\' . $m[2],
+            $text,
+        );
     }
 
     /**
