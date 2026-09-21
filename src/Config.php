@@ -20,6 +20,9 @@ final class Config {
      *                                    and the Community heading.
      * @param bool        $enableChat     Whether the AI chat is available. False (the default) hides
      *                                    the chat UI and unregisters the chat/message REST routes.
+     * @param string|null $attribution    Optional one-line attribution shown under the page header
+     *                                    (e.g. "Community powered by Acme"). Null (the default) hides
+     *                                    it. The SDK never supplies its own text — the host plugin does.
      */
     public function __construct(
         public readonly string $projectApiKey,
@@ -31,6 +34,7 @@ final class Config {
         public readonly string $projectName = '',
         public readonly bool $beta = false,
         public readonly bool $enableChat = false,
+        public readonly ?string $attribution = null,
     ) {
     }
 }

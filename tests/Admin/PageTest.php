@@ -123,6 +123,42 @@ final class PageTest extends TestCase
         (new Page($config, 'tools.php', $hub))->enqueue('tools_page_roundtable-community');
     }
 
+    public function test_enqueue_passes_the_attribution_line_through_when_configured(): void
+    {
+        $this->expectNotToPerformAssertions();
+        $config = new Config('pk_secret', new FakeConsumer(), 'Sage', attribution: 'Community powered by Acme');
+        $hub    = new HubClient($config, new FakeTransport(200, '{}'));
+        Functions\when('wp_enqueue_editor')->justReturn(null);
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
+        Functions\when('rest_url')->justReturn('http://x/wp-json/roundtable/v1');
+        Functions\when('wp_create_nonce')->justReturn('nonce123');
+        Functions\expect('wp_enqueue_script')->once();
+        Functions\expect('wp_localize_script')->once()->with(
+            'roundtable',
+            'RoundtableConfig',
+            \Mockery::on(static fn ($d) => 'Community powered by Acme' === $d['attribution']),
+        );
+        (new Page($config, 'tools.php', $hub))->enqueue('tools_page_roundtable-community');
+    }
+
+    public function test_enqueue_omits_attribution_by_default(): void
+    {
+        $this->expectNotToPerformAssertions();
+        Functions\when('wp_enqueue_editor')->justReturn(null);
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('plugins_url')->justReturn('http://x/wp-content/plugins/host/assets/dist/asset');
+        Functions\when('rest_url')->justReturn('http://x/wp-json/roundtable/v1');
+        Functions\when('wp_create_nonce')->justReturn('nonce123');
+        Functions\expect('wp_enqueue_script')->once();
+        Functions\expect('wp_localize_script')->once()->with(
+            'roundtable',
+            'RoundtableConfig',
+            \Mockery::on(static fn ($d) => null === $d['attribution']),
+        );
+        $this->page()->enqueue('tools_page_roundtable-community');
+    }
+
     public function test_enqueue_falls_back_to_local_config_when_hub_call_fails(): void
     {
         $this->expectNotToPerformAssertions();

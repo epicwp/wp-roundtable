@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  agentDisplayName, betaEnabled, chatDisabled, chatEnabled, initialMessage, projectDisplayName,
+  agentDisplayName, attribution, betaEnabled, chatDisabled, chatEnabled, initialMessage, projectDisplayName,
 } from '../src/config.js';
 
 test('agentDisplayName falls back to the SDK default', () => {
@@ -79,4 +79,19 @@ test('chatEnabled accepts wp_localize_script stringified booleans', () => {
   assert.equal(chatEnabled(), true);
   globalThis.window = { RoundtableConfig: { chatEnabled: '' } };
   assert.equal(chatEnabled(), false);
+});
+
+test('attribution is empty when not configured', () => {
+  globalThis.window = { RoundtableConfig: { agentName: 'Sage' } };
+  assert.equal(attribution(), '');
+});
+
+test('attribution is empty when the boot payload sends null', () => {
+  globalThis.window = { RoundtableConfig: { attribution: null } };
+  assert.equal(attribution(), '');
+});
+
+test('attribution returns the configured line', () => {
+  globalThis.window = { RoundtableConfig: { attribution: 'Community powered by Acme' } };
+  assert.equal(attribution(), 'Community powered by Acme');
 });

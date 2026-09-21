@@ -54,6 +54,24 @@ test('TopicRow shows the vote arrows disabled (not hidden) for a pending topic',
   assert.match(html, /<button[^>]*\bdisabled\b[^>]*aria-label="Downvote"/);
 });
 
+test('TopicRow shows a Maintainer badge next to the handle when authorRole is maintainer', () => {
+  const html = renderToString(h(TopicRow, {
+    topic: {
+      id: 'c1', title: 'T', snippet: 's', typeLabel: 'Q', typeClass: 'rt-b-q', statusLabel: 'Open', statusClass: 'rt-s-open', handle: 'teal-owl', net: 0, age: '', authorRole: 'maintainer',
+    },
+  }));
+  assert.match(html, /rt-b-maintainer">Maintainer</);
+});
+
+test('TopicRow shows no Maintainer badge for a community author', () => {
+  const html = renderToString(h(TopicRow, {
+    topic: {
+      id: 'c1', title: 'T', snippet: 's', typeLabel: 'Q', typeClass: 'rt-b-q', statusLabel: 'Open', statusClass: 'rt-s-open', handle: 'teal-owl', net: 0, age: '', authorRole: 'community',
+    },
+  }));
+  assert.doesNotMatch(html, /rt-b-maintainer/);
+});
+
 test('TopicRow renders a markdown summary as a plain-text excerpt', () => {
   const html = renderToString(h(TopicRow, {
     topic: {

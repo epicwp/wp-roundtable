@@ -1,6 +1,6 @@
 // assets/src/config.js — the names localized by src/Admin/Page.php.
 
-/** @returns {{agentName?:string, projectName?:string, initialMessage?:string, beta?:boolean, chatDisabled?:boolean, chatEnabled?:boolean}} */
+/** @returns {{agentName?:string, projectName?:string, initialMessage?:string, beta?:boolean, chatDisabled?:boolean, chatEnabled?:boolean, attribution?:string|null}} */
 function cfg() {
   return (typeof window !== 'undefined' && window.RoundtableConfig) || {};
 }
@@ -64,4 +64,14 @@ export function chatDisabled() {
  */
 export function chatEnabled() {
   return flag(cfg().chatEnabled);
+}
+
+/**
+ * The host plugin's optional one-line attribution, shown under the page
+ * header, or '' when it is not configured. The SDK never supplies its own
+ * text here — this is whatever the host plugin's `Config::$attribution` is.
+ * @returns {string}
+ */
+export function attribution() {
+  return cfg().attribution || '';
 }

@@ -131,6 +131,9 @@ export function mapCaseToTopic(row) {
     statusClass: isDraft ? DRAFT_STATUS_CLASS : (isPending ? PENDING_STATUS_CLASS : (STATUS_CLASS[status] || 'rt-s-open')),
     handle,
     initials: handleInitials(handle),
+    // Defaults to 'community' when absent so the UI works against an older
+    // hub that doesn't send author_role on case responses yet.
+    authorRole: row.author_role || 'community',
     net: typeof row.net === 'number' ? row.net : 0,
     age: formatAge(row.created_at),
     isDraft,

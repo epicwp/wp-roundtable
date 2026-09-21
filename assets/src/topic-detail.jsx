@@ -10,6 +10,7 @@ import { DisabledVote, VoteControl } from './vote-control.jsx';
 import { CommentEditor } from './comment-editor.jsx';
 import { CommentActions } from './comment-actions.jsx';
 import { htmlHasText } from './wysiwyg-editor.jsx';
+import { MaintainerBadge } from './badges.jsx';
 
 function CommentRow({ comment }) {
   const Ava = comment.isAgent ? AgentAvatar : PersonAvatar;
@@ -20,7 +21,9 @@ function CommentRow({ comment }) {
       <div class="rt-cm-body">
         <div class="rt-cm-who">
           <b>{comment.handle}</b>
-          {comment.roleBadge ? <span class="rt-role-badge">{comment.roleBadge}</span> : null}
+          {comment.role === 'maintainer' && <MaintainerBadge />}
+          {comment.role === 'assistant' && comment.roleBadge
+            ? <span class="rt-role-badge">{comment.roleBadge}</span> : null}
           {comment.age ? <span class="rt-cm-time">{comment.age}</span> : null}
         </div>
         {comment.isTombstone
@@ -124,6 +127,7 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
               <span class={'rt-status ' + topic.statusClass}>{topic.statusLabel}</span>
               <span class="rt-dot">·</span>
               <span class="rt-handle">{topic.handle}</span>
+              {topic.authorRole === 'maintainer' && <MaintainerBadge />}
               {topic.age ? <span class="rt-age-wrap"><span class="rt-dot">·</span><span>{topic.age}</span></span> : null}
             </div>
           </div>
@@ -131,7 +135,11 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
         <div class="rt-post">
           <PersonAvatar initials={topic.initials} size="sm" class="rt-post-ava" />
           <div class="rt-post-body">
-            <div class="rt-post-who"><b>{topic.handle}</b>{topic.age ? <span> · {topic.age}</span> : null}</div>
+            <div class="rt-post-who">
+              <b>{topic.handle}</b>
+              {topic.authorRole === 'maintainer' && <MaintainerBadge />}
+              {topic.age ? <span> · {topic.age}</span> : null}
+            </div>
             <div class="rt-prose" dangerouslySetInnerHTML={{ __html: renderMarkdown(topic.snippet) }} />
           </div>
         </div>

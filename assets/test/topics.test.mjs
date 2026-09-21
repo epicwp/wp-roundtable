@@ -46,6 +46,20 @@ test('mapCaseToTopic treats pending visibility as awaiting approval', () => {
   assert.equal(topic.statusClass, 'rt-s-pending');
 });
 
+test('mapCaseToTopic defaults authorRole to community when the hub omits it', () => {
+  const topic = mapCaseToTopic({
+    id: 'c4', title: 'No role', summary: 's', type: 'bug', status: 'open', author_handle: 'h', net: 0, created_at: '2026-07-01T12:00:00',
+  });
+  assert.equal(topic.authorRole, 'community');
+});
+
+test('mapCaseToTopic passes the hub author_role through', () => {
+  const topic = mapCaseToTopic({
+    id: 'c5', title: 'From a maintainer', summary: 's', type: 'bug', status: 'open', author_handle: 'h', author_role: 'maintainer', net: 0, created_at: '2026-07-01T12:00:00',
+  });
+  assert.equal(topic.authorRole, 'maintainer');
+});
+
 test('mapCaseToTopic treats private visibility as draft', () => {
   const topic = mapCaseToTopic({
     id: 'c2',
@@ -91,6 +105,7 @@ test('mapCommentToView marks tombstones and renders active comments', () => {
 
 test('resolveCommentRole maps hub roles and legacy subjects', () => {
   assert.equal(resolveCommentRole({ author_role: 'assistant' }), 'assistant');
+  assert.equal(resolveCommentRole({ author_role: 'maintainer' }), 'maintainer');
   assert.equal(resolveCommentRole({ subject_id: 'system' }), 'maintainer');
   assert.equal(resolveCommentRole({ subject_id: 'agent:sage' }), 'assistant');
   assert.equal(resolveCommentRole({}), 'community');

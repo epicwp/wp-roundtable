@@ -88,6 +88,49 @@ test('TopicDetail renders title and back link', () => {
   assert.doesNotMatch(html, /rt-ed-tools/);
 });
 
+test('TopicDetail shows a Maintainer badge in the header and post when authorRole is maintainer', () => {
+  const html = renderToString(h(TopicDetail, {
+    topic: {
+      id: 'c1',
+      title: 'Batch translate',
+      snippet: 'Times out on large catalogs',
+      typeLabel: 'Feature',
+      typeClass: 'rt-b-feat',
+      statusLabel: 'Open',
+      statusClass: 'rt-s-open',
+      handle: 'slate-meadow',
+      initials: 'SM',
+      net: 27,
+      age: '3d',
+      authorRole: 'maintainer',
+    },
+    onBack: () => {},
+  }));
+  // Once in the rt-cmeta header, once next to the post's own author line.
+  assert.equal((html.match(/rt-b-maintainer">Maintainer</g) || []).length, 2);
+});
+
+test('TopicDetail shows no Maintainer badge for a community author', () => {
+  const html = renderToString(h(TopicDetail, {
+    topic: {
+      id: 'c1',
+      title: 'Batch translate',
+      snippet: 'Times out on large catalogs',
+      typeLabel: 'Feature',
+      typeClass: 'rt-b-feat',
+      statusLabel: 'Open',
+      statusClass: 'rt-s-open',
+      handle: 'slate-meadow',
+      initials: 'SM',
+      net: 27,
+      age: '3d',
+      authorRole: 'community',
+    },
+    onBack: () => {},
+  }));
+  assert.doesNotMatch(html, /rt-b-maintainer/);
+});
+
 test('TopicDetail renders the topic body as full markdown', () => {
   const html = renderToString(h(TopicDetail, {
     topic: {
