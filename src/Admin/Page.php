@@ -69,6 +69,22 @@ final class Page {
         );
     }
 
+    /**
+     * Remove every other plugin's registered admin notices on the Community page only, so they
+     * don't stack up under our own header. Call on the `in_admin_header` action — the canonical
+     * point to strip `admin_notices`/`all_admin_notices` before they render, and late enough for
+     * {@see \get_current_screen()} to be populated. Our own page renders no notices via those
+     * hooks, so nothing of ours is lost; every other screen is left untouched.
+     */
+    public function suppressAdminNotices(): void {
+        $screen = \get_current_screen();
+        if ( ! \str_ends_with( (string) ( $screen->id ?? '' ), '_page_' . self::PAGE_SLUG ) ) {
+            return;
+        }
+        \remove_all_actions( 'admin_notices' );
+        \remove_all_actions( 'all_admin_notices' );
+    }
+
     /** Render the admin page: a wrapper and the Preact root container. */
     public function render(): void {
         echo '<div class="wrap rt-community-wrap"><div id="roundtable-app" data-loading="'

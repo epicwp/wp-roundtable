@@ -47,10 +47,10 @@ test('CommunityApp shows the chat panel when chatEnabled is true', () => {
   assert.match(html, /rt-chat-launch/);
 });
 
-test('CommunityApp shows the attribution line under the page header when configured', () => {
+test('CommunityApp shows the attribution line as an info notice box under the page header when configured', () => {
   globalThis.window = { RoundtableConfig: { agentName: 'Nova', attribution: 'Community powered by Acme' } };
   const html = renderToString(h(CommunityApp, {}));
-  assert.match(html, /rt-attribution[^>]*>Community powered by Acme</);
+  assert.match(html, /<div class="rt-banner rt-banner-info rt-attribution">Community powered by Acme<\/div>/);
 });
 
 test('CommunityApp renders no attribution line when it is not configured', () => {

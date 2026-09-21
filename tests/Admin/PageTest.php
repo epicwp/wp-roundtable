@@ -189,4 +189,29 @@ final class PageTest extends TestCase
         $html = (string) \ob_get_clean();
         self::assertStringContainsString('id="roundtable-app"', $html);
     }
+
+    public function test_suppress_admin_notices_removes_them_on_our_screen(): void
+    {
+        $this->expectNotToPerformAssertions();
+        Functions\when('get_current_screen')->justReturn((object) ['id' => 'tools_page_roundtable-community']);
+        Functions\expect('remove_all_actions')->once()->with('admin_notices');
+        Functions\expect('remove_all_actions')->once()->with('all_admin_notices');
+        $this->page()->suppressAdminNotices();
+    }
+
+    public function test_suppress_admin_notices_leaves_other_screens_untouched(): void
+    {
+        $this->expectNotToPerformAssertions();
+        Functions\when('get_current_screen')->justReturn((object) ['id' => 'edit-post']);
+        Functions\expect('remove_all_actions')->never();
+        $this->page()->suppressAdminNotices();
+    }
+
+    public function test_suppress_admin_notices_does_nothing_without_a_current_screen(): void
+    {
+        $this->expectNotToPerformAssertions();
+        Functions\when('get_current_screen')->justReturn(null);
+        Functions\expect('remove_all_actions')->never();
+        $this->page()->suppressAdminNotices();
+    }
 }
