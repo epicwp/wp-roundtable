@@ -12,7 +12,7 @@ import { PublishDialog } from './publish-dialog.jsx';
 import { publishCase, submitTopic } from './api.js';
 import { fetchTabCounts } from './tab-counts.js';
 import {
-  agentDisplayName, betaEnabled, chatEnabled, projectDisplayName,
+  agentDisplayName, attribution, betaEnabled, chatEnabled, projectDisplayName,
 } from './config.js';
 
 const TABS = [
@@ -38,6 +38,7 @@ export function CommunityApp() {
   const chatOn = chatEnabled();
   const agentName = agentDisplayName();
   const projectName = projectDisplayName();
+  const attributionText = attribution();
 
   useEffect(() => {
     let cancelled = false;
@@ -115,6 +116,7 @@ export function CommunityApp() {
               </div>
               <button class="rt-newtopic-head" type="button" onClick={requestNewTopic}>+ New topic</button>
             </div>
+            {attributionText && <p class="rt-sub rt-attribution">{attributionText}</p>}
             <nav class="rt-tabs" aria-label="Community views">
               {TABS.map((tab) => (
                 <button

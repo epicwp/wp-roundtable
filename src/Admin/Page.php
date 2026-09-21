@@ -57,6 +57,7 @@ final class Page {
             'RoundtableConfig',
             array(
                 'agentName'      => $display['agentName'],
+                'attribution'    => $this->config->attribution,
                 'beta'           => $this->config->beta,
                 'chatDisabled'   => $display['chatDisabled'],
                 'chatEnabled'    => $this->config->enableChat,

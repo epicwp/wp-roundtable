@@ -46,3 +46,24 @@ test('CommunityApp shows the chat panel when chatEnabled is true', () => {
   assert.match(html, /rt-aside/);
   assert.match(html, /rt-chat-launch/);
 });
+
+test('CommunityApp shows the attribution line under the page header when configured', () => {
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova', attribution: 'Community powered by Acme' } };
+  const html = renderToString(h(CommunityApp, {}));
+  assert.match(html, /rt-attribution[^>]*>Community powered by Acme</);
+});
+
+test('CommunityApp renders no attribution line when it is not configured', () => {
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova' } };
+  const html = renderToString(h(CommunityApp, {}));
+  assert.doesNotMatch(html, /rt-attribution/);
+});
+
+test('CommunityApp escapes the attribution line as plain text (no live markup)', () => {
+  globalThis.window = { RoundtableConfig: { agentName: 'Nova', attribution: '<b>Acme</b> & friends' } };
+  const html = renderToString(h(CommunityApp, {}));
+  // Preact escapes text children, so the '<' that would open a tag is neutralized —
+  // no literal <b> element ever lands in the DOM.
+  assert.doesNotMatch(html, /<b>Acme/);
+  assert.match(html, /&lt;b>Acme&lt;\/b> &amp; friends/);
+});

@@ -5,6 +5,7 @@ import { fetchCases } from './api.js';
 import { markdownToPlainText } from './markdown.js';
 import { mapCaseToTopic } from './topics.js';
 import { DisabledVote, VoteControl } from './vote-control.jsx';
+import { MaintainerBadge } from './badges.jsx';
 
 export function TopicRow({ topic, onSelect, hideStatus = false, onVoteChange }) {
   const open = () => onSelect && onSelect(topic);
@@ -33,6 +34,7 @@ export function TopicRow({ topic, onSelect, hideStatus = false, onVoteChange }) 
           {!hideStatus && <span class={'rt-status ' + topic.statusClass}>{topic.statusLabel}</span>}
           <span class="rt-dot">·</span>
           <span class="rt-handle">{topic.handle}</span>
+          {topic.authorRole === 'maintainer' && <MaintainerBadge />}
           {topic.age ? <span class="rt-age-wrap"><span class="rt-dot">·</span><span>{topic.age}</span></span> : null}
         </div>
       </div>

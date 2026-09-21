@@ -23,6 +23,7 @@ final class ConfigTest extends PHPUnitTestCase
         self::assertSame('', $config->projectName);
         self::assertFalse($config->beta);
         self::assertFalse($config->enableChat);
+        self::assertNull($config->attribution);
     }
 
     public function test_accepts_overrides(): void
@@ -54,5 +55,12 @@ final class ConfigTest extends PHPUnitTestCase
         $config = new Config('pk', new FakeConsumer(), enableChat: true);
 
         self::assertTrue($config->enableChat);
+    }
+
+    public function test_accepts_an_attribution_line(): void
+    {
+        $config = new Config('pk', new FakeConsumer(), attribution: 'Community powered by Acme');
+
+        self::assertSame('Community powered by Acme', $config->attribution);
     }
 }
