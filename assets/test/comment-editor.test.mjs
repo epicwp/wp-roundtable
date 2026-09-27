@@ -56,3 +56,31 @@ test('CommentEditor renders the error message and falls back to a plain textarea
   assert.doesNotMatch(html, /rt-ed-top/);
   assert.doesNotMatch(html, /rt-ed-tools/);
 });
+
+test('CommentEditor shows a "Replying to <handle>" chip with a cancel button in reply mode', () => {
+  globalThis.window = {};
+  const html = renderToString(h(CommentEditor, {
+    value: '',
+    onInput: () => {},
+    onSubmit: () => {},
+    posting: false,
+    error: false,
+    replyTarget: { handle: 'teal-owl', parentId: 'c1' },
+    onCancelReply: () => {},
+  }));
+  assert.match(html, /rt-reply-chip"/);
+  assert.match(html, /Replying to <b>teal-owl<\/b>/);
+  assert.match(html, /rt-reply-chip-cancel/);
+});
+
+test('CommentEditor renders no reply chip outside reply mode', () => {
+  globalThis.window = {};
+  const html = renderToString(h(CommentEditor, {
+    value: '',
+    onInput: () => {},
+    onSubmit: () => {},
+    posting: false,
+    error: false,
+  }));
+  assert.doesNotMatch(html, /rt-reply-chip/);
+});

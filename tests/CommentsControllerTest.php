@@ -119,6 +119,42 @@ final class CommentsControllerTest extends TestCase
         self::assertSame(['kind' => HubException::LICENCE_INVALID], $response->get_data()['error']);
     }
 
+    public function test_handle_create_forwards_the_parent_id_to_the_hub(): void
+    {
+        Functions\when('wp_verify_nonce')->justReturn(1);
+        Functions\when('current_user_can')->justReturn(true);
+
+        $transport  = new FakeTransport(200, '{"id":"cm3"}');
+        $config     = new Config('pk', new FakeConsumer());
+        $controller = new CommentsController($config, new HubClient($config, $transport));
+
+        $req = $this->request('c1', 'cm1');
+        $req->allows('get_param')->with('body')->andReturn('Reply');
+
+        $controller->handleCreate($req);
+
+        $payload = \json_decode((string) $transport->lastBody, true);
+        self::assertSame('cm1', $payload['parent_id']);
+    }
+
+    public function test_handle_create_omits_parent_id_for_a_top_level_comment(): void
+    {
+        Functions\when('wp_verify_nonce')->justReturn(1);
+        Functions\when('current_user_can')->justReturn(true);
+
+        $transport  = new FakeTransport(200, '{"id":"cm1"}');
+        $config     = new Config('pk', new FakeConsumer());
+        $controller = new CommentsController($config, new HubClient($config, $transport));
+
+        $req = $this->request('c1');
+        $req->allows('get_param')->with('body')->andReturn('Top level');
+
+        $controller->handleCreate($req);
+
+        $payload = \json_decode((string) $transport->lastBody, true);
+        self::assertArrayNotHasKey('parent_id', $payload);
+    }
+
     public function test_handle_create_rejects_empty_body(): void
     {
         Functions\when('wp_verify_nonce')->justReturn(1);
@@ -140,11 +176,12 @@ final class CommentsControllerTest extends TestCase
         return new CommentsController($config, new HubClient($config, $transport));
     }
 
-    private function request(string $caseId): \WP_REST_Request
+    private function request(string $caseId, ?string $parentId = null): \WP_REST_Request
     {
         $req = Mockery::mock(\WP_REST_Request::class);
         $req->allows('get_header')->with('X-WP-Nonce')->andReturn('nonce');
         $req->allows('get_param')->with('case_id')->andReturn($caseId);
+        $req->allows('get_param')->with('parent_id')->andReturn($parentId);
         return $req;
     }
 }

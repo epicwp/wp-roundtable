@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mapCaseToTopic, formatAge, handleInitials, mapCommentToView, resolveCommentRole, commentRoleBadge } from '../src/topics.js';
+import {
+  mapCaseToTopic, formatAge, handleInitials, mapCommentToView, resolveCommentRole, commentRoleBadge, groupCommentThreads, buildThreadRows,
+} from '../src/topics.js';
 
 test('formatAge returns short relative labels', () => {
   const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
@@ -121,4 +123,90 @@ test('mapCommentToView exposes agent badge and avatar hint', () => {
 test('mapCommentToView falls back to the SDK default agent name when none is passed', () => {
   const view = mapCommentToView({ id: 'c', author_handle: 'sage', author_role: 'assistant', body: 'Hi', status: 'active', created_at: '2026-07-01T12:00:00' });
   assert.equal(view.roleBadge, 'Roundtable · Assistant');
+});
+
+test('mapCommentToView defaults parentId to null when the hub omits it', () => {
+  const view = mapCommentToView({
+    id: 'c', author_handle: 'sage', body: 'Hi', status: 'active', created_at: '2026-07-01T12:00:00',
+  });
+  assert.equal(view.parentId, null);
+});
+
+test('mapCommentToView passes the hub parent_id through', () => {
+  const view = mapCommentToView({
+    id: 'c', author_handle: 'sage', body: 'Hi', status: 'active', created_at: '2026-07-01T12:00:00', parent_id: 'cm1',
+  });
+  assert.equal(view.parentId, 'cm1');
+});
+
+test('groupCommentThreads sorts top-level newest-first and replies oldest-first', () => {
+  const comments = [
+    { id: 'c1', parentId: null, handle: 'a' }, // oldest top-level
+    { id: 'c2', parentId: 'c1', handle: 'b' }, // oldest reply to c1
+    { id: 'c3', parentId: null, handle: 'c' }, // newest top-level
+    { id: 'c4', parentId: 'c1', handle: 'd' }, // newest reply to c1
+  ];
+  const threads = groupCommentThreads(comments);
+  assert.deepEqual(threads.map((t) => t.id), ['c3', 'c1']);
+  assert.deepEqual(threads[0].replies, []);
+  assert.deepEqual(threads[1].replies.map((r) => r.id), ['c2', 'c4']);
+});
+
+test('groupCommentThreads still anchors replies under a tombstoned top-level comment', () => {
+  const comments = [
+    { id: 'c1', parentId: null, handle: 'a', isTombstone: true },
+    { id: 'c2', parentId: 'c1', handle: 'b' },
+  ];
+  const threads = groupCommentThreads(comments);
+  assert.equal(threads.length, 1);
+  assert.equal(threads[0].id, 'c1');
+  assert.deepEqual(threads[0].replies.map((r) => r.id), ['c2']);
+});
+
+test('groupCommentThreads drops a reply whose parent is not in the list', () => {
+  const comments = [
+    { id: 'c1', parentId: null, handle: 'a' },
+    { id: 'c2', parentId: 'missing', handle: 'b' },
+  ];
+  const threads = groupCommentThreads(comments);
+  assert.equal(threads.length, 1);
+  assert.deepEqual(threads[0].replies, []);
+});
+
+test('groupCommentThreads drops a reply whose parent is itself a reply, not a top-level comment', () => {
+  // c3 replies to c2, but c2 is itself a reply (to c1) — same silently-dropped
+  // outcome as the unknown-parent orphan case above, via a different code
+  // path (c2's id is never looked up because c2 never lands in the top-level
+  // array c3 is filtered/grouped against).
+  const comments = [
+    { id: 'c1', parentId: null, handle: 'a' },
+    { id: 'c2', parentId: 'c1', handle: 'b' },
+    { id: 'c3', parentId: 'c2', handle: 'c' },
+  ];
+  const threads = groupCommentThreads(comments);
+  assert.equal(threads.length, 1);
+  assert.deepEqual(threads[0].replies.map((r) => r.id), ['c2']);
+});
+
+test('buildThreadRows flags root vs reply rows and points every onReply target at the thread root id, with each row\'s own handle', () => {
+  const comments = [
+    { id: 'c1', parentId: null, handle: 'alice' }, // root, oldest
+    { id: 'c2', parentId: 'c1', handle: 'bob' }, // reply to c1, oldest reply
+    { id: 'c3', parentId: null, handle: 'carol' }, // root, newest
+    { id: 'c4', parentId: 'c1', handle: 'dave' }, // reply to c1, newest reply
+  ];
+  const rows = buildThreadRows(comments);
+
+  // Display order: newest root (c3, no replies) first, then the older root
+  // (c1) followed immediately by its replies oldest-first.
+  assert.deepEqual(rows.map((r) => r.comment.id), ['c3', 'c1', 'c2', 'c4']);
+  assert.deepEqual(rows.map((r) => r.isReply), [false, false, true, true]);
+
+  // A root row's own reply target is itself.
+  assert.deepEqual(rows[0].replyTarget, { parentId: 'c3', handle: 'carol' });
+  assert.deepEqual(rows[1].replyTarget, { parentId: 'c1', handle: 'alice' });
+  // Both reply rows under c1 target parentId c1 (the thread root, matching
+  // the hub's one-level flattening) but carry their OWN handle.
+  assert.deepEqual(rows[2].replyTarget, { parentId: 'c1', handle: 'bob' });
+  assert.deepEqual(rows[3].replyTarget, { parentId: 'c1', handle: 'dave' });
 });

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { h } from 'preact';
 import { renderToString } from 'preact-render-to-string';
-import { TopicDetail } from '../src/topic-detail.jsx';
+import { TopicDetail, CommentRow } from '../src/topic-detail.jsx';
 
 test('TopicDetail shows pending approval banner', () => {
   const html = renderToString(h(TopicDetail, {
@@ -129,6 +129,49 @@ test('TopicDetail shows no Maintainer badge for a community author', () => {
     onBack: () => {},
   }));
   assert.doesNotMatch(html, /rt-b-maintainer/);
+});
+
+test('CommentRow indents a reply row', () => {
+  const html = renderToString(h(CommentRow, {
+    comment: {
+      id: 'c2', handle: 'reply-owl', initials: 'RO', age: '1h', role: 'community', roleBadge: null, isTombstone: false, html: '<p>Thanks!</p>',
+    },
+    isReply: true,
+    onReply: () => {},
+  }));
+  assert.match(html, /class="rt-cm rt-cm-reply-row"/);
+});
+
+test('CommentRow renders a top-level comment without the reply-row indent class', () => {
+  const html = renderToString(h(CommentRow, {
+    comment: {
+      id: 'c1', handle: 'top-owl', initials: 'TO', age: '2h', role: 'community', roleBadge: null, isTombstone: false, html: '<p>Hi</p>',
+    },
+    onReply: () => {},
+  }));
+  assert.match(html, /class="rt-cm"/);
+  assert.doesNotMatch(html, /rt-cm-reply-row/);
+});
+
+test('CommentRow enables Reply via the onReply callback', () => {
+  const html = renderToString(h(CommentRow, {
+    comment: {
+      id: 'c1', handle: 'top-owl', initials: 'TO', age: '2h', role: 'community', roleBadge: null, isTombstone: false, html: '<p>Hi</p>',
+    },
+    onReply: () => {},
+  }));
+  assert.doesNotMatch(html, /rt-cm-reply"[^>]*\bdisabled\b/);
+});
+
+test('CommentRow renders no actions (and no Reply button) for a tombstoned comment', () => {
+  const html = renderToString(h(CommentRow, {
+    comment: {
+      id: 'c1', handle: 'gone', initials: 'GO', age: '2h', role: 'community', roleBadge: null, isTombstone: true, tombstoneLabel: 'This comment was deleted.',
+    },
+    onReply: () => {},
+  }));
+  assert.doesNotMatch(html, /rt-cm-actions/);
+  assert.match(html, /This comment was deleted\./);
 });
 
 test('TopicDetail renders the topic body as full markdown', () => {

@@ -61,6 +61,28 @@ final class HubClientCreateCommentTest extends PHPUnitTestCase
         self::assertArrayNotHasKey('licence', $body);
     }
 
+    public function test_includes_parent_id_when_given(): void
+    {
+        $transport = new FakeTransport(200, '{}');
+        $client    = new HubClient($this->config(), $transport);
+
+        $client->createComment('c1', 'Reply', 'cm1');
+
+        $body = \json_decode((string) $transport->lastBody, true);
+        self::assertSame('cm1', $body['parent_id']);
+    }
+
+    public function test_omits_parent_id_when_null(): void
+    {
+        $transport = new FakeTransport(200, '{}');
+        $client    = new HubClient($this->config(), $transport);
+
+        $client->createComment('c1', 'Top level');
+
+        $body = \json_decode((string) $transport->lastBody, true);
+        self::assertArrayNotHasKey('parent_id', $body);
+    }
+
     public function test_maps_forbidden_to_blocked(): void
     {
         $client = new HubClient($this->config(), new FakeTransport(403, ''));
