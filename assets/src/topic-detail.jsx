@@ -5,7 +5,7 @@ import { fetchComments, postComment } from './api.js';
 import { renderMarkdown } from './markdown.js';
 import { AgentAvatar, PersonAvatar } from './avatars.jsx';
 import { agentDisplayName } from './config.js';
-import { groupCommentThreads, mapCommentToView } from './topics.js';
+import { buildThreadRows, mapCommentToView } from './topics.js';
 import { DisabledVote, VoteControl } from './vote-control.jsx';
 import { CommentEditor } from './comment-editor.jsx';
 import { CommentActions } from './comment-actions.jsx';
@@ -174,21 +174,13 @@ export function TopicDetail({ topic, onBack, onVoteChange }) {
             {!loading && !error && comments.length === 0 && <p class="rt-csec-empty">No comments yet.</p>}
             {!loading && !error && comments.length > 0 && (
               <div class="rt-cm-thread">
-                {groupCommentThreads(comments).map((thread) => (
-                  <Fragment key={thread.id}>
-                    <CommentRow
-                      comment={thread}
-                      onReply={() => startReply({ handle: thread.handle, parentId: thread.id })}
-                    />
-                    {thread.replies.map((reply) => (
-                      <CommentRow
-                        key={reply.id}
-                        comment={reply}
-                        isReply
-                        onReply={() => startReply({ handle: reply.handle, parentId: thread.id })}
-                      />
-                    ))}
-                  </Fragment>
+                {buildThreadRows(comments).map((row) => (
+                  <CommentRow
+                    key={row.comment.id}
+                    comment={row.comment}
+                    isReply={row.isReply}
+                    onReply={() => startReply(row.replyTarget)}
+                  />
                 ))}
               </div>
             )}

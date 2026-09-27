@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  mapCaseToTopic, formatAge, handleInitials, mapCommentToView, resolveCommentRole, commentRoleBadge, groupCommentThreads,
+  mapCaseToTopic, formatAge, handleInitials, mapCommentToView, resolveCommentRole, commentRoleBadge, groupCommentThreads, buildThreadRows,
 } from '../src/topics.js';
 
 test('formatAge returns short relative labels', () => {
@@ -171,4 +171,42 @@ test('groupCommentThreads drops a reply whose parent is not in the list', () => 
   const threads = groupCommentThreads(comments);
   assert.equal(threads.length, 1);
   assert.deepEqual(threads[0].replies, []);
+});
+
+test('groupCommentThreads drops a reply whose parent is itself a reply, not a top-level comment', () => {
+  // c3 replies to c2, but c2 is itself a reply (to c1) — same silently-dropped
+  // outcome as the unknown-parent orphan case above, via a different code
+  // path (c2's id is never looked up because c2 never lands in the top-level
+  // array c3 is filtered/grouped against).
+  const comments = [
+    { id: 'c1', parentId: null, handle: 'a' },
+    { id: 'c2', parentId: 'c1', handle: 'b' },
+    { id: 'c3', parentId: 'c2', handle: 'c' },
+  ];
+  const threads = groupCommentThreads(comments);
+  assert.equal(threads.length, 1);
+  assert.deepEqual(threads[0].replies.map((r) => r.id), ['c2']);
+});
+
+test('buildThreadRows flags root vs reply rows and points every onReply target at the thread root id, with each row\'s own handle', () => {
+  const comments = [
+    { id: 'c1', parentId: null, handle: 'alice' }, // root, oldest
+    { id: 'c2', parentId: 'c1', handle: 'bob' }, // reply to c1, oldest reply
+    { id: 'c3', parentId: null, handle: 'carol' }, // root, newest
+    { id: 'c4', parentId: 'c1', handle: 'dave' }, // reply to c1, newest reply
+  ];
+  const rows = buildThreadRows(comments);
+
+  // Display order: newest root (c3, no replies) first, then the older root
+  // (c1) followed immediately by its replies oldest-first.
+  assert.deepEqual(rows.map((r) => r.comment.id), ['c3', 'c1', 'c2', 'c4']);
+  assert.deepEqual(rows.map((r) => r.isReply), [false, false, true, true]);
+
+  // A root row's own reply target is itself.
+  assert.deepEqual(rows[0].replyTarget, { parentId: 'c3', handle: 'carol' });
+  assert.deepEqual(rows[1].replyTarget, { parentId: 'c1', handle: 'alice' });
+  // Both reply rows under c1 target parentId c1 (the thread root, matching
+  // the hub's one-level flattening) but carry their OWN handle.
+  assert.deepEqual(rows[2].replyTarget, { parentId: 'c1', handle: 'bob' });
+  assert.deepEqual(rows[3].replyTarget, { parentId: 'c1', handle: 'dave' });
 });

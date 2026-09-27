@@ -233,3 +233,39 @@ export function groupCommentThreads(comments) {
     .reverse()
     .map((top) => ({ ...top, replies: repliesByParent.get(top.id) || [] }));
 }
+
+/**
+ * Flatten `groupCommentThreads`' grouped output into one render-ready row
+ * descriptor per comment, in display order (each top-level comment
+ * immediately followed by its own replies). Pulled out of the render loop so
+ * the row-building — which row is a reply, and which comment a Reply click
+ * on it targets — is unit-testable on its own.
+ *
+ * Every row within a thread — the top-level comment and each of its
+ * replies — carries the SAME `replyTarget.parentId` (the thread's top-level
+ * id, matching the hub's one-level flattening: a reply-to-a-reply lands on
+ * the grandparent regardless), while `replyTarget.handle` is always that
+ * specific row's own handle (whichever comment was actually clicked).
+ *
+ * @param {Array<{id:string, parentId:string|null}>} comments Chronological
+ *   (oldest-first) mapped comment view models, as returned by mapCommentToView.
+ * @returns {Array<{comment:object, isReply:boolean, replyTarget:{parentId:string, handle:string}}>}
+ */
+export function buildThreadRows(comments) {
+  const rows = [];
+  groupCommentThreads(comments).forEach((thread) => {
+    rows.push({
+      comment: thread,
+      isReply: false,
+      replyTarget: { parentId: thread.id, handle: thread.handle },
+    });
+    thread.replies.forEach((reply) => {
+      rows.push({
+        comment: reply,
+        isReply: true,
+        replyTarget: { parentId: thread.id, handle: reply.handle },
+      });
+    });
+  });
+  return rows;
+}
