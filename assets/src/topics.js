@@ -183,6 +183,10 @@ export function mapCommentToView(row, agentName = 'Roundtable') {
   const role = resolveCommentRole(row);
   return {
     id: row.id,
+    // Defaults to null when absent so the UI works against an older hub that
+    // doesn't send parent_id on comment responses yet (every comment reads
+    // as top-level).
+    parentId: row.parent_id || null,
     handle,
     initials: handleInitials(handle),
     age: formatAge(row.created_at),
@@ -193,4 +197,39 @@ export function mapCommentToView(row, agentName = 'Roundtable') {
     tombstoneLabel: TOMBSTONE_LABELS[status] || 'This comment is unavailable.',
     html: isTombstone ? '' : renderMarkdown(row.body),
   };
+}
+
+/**
+ * Thread a flat, chronological (oldest-first) comment list into render
+ * groups: one entry per top-level comment, in the current sort order
+ * (newest-first, unchanged), each carrying its own replies in a `replies`
+ * array (oldest-first — their relative order in the input is preserved).
+ *
+ * Threading is one level deep — the hub contract flattens a reply-to-a-reply
+ * onto the grandparent, so every reply's `parentId` already points at a
+ * top-level comment in this same list. A tombstoned top-level comment is
+ * grouped exactly like any other and still anchors its replies; only its own
+ * rendering (handled elsewhere) differs. A reply whose `parentId` doesn't
+ * match any top-level comment in this list is dropped rather than shown
+ * detached.
+ *
+ * @param {Array<{id:string, parentId:string|null}>} comments Chronological
+ *   (oldest-first) mapped comment view models, as returned by mapCommentToView.
+ * @returns {Array<object>} One entry per top-level comment (newest-first),
+ *   each spread with a `replies` array (oldest-first).
+ */
+export function groupCommentThreads(comments) {
+  const list = comments || [];
+  const repliesByParent = new Map();
+  list.forEach((c) => {
+    if (!c.parentId) return;
+    if (!repliesByParent.has(c.parentId)) repliesByParent.set(c.parentId, []);
+    repliesByParent.get(c.parentId).push(c);
+  });
+
+  return list
+    .filter((c) => !c.parentId)
+    .slice()
+    .reverse()
+    .map((top) => ({ ...top, replies: repliesByParent.get(top.id) || [] }));
 }

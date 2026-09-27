@@ -47,3 +47,32 @@ test('streamMessage includes trigger in the body when given', async () => {
 
   assert.equal(capturedBody.trigger, 'create_topic');
 });
+
+test('postComment includes parent_id when given', async () => {
+  globalThis.window = { RoundtableConfig: { restUrl: 'https://example.test/wp-json/roundtable/v1', nonce: 'n' } };
+  let capturedBody = null;
+  globalThis.fetch = async (url, init) => {
+    capturedBody = JSON.parse(init.body);
+    return { ok: true, json: async () => ({ comment: {} }) };
+  };
+  const { postComment } = await import('../src/api.js');
+
+  await postComment('c1', '<p>Reply</p>', 'cm1');
+
+  assert.equal(capturedBody.parent_id, 'cm1');
+  assert.equal(capturedBody.body, '<p>Reply</p>');
+});
+
+test('postComment omits parent_id for a top-level comment', async () => {
+  globalThis.window = { RoundtableConfig: { restUrl: 'https://example.test/wp-json/roundtable/v1', nonce: 'n' } };
+  let capturedBody = null;
+  globalThis.fetch = async (url, init) => {
+    capturedBody = JSON.parse(init.body);
+    return { ok: true, json: async () => ({ comment: {} }) };
+  };
+  const { postComment } = await import('../src/api.js');
+
+  await postComment('c1', 'Top level');
+
+  assert.equal('parent_id' in capturedBody, false);
+});
